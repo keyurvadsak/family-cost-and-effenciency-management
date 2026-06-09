@@ -301,7 +301,7 @@ body {
 /* Utility layout styles */
 .layout-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 24px;
   margin-bottom: 24px;
 }
@@ -312,3 +312,174 @@ h1, h2, h3, h4, h5 {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+
+/* Progressive Portal Animations & Selection Layouts */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowPurple {
+  0% { box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 4px 35px rgba(139, 92, 246, 0.35); }
+  100% { box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15); }
+}
+
+@keyframes glowCyan {
+  0% { box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15); }
+  50% { box-shadow: 0 4px 35px rgba(6, 182, 212, 0.35); }
+  100% { box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 30px;
+  max-width: 900px;
+  margin: 40px auto;
+  width: 100%;
+}
+
+.portal-choice-card {
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+  cursor: pointer;
+  transition: var(--transition-bounce);
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-choice-card:hover {
+  transform: translateY(-8px) scale(1.02);
+}
+
+.portal-choice-card.expenses:hover {
+  border-color: rgba(139, 92, 246, 0.6);
+  background: rgba(139, 92, 246, 0.08);
+  animation: glowPurple 3s infinite;
+}
+
+.portal-choice-card.business:hover {
+  border-color: rgba(6, 182, 212, 0.6);
+  background: rgba(6, 182, 212, 0.08);
+  animation: glowCyan 3s infinite;
+}
+
+.back-navigation-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border-glass);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: var(--transition-smooth);
+  width: fit-content;
+}
+
+.back-navigation-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary);
+  transform: translateX(-4px);
+}
+
+.selection-avatar-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 200px;
+}
+
+.selection-avatar-badge {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transition: var(--transition-bounce);
+}
+
+.glass-card-interactive:hover .selection-avatar-badge {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 20px var(--primary-glow);
+}
+
+/* Responsive adjustments for mobile screens */
+@media (max-width: 768px) {
+  :root {
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 14px;
+  }
+
+  html {
+    font-size: 13.5px; /* Scales down rem-based values globally */
+  }
+
+  body {
+    font-size: 0.85rem;
+  }
+
+  /* Headings size scaling */
+  h1 { font-size: 1.55rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.05rem !important; }
+  h4 { font-size: 0.95rem !important; }
+
+  /* Forms & Buttons */
+  .form-group {
+    margin-bottom: 12px;
+    gap: 6px;
+  }
+  .form-label {
+    font-size: 0.75rem !important;
+  }
+  .input-field {
+    padding: 10px 12px !important;
+    font-size: 0.85rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .btn {
+    padding: 10px 16px !important;
+    font-size: 0.85rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  /* Table padding optimizations */
+  table th {
+    padding: 8px 10px !important;
+    font-size: 0.75rem !important;
+  }
+  table td {
+    padding: 10px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+

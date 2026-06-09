@@ -1,9 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import DashboardLayout from './components/DashboardLayout';
-import HomeExpensesPage from './pages/HomeExpensesPage';
-import BusinessPage from './pages/BusinessPage';
+import DashboardPortal from './pages/DashboardPortal';
 import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -23,16 +21,19 @@ export default function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <DashboardPortal />
             </ProtectedRoute>
           }
-        >
-          <Route index element={<Navigate to="home" replace />} />
-          <Route path="home" element={<HomeExpensesPage />} />
-          <Route path="business" element={<BusinessPage />} />
-          <Route path="admin" element={<AdminPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
+        />
+        <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoute>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { familyApi, authApi } from '../api';
-import type { FamilyMember, User } from '../api';
-import { Plus, Trash2, UserPlus, Users, ShieldAlert, Sparkles, Shield } from 'lucide-react';
+import type { FamilyMember } from '../api';
+import { Plus, Trash2, UserPlus, Users, ShieldAlert, Sparkles, Shield, ArrowLeft } from 'lucide-react';
 
 export default function AdminPage() {
+  const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [newMemberName, setNewMemberName] = useState('');
   
@@ -23,7 +33,7 @@ export default function AdminPage() {
       setMembers(list);
     } catch (err) {
       console.error(err);
-      setError('Could not retrieve family database values.');
+      setError('પરિવારના મોભીઓની યાદી મેળવવામાં નિષ્ફળતા મળી.');
     } finally {
       setLoading(false);
     }
@@ -43,27 +53,27 @@ export default function AdminPage() {
     try {
       const created = await familyApi.create(newMemberName.trim());
       setMembers((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
-      setSuccessMsg(`Family Head "${created.name}" registered successfully!`);
+      setSuccessMsg(`પરિવારના મોભી "${created.name}" સફળતાપૂર્વક ઉમેરવામાં આવ્યા છે!`);
       setNewMemberName('');
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to register family head.');
+      setError(err.response?.data?.detail || 'પરિવારના મોભી ઉમેરવામાં ભૂલ આવી છે.');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDeleteMember = async (id: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete family head "${name}"? This will permanently delete all monthly expenses associated with them.`)) return;
+    if (!window.confirm(`શું તમે ખરેખર પરિવારના મોભી "${name}" ને કાઢી નાખવા માંગો છો? આનાથી તેમના સંકળાયેલા તમામ માસિક ખર્ચાઓ પણ કાયમ માટે કાઢી નાખવામાં આવશે.`)) return;
     setError(null);
     setSuccessMsg(null);
     try {
       await familyApi.delete(id);
       setMembers((prev) => prev.filter((m) => m.id !== id));
-      setSuccessMsg(`Family Head "${name}" removed from database.`);
+      setSuccessMsg(`પરિવારના મોભી "${name}" ને સફળતાપૂર્વક કાઢી નાખવામાં આવ્યા છે.`);
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to delete family head.');
+      setError(err.response?.data?.detail || 'પરિવારના મોભીને કાઢી નાખવામાં ભૂલ આવી છે.');
     }
   };
 
@@ -76,13 +86,13 @@ export default function AdminPage() {
 
     try {
       await authApi.register(username.trim(), password.trim(), role);
-      setSuccessMsg(`New login user "${username}" registered successfully with ${role} permissions.`);
+      setSuccessMsg(`નવું લોગિન એકાઉન્ટ "${username}" સફળતાપૂર્વક ${role === 'admin' ? 'એડમિન' : 'સભ્ય'} પરવાનગી સાથે રજીસ્ટર કરવામાં આવ્યું છે.`);
       setUsername('');
       setPassword('');
       setRole('member');
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to register new login user.');
+      setError(err.response?.data?.detail || 'નવું લોગિન એકાઉન્ટ રજીસ્ટર કરવામાં ભૂલ આવી છે.');
     } finally {
       setActionLoading(false);
     }
@@ -98,6 +108,10 @@ export default function AdminPage() {
 
   return (
     <div style={styles.container} className="animate-fade-in">
+      <button className="back-navigation-btn" onClick={() => navigate('/dashboard')} style={{ marginBottom: '20px' }}>
+        <ArrowLeft size={16} />
+        <span>પોર્ટલ પર પાછા જાઓ</span>
+      </button>
       {/* Welcome Alerts */}
       {successMsg && (
         <div className="glass-card" style={styles.alertSuccess}>
@@ -112,29 +126,29 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div style={styles.dashboardGrid}>
+      <div style={{ ...styles.dashboardGrid, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))' }}>
         {/* Left Side: Family Head Registration */}
-        <div className="glass-card" style={styles.panelCard}>
+        <div className="glass-card" style={{ ...styles.panelCard, padding: isMobile ? '16px' : '30px' }}>
           <div style={styles.panelHeader}>
             <Users size={20} color="var(--primary)" />
-            <h3 style={styles.panelTitle}>Manage Family Heads</h3>
+            <h3 style={styles.panelTitle}>પરિવારના મોભી સભ્યોનું સંચાલન</h3>
           </div>
           
           <form onSubmit={handleAddMember} style={styles.innerForm}>
             <div className="form-group">
-              <label className="form-label">Add Family Head Name</label>
+              <label className="form-label">નવા મોભી સભ્યનું નામ ઉમેરો</label>
               <div style={styles.inputRow}>
                 <input
                   type="text"
                   className="input-field"
-                  placeholder="e.g. Rameshbhai"
+                  placeholder="દા.ત. જયેશભાઈ"
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
                   style={{ flex: 1 }}
                   required
                 />
                 <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  <Plus size={16} /> Add
+                  <Plus size={16} /> ઉમેરો
                 </button>
               </div>
             </div>
@@ -142,9 +156,9 @@ export default function AdminPage() {
 
           {/* Members list */}
           <div style={styles.listWrapper}>
-            <span style={styles.listTitle}>Registered Family Heads</span>
+            <span style={styles.listTitle}>નોંધાયેલા પરિવારના મોભી સભ્યો</span>
             {members.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No family heads added yet.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>હજુ સુધી કોઈ પરિવારના મોભી ઉમેરવામાં આવ્યા નથી.</p>
             ) : (
               <div style={styles.membersList}>
                 {members.map((m) => (
@@ -154,7 +168,7 @@ export default function AdminPage() {
                       className="btn-icon"
                       style={{ color: 'var(--error)' }}
                       onClick={() => handleDeleteMember(m.id, m.name)}
-                      title="Remove Family Head"
+                      title="પરિવારના મોભીને દૂર કરો"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -166,19 +180,19 @@ export default function AdminPage() {
         </div>
 
         {/* Right Side: Account Registration */}
-        <div className="glass-card" style={styles.panelCard}>
+        <div className="glass-card" style={{ ...styles.panelCard, padding: isMobile ? '16px' : '30px' }}>
           <div style={styles.panelHeader}>
             <UserPlus size={20} color="var(--secondary)" />
-            <h3 style={styles.panelTitle}>Register Login Accounts</h3>
+            <h3 style={styles.panelTitle}>નવા લોગિન એકાઉન્ટ રજીસ્ટર કરો</h3>
           </div>
 
           <form onSubmit={handleRegisterUser} style={styles.innerForm}>
             <div className="form-group">
-              <label className="form-label">Username</label>
+              <label className="form-label">વપરાશકર્તાનું નામ (Username)</label>
               <input
                 type="text"
                 className="input-field"
-                placeholder="Choose username"
+                placeholder="વપરાશકર્તાનું નામ લખો"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -186,11 +200,11 @@ export default function AdminPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Password</label>
+              <label className="form-label">પાસવર્ડ (Password)</label>
               <input
                 type="password"
                 className="input-field"
-                placeholder="Choose password"
+                placeholder="પાસવર્ડ લખો"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -198,19 +212,19 @@ export default function AdminPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Role Access Permission</label>
+              <label className="form-label">એકાઉન્ટનો રોલ (પરવાનગી)</label>
               <select
                 className="input-field"
                 value={role}
                 onChange={(e) => setRole(e.target.value as any)}
               >
-                <option value="member">Family Member (Read & Log data)</option>
-                <option value="admin">Admin (Full Control + Settings Access)</option>
+                <option value="member">પરિવારના સભ્ય (વાંચવા અને ડેટા નોંધવા માટે)</option>
+                <option value="admin">એડમિન (સંપૂર્ણ નિયંત્રણ + સેટિંગ્સ એક્સેસ)</option>
               </select>
             </div>
 
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }} disabled={actionLoading}>
-              <Shield size={16} /> Register Login Credentials
+              <Shield size={16} /> લોગિન વિગતો રજીસ્ટર કરો
             </button>
           </form>
         </div>

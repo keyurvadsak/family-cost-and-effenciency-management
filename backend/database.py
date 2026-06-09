@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# Load environmental variables from .env
+load_dotenv()
 
 # Retrieve DATABASE_URL from environment or fallback to default local Postgres
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:keyur6634@localhost:5432/joint_family")
@@ -15,7 +19,7 @@ try:
     dbname = parsed.path.lstrip('/')
     
     # Build a connection string to the default 'postgres' database
-    default_db_url = DATABASE_URL.replace(f"/{dbname}", "/postgres")
+    default_db_url = DATABASE_URL.replace(f"/{dbname}", "")
     
     conn = psycopg2.connect(default_db_url)
     conn.autocommit = True

@@ -17,10 +17,10 @@ export default function LoginPage() {
 
     try {
       await authApi.login(username, password);
-      navigate('/dashboard/home');
+      navigate('/dashboard');
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Invalid username or password. Please try again.');
+      setError(err.response?.data?.detail || 'વપરાશકર્તાનું નામ અથવા પાસવર્ડ ખોટો છે. કૃપા કરીને ફરી પ્રયાસ કરો.');
     } finally {
       setLoading(false);
     }
@@ -42,8 +42,8 @@ export default function LoginPage() {
           <div style={styles.logoIcon}>
             <KeyRound size={28} color="#8b5cf6" />
           </div>
-          <h1 style={styles.title}>Joint Family Ledger</h1>
-          <p style={styles.subtitle}>Family Expense & Business Data Manager</p>
+          <h1 style={styles.title}>વડસક પરિવાર</h1>
+          <p style={styles.subtitle}>પરિવારના ખર્ચ અને ધંધાકીય માહિતીનું વ્યવસ્થાપન</p>
         </div>
 
         {error && (
@@ -56,7 +56,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} style={styles.form}>
           <div className="form-group">
             <label className="form-label" htmlFor="username">
-              Username
+              વપરાશકર્તાનું નામ (Username)
             </label>
             <div style={styles.inputWrapper}>
               <User size={18} style={styles.inputIcon} />
@@ -64,7 +64,7 @@ export default function LoginPage() {
                 id="username"
                 type="text"
                 className="input-field"
-                placeholder="Enter username"
+                placeholder="નામ લખો"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 style={styles.input}
@@ -75,7 +75,7 @@ export default function LoginPage() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="password">
-              Password
+              પાસવર્ડ (Password)
             </label>
             <div style={styles.inputWrapper}>
               <Lock size={18} style={styles.inputIcon} />
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 className="input-field"
-                placeholder="Enter password"
+                placeholder="પાસવર્ડ લખો"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={styles.input}
@@ -98,7 +98,7 @@ export default function LoginPage() {
             style={styles.submitBtn}
             disabled={loading}
           >
-            {loading ? 'Logging in...' : 'Sign In'}
+            {loading ? 'લોગિન થઈ રહ્યું છે...' : 'સાઇન ઇન કરો'}
           </button>
         </form>
 
@@ -106,7 +106,7 @@ export default function LoginPage() {
         <div style={styles.demoBox}>
           <div style={styles.demoHeader}>
             <ShieldAlert size={14} color="#06b6d4" />
-            <span style={styles.demoTitle}>Demo Accounts</span>
+            <span style={styles.demoTitle}>ઝડપી ટેસ્ટ એકાઉન્ટ્સ</span>
           </div>
           <div style={styles.demoButtons}>
             <button
@@ -114,7 +114,7 @@ export default function LoginPage() {
               style={styles.demoBtn}
               type="button"
             >
-              <span>Admin Account</span>
+              <span>એડમિન એકાઉન્ટ</span>
               <small>admin / admin123</small>
             </button>
             <button
@@ -122,7 +122,7 @@ export default function LoginPage() {
               style={styles.demoBtn}
               type="button"
             >
-              <span>Member Account</span>
+              <span>પરિવારના સભ્ય</span>
               <small>member / member123</small>
             </button>
           </div>
@@ -189,13 +189,14 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '0 auto 16px auto',
   },
   title: {
-    fontSize: '2rem',
+    fontSize: '1.8rem',
     color: 'var(--text-main)',
-    marginBottom: '6px',
+    marginBottom: '8px',
   },
   subtitle: {
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     color: 'var(--text-muted)',
+    lineHeight: '1.4',
   },
   errorAlert: {
     display: 'flex',
@@ -270,5 +271,3 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'var(--transition-smooth)',
   },
 };
-// Hover handler style changes can be driven by CSS or global class.
-// We inline standard flex elements.
