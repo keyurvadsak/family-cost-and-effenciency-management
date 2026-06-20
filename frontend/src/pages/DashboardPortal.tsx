@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, familyApi, expenseApi, businessApi } from '../api';
 import type { User, FamilyMember, FamilyExpense, Business, BusinessRecord } from '../api';
-import { 
-  ArrowLeft, Home, Briefcase, Settings, LogOut, 
-  Plus, Trash2, IndianRupee, Sparkles, 
-  LayoutGrid, X, TrendingUp, PieChart as PieIcon 
+import {
+  ArrowLeft, Home, Briefcase, Settings, LogOut,
+  Plus, Trash2, IndianRupee, Sparkles,
+  LayoutGrid, X, TrendingUp, PieChart as PieIcon
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid 
+import {
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 
 // Config constants in Gujarati
@@ -25,17 +25,17 @@ export default function DashboardPortal() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   // Navigation states
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'portal' | 'expenses' | 'business'>('portal');
-  
+
   // Expenses drill down state
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [expenses, setExpenses] = useState<FamilyExpense[]>([]);
-  
+
   // Business drill down state
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
@@ -70,7 +70,7 @@ export default function DashboardPortal() {
       try {
         const u = await authApi.getCurrentUser();
         setUser(u);
-        
+
         // Pre-fetch lists
         const membersList = await familyApi.list();
         setMembers(membersList);
@@ -282,7 +282,7 @@ export default function DashboardPortal() {
   // ----------------- CALCULATIONS -----------------
   const totalSpent = expenses.reduce((sum, item) => sum + item.amount, 0);
   const avgExpense = expenses.length > 0 ? (totalSpent / expenses.length) : 0;
-  
+
   const categoryDataMap = expenses.reduce((acc, item) => {
     acc[item.category] = (acc[item.category] || 0) + item.amount;
     return acc;
@@ -320,10 +320,10 @@ export default function DashboardPortal() {
       {/* Top Navbar */}
       <header style={{ ...styles.navbar, padding: isMobile ? '12px 16px' : '16px 40px' }} className="glass-card">
         <div style={styles.navBrand} onClick={resetPortal}>
-          <div style={styles.logoBadge}>જેએફ</div>
-          <span style={{ ...styles.logoText, fontSize: isMobile ? '0.95rem' : '1.2rem' }}>પરિવાર પોર્ટલ</span>
+          <div style={styles.logoBadge}>VP</div>
+          <span style={{ ...styles.logoText, fontSize: isMobile ? '0.95rem' : '1.2rem' }}>વડસક પરિવાર</span>
         </div>
-        
+
         <div style={{ ...styles.navActions, gap: isMobile ? '6px' : '16px' }}>
           <div style={{ ...styles.userSection, padding: isMobile ? '4px 8px' : '6px 12px', gap: isMobile ? '6px' : '10px' }}>
             <div style={styles.avatar}>
@@ -338,8 +338,8 @@ export default function DashboardPortal() {
           </div>
 
           {user?.role === 'admin' && (
-            <button 
-              className="btn btn-secondary" 
+            <button
+              className="btn btn-secondary"
               onClick={() => navigate('/dashboard/admin')}
               style={{ padding: isMobile ? '8px' : '8px 14px' }}
             >
@@ -348,8 +348,8 @@ export default function DashboardPortal() {
             </button>
           )}
 
-          <button 
-            className="btn btn-danger" 
+          <button
+            className="btn btn-danger"
             onClick={handleLogout}
             style={{ padding: isMobile ? '8px' : '8px 14px' }}
           >
@@ -380,10 +380,10 @@ export default function DashboardPortal() {
           <div style={{ ...styles.portalChoiceContainer, minHeight: isMobile ? '50vh' : '70vh' }} className="animate-slide-up">
             <h1 style={{ ...styles.portalTitle, fontSize: isMobile ? '1.8rem' : '2.5rem' }}>વડસક પરિવાર</h1>
             <p style={{ ...styles.portalSubtitle, fontSize: isMobile ? '0.85rem' : '1rem' }}>પરિવારના સભ્યોના ખર્ચાઓ અથવા ધંધાની માસિક આવક-જાવક સંચાલન કરવા માટે નીચેનામાંથી પસંદગી કરો.</p>
-            
+
             <div className="portal-grid">
-              <div 
-                className="glass-card portal-choice-card expenses" 
+              <div
+                className="glass-card portal-choice-card expenses"
                 onClick={() => { setMode('expenses'); setSuccess(null); setError(null); }}
               >
                 <div style={{ ...styles.choiceIconBox, background: 'rgba(139, 92, 246, 0.15)', borderColor: 'var(--primary)' }}>
@@ -398,8 +398,8 @@ export default function DashboardPortal() {
                 </span>
               </div>
 
-              <div 
-                className="glass-card portal-choice-card business" 
+              <div
+                className="glass-card portal-choice-card business"
                 onClick={() => { setMode('business'); setSuccess(null); setError(null); }}
               >
                 <div style={{ ...styles.choiceIconBox, background: 'rgba(6, 182, 212, 0.15)', borderColor: 'var(--secondary)' }}>
@@ -430,8 +430,8 @@ export default function DashboardPortal() {
 
             <div className="layout-grid" style={{ marginTop: '24px' }}>
               {members.map((m) => (
-                <div 
-                  key={m.id} 
+                <div
+                  key={m.id}
                   className="glass-card-interactive selection-avatar-card"
                   onClick={() => setSelectedMember(m)}
                 >
@@ -657,9 +657,9 @@ export default function DashboardPortal() {
 
             <div className="layout-grid" style={{ marginTop: '24px' }}>
               {businesses.map((biz) => (
-                <div 
-                  key={biz.id} 
-                  className="glass-card-interactive" 
+                <div
+                  key={biz.id}
+                  className="glass-card-interactive"
                   style={{ padding: '24px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                   onClick={() => setSelectedBiz(biz)}
                 >
@@ -667,9 +667,9 @@ export default function DashboardPortal() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <LayoutGrid size={24} color="var(--secondary)" />
                       {user?.role === 'admin' && (
-                        <button 
-                          className="btn-icon" 
-                          style={{ color: 'var(--error)' }} 
+                        <button
+                          className="btn-icon"
+                          style={{ color: 'var(--error)' }}
                           onClick={(e) => handleDeleteBusiness(biz.id, e)}
                         >
                           <Trash2 size={16} />
@@ -745,12 +745,12 @@ export default function DashboardPortal() {
                       <AreaChart data={[...processedRecords].reverse()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorRevPortal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="colorProfitPortal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
