@@ -145,7 +145,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div style={styles.spinnerWrapper}>
-        <img src="/logo.png" alt="Loading" className="logo-img-large" />
+        <img src="/logo.png" alt="Loading" className="logo-img-large" style={{ height: '140px', marginBottom: '20px' }} />
         <div className="spinner" style={styles.spinner}></div>
       </div>
     );

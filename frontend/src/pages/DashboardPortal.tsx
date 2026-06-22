@@ -341,7 +341,7 @@ export default function DashboardPortal() {
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
-        <img src="/logo.png" alt="Loading" className="logo-img-large" />
+        <img src="/logo.png" alt="Loading" className="logo-img-large" style={{ height: '140px', marginBottom: '20px' }} />
         <div style={styles.spinner}></div>
         <p style={{ marginTop: '12px', color: 'var(--text-muted)' }}>પ્રોફાઇલ ચકાસણી ચાલુ છે...</p>
       </div>
@@ -354,8 +354,7 @@ export default function DashboardPortal() {
       <header style={{ ...styles.navbar, padding: isMobile ? '12px 16px' : '16px 40px', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }} className="glass-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: isMobile ? '100%' : 'auto' }}>
           <div style={styles.navBrand} onClick={resetPortal}>
-            <img src="/logo.png" alt="Logo" className="logo-img" />
-            <span style={{ ...styles.logoText, fontSize: isMobile ? '1rem' : '1.2rem' }}>વડસક પરિવાર</span>
+            <img src="/logo.png" alt="Logo" className="logo-img" style={{ height: '56px' }} />
           </div>
           {isMobile && (
             <button className="btn-icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
