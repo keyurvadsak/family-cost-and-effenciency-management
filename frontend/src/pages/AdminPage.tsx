@@ -145,6 +145,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div style={styles.spinnerWrapper}>
+        <img src="/logo.png" alt="Loading" style={{ height: '80px', width: 'auto', marginBottom: '20px', objectFit: 'contain' }} />
         <div className="spinner" style={styles.spinner}></div>
       </div>
     );

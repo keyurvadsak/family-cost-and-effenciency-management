@@ -39,7 +39,7 @@ export default function LoginPage() {
       <div className="glass-card animate-fade-in" style={styles.card}>
         <div style={styles.header}>
           <div style={styles.logoIcon}>
-            <KeyRound size={28} color="#8b5cf6" />
+            <img src="/logo.png" alt="Logo" style={{ height: '60px', width: 'auto', objectFit: 'contain' }} />
           </div>
           <h1 style={styles.title}>વડસક પરિવાર</h1>
           <p style={styles.subtitle}>પરિવારના ખર્ચ અને ધંધાકીય માહિતીનું વ્યવસ્થાપન</p>
