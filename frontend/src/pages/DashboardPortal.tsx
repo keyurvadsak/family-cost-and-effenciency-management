@@ -521,7 +521,7 @@ export default function DashboardPortal() {
             </div>
 
             {/* Action Bar for Manager/Admin */}
-            {(user?.role === 'admin' || (selectedMember.allowed_user_ids || []).includes(user?.id)) && (
+            {(user?.role === 'admin' || (selectedMember.allowed_user_ids || []).includes(user?.id as number)) && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
                 <button className="btn btn-primary" onClick={() => setShowExpenseModal(true)}>
                   <Plus size={16} /> નવો ખર્ચ ઉમેરો
