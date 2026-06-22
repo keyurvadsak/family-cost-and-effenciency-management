@@ -36,16 +36,15 @@ export default function LoginPage() {
       <div style={styles.orb1}></div>
       <div style={styles.orb2}></div>
 
-      <div className="glass-card animate-fade-in" style={styles.card}>
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-            <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '160px' }} />
+      {loading ? (
+        <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
+          <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '180px' }} />
+        </div>
+      ) : (
+        <div className="glass-card animate-fade-in" style={styles.card}>
+          <div style={styles.header}>
+            <img src="/logo.png" alt="Logo" className="logo-img-large" style={{ height: '160px', marginBottom: '10px' }} />
           </div>
-        ) : (
-          <>
-            <div style={styles.header}>
-              <img src="/logo.png" alt="Logo" className="logo-img-large" style={{ height: '160px', marginBottom: '10px' }} />
-            </div>
 
             {error && (
           <div style={styles.errorAlert}>
@@ -102,11 +101,8 @@ export default function LoginPage() {
             સાઇન ઇન કરો
           </button>
         </form>
-          </>
-        )}
-
-
-      </div>
+        </div>
+      )}
     </div>
   );
 }
