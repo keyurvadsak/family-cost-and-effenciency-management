@@ -62,6 +62,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {"message": "Welcome to the Joint Family Expense & Business Manager API!"}
+
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
