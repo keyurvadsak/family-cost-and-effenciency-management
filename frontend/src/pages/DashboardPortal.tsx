@@ -949,7 +949,7 @@ export default function DashboardPortal() {
                     placeholder="નામ લખો"
                     value={newFieldName}
                     onChange={(e) => setNewFieldName(e.target.value)}
-                    style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
+                    style={{ flex: 1, minWidth: 0, padding: '6px 12px', fontSize: '0.8rem' }}
                   />
                   <input
                     type="text"
@@ -957,7 +957,7 @@ export default function DashboardPortal() {
                     placeholder="રકમ"
                     value={newFieldValue}
                     onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
+                    style={{ flex: 1, minWidth: 0, padding: '6px 12px', fontSize: '0.8rem' }}
                   />
                   <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '6px 10px' }}>
                     <Plus size={14} />
@@ -1406,6 +1406,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     maxWidth: '450px',
     padding: '24px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
   },
   modalHeader: {
     display: 'flex',
@@ -1416,6 +1418,7 @@ const styles: Record<string, React.CSSProperties> = {
   modalFooter: {
     display: 'flex',
     justifyContent: 'flex-end',
+    flexWrap: 'wrap',
     gap: '12px',
     marginTop: '16px',
   },
