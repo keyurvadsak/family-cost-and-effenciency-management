@@ -12,9 +12,11 @@ import schemas
 import bcrypt
 
 # Configuration parameters
-SECRET_KEY = os.getenv("JWT_SECRET", "super-secret-joint-family-key-1234567890")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 2880 # 48 hours for convenience
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET environment variable is not set. Please set it in your .env file.")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "2880"))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 

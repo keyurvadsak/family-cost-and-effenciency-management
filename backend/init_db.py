@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 import psycopg2
 
 def init_database():
@@ -15,9 +15,10 @@ def init_database():
     try:
         parsed = urlparse(database_url)
         dbname = parsed.path.lstrip('/')
-        
-        # Build a connection string to the default 'postgres' database
-        default_db_url = database_url.replace(f"/{dbname}", "")
+
+        # Build a connection string to the default 'postgres' database without
+        # accidentally stripping the username from the URL.
+        default_db_url = urlunparse(parsed._replace(path=""))
         
         conn = psycopg2.connect(default_db_url)
         conn.autocommit = True

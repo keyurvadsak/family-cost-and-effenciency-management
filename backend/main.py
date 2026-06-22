@@ -18,118 +18,28 @@ async def lifespan(app: FastAPI):
     # Create tables
     Base.metadata.create_all(bind=engine)
     
-    # Seed data
+    # Initialize first admin if database is empty and credentials are provided
     db = next(get_db())
     try:
-        # Check if users already seeded
         if db.query(models.User).count() == 0:
-            # Create users
-            admin_user = models.User(
-                username="admin",
-                hashed_password=auth.get_password_hash("admin123"),
-                role="admin"
-            )
-            member_user = models.User(
-                username="member",
-                hashed_password=auth.get_password_hash("member123"),
-                role="member"
-            )
-            db.add_all([admin_user, member_user])
-            db.commit()
-            db.refresh(admin_user)
-            db.refresh(member_user)
-
-            # Create default family heads
-            f1 = models.FamilyMember(name="Jayeshbhai")
-            f2 = models.FamilyMember(name="Hareshbhai")
-            f3 = models.FamilyMember(name="Mansukhbhai")
-            db.add_all([f1, f2, f3])
-            db.commit()
-            db.refresh(f1)
-            db.refresh(f2)
-            db.refresh(f3)
-
-            # Seed sample expenses
-            expenses = [
-                # Jayeshbhai
-                models.FamilyExpense(
-                    family_member_id=f1.id, amount=15000.0, category="Groceries",
-                    description="Monthly kitchen inventory & provisions", date=datetime.date.today(), added_by=admin_user.id
-                ),
-                models.FamilyExpense(
-                    family_member_id=f1.id, amount=4200.0, category="Medical",
-                    description="Dr. Mehta checkup & routine pills", date=datetime.date.today() - datetime.timedelta(days=5), added_by=admin_user.id
-                ),
-                models.FamilyExpense(
-                    family_member_id=f1.id, amount=8500.0, category="Bills",
-                    description="Torrent Power electricity bill", date=datetime.date.today() - datetime.timedelta(days=12), added_by=admin_user.id
-                ),
-                # Hareshbhai
-                models.FamilyExpense(
-                    family_member_id=f2.id, amount=24000.0, category="Education",
-                    description="Quarterly school tuition fee", date=datetime.date.today() - datetime.timedelta(days=3), added_by=member_user.id
-                ),
-                models.FamilyExpense(
-                    family_member_id=f2.id, amount=12000.0, category="Groceries",
-                    description="Supermarket shopping visit", date=datetime.date.today() - datetime.timedelta(days=10), added_by=member_user.id
-                ),
-                models.FamilyExpense(
-                    family_member_id=f2.id, amount=50000.0, category="Investments",
-                    description="HDFC mutual fund SIP deduction", date=datetime.date.today() - datetime.timedelta(days=15), added_by=admin_user.id
-                ),
-                # Mansukhbhai
-                models.FamilyExpense(
-                    family_member_id=f3.id, amount=6200.0, category="Bills",
-                    description="Water tax & Jio Broadband connection", date=datetime.date.today() - datetime.timedelta(days=2), added_by=member_user.id
-                ),
-                models.FamilyExpense(
-                    family_member_id=f3.id, amount=11000.0, category="Medical",
-                    description="Dental cleaning and root canal", date=datetime.date.today() - datetime.timedelta(days=8), added_by=member_user.id
-                ),
-                models.FamilyExpense(
-                    family_member_id=f3.id, amount=7500.0, category="Leisure",
-                    description="Family anniversary dinner at Radisson", date=datetime.date.today() - datetime.timedelta(days=14), added_by=admin_user.id
+            import os
+            import auth
+            first_admin_user = os.getenv("FIRST_ADMIN_USER")
+            first_admin_pwd = os.getenv("FIRST_ADMIN_PASSWORD")
+            
+            if first_admin_user and first_admin_pwd:
+                admin_user = models.User(
+                    username=first_admin_user,
+                    hashed_password=auth.get_password_hash(first_admin_pwd),
+                    role="admin"
                 )
-            ]
-            db.add_all(expenses)
-
-            # Seed sample businesses
-            b1 = models.Business(name="Vraj Textiles", description="Textile Loom & Fabric Manufacturing", created_by=admin_user.id)
-            b2 = models.Business(name="Diamond Crafters", description="Imported Polished Diamond Trading", created_by=admin_user.id)
-            db.add_all([b1, b2])
-            db.commit()
-            db.refresh(b1)
-            db.refresh(b2)
-
-            # Seed Business Records
-            records = [
-                # Vraj Textiles
-                models.BusinessRecord(
-                    business_id=b1.id, month="2026-03", cost=150000.0, revenue=220000.0, expenses=30000.0,
-                    custom_data={"Yarn Purchase": 80000, "Loom Machine Greasing": 10000}, added_by=admin_user.id
-                ),
-                models.BusinessRecord(
-                    business_id=b1.id, month="2026-04", cost=160000.0, revenue=250000.0, expenses=35000.0,
-                    custom_data={"Yarn Purchase": 90000, "Worker Extra Shifts": 5000}, added_by=admin_user.id
-                ),
-                models.BusinessRecord(
-                    business_id=b1.id, month="2026-05", cost=170000.0, revenue=290000.0, expenses=40000.0,
-                    custom_data={"Yarn Purchase": 95000, "Dyeing House Charges": 12000, "Office Tea & Coffee": 1500}, added_by=member_user.id
-                ),
-                # Diamond Crafters
-                models.BusinessRecord(
-                    business_id=b2.id, month="2026-04", cost=500000.0, revenue=720000.0, expenses=80000.0,
-                    custom_data={"Rough Diamonds Lot": 350000, "Polishing Wheel Replacement": 20000}, added_by=admin_user.id
-                ),
-                models.BusinessRecord(
-                    business_id=b2.id, month="2026-05", cost=520000.0, revenue=810000.0, expenses=85000.0,
-                    custom_data={"Rough Diamonds Lot": 370000, "Diamond Import Duty": 40000, "Laser Engraving Calibration": 5000}, added_by=member_user.id
-                )
-            ]
-            db.add_all(records)
-            db.commit()
+                db.add(admin_user)
+                db.commit()
+                print(f"Created initial admin user: {first_admin_user}")
+            else:
+                print("No users found. To create an initial admin, set FIRST_ADMIN_USER and FIRST_ADMIN_PASSWORD in .env")
     except Exception as e:
-        print("Error during database seed execution:", e)
+        print("Error during initial admin setup:", e)
         db.rollback()
     finally:
         db.close()
@@ -203,6 +113,10 @@ def login_user_json(payload: JSONLoginRequest, db: Session = Depends(get_db)):
 def get_user_profile(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
 
+@app.get("/api/users", response_model=List[schemas.UserResponse])
+def get_users(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return db.query(models.User).order_by(models.User.username).all()
+
 
 # ----------------- FAMILY MEMBER ENDPOINTS -----------------
 @app.get("/api/family-members", response_model=List[schemas.FamilyMemberResponse])
@@ -219,11 +133,34 @@ def create_family_member(
     if existing:
         raise HTTPException(status_code=400, detail="Family head name already exists.")
     
-    new_member = models.FamilyMember(name=member_data.name)
+    new_member = models.FamilyMember(name=member_data.name, allowed_user_ids=member_data.allowed_user_ids)
     db.add(new_member)
     db.commit()
     db.refresh(new_member)
     return new_member
+
+@app.patch("/api/family-members/{id}/access", response_model=schemas.FamilyMemberResponse)
+def update_family_member_access(
+    id: int,
+    access_data: schemas.FamilyMemberUpdateAccess,
+    db: Session = Depends(get_db),
+    admin_user: models.User = Depends(auth.get_current_admin)
+):
+    member = db.query(models.FamilyMember).filter(models.FamilyMember.id == id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Family member not found.")
+    
+    if access_data.allowed_user_ids is not None:
+        # Check if all users exist
+        if access_data.allowed_user_ids:
+            users = db.query(models.User).filter(models.User.id.in_(access_data.allowed_user_ids)).all()
+            if len(users) != len(set(access_data.allowed_user_ids)):
+                raise HTTPException(status_code=404, detail="One or more users not found.")
+            
+    member.allowed_user_ids = access_data.allowed_user_ids
+    db.commit()
+    db.refresh(member)
+    return member
 
 @app.delete("/api/family-members/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_family_member(
@@ -265,6 +202,9 @@ def create_expense(
     member = db.query(models.FamilyMember).filter(models.FamilyMember.id == expense_data.family_member_id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Family member not found.")
+        
+    if current_user.role != "admin" and current_user.id not in (member.allowed_user_ids or []):
+        raise HTTPException(status_code=403, detail="You do not have permission to add details to this family member.")
     
     new_expense = models.FamilyExpense(
         family_member_id=expense_data.family_member_id,
@@ -307,7 +247,7 @@ def get_businesses(db: Session = Depends(get_db), current_user: models.User = De
 def create_business(
     business_data: schemas.BusinessCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    admin_user: models.User = Depends(auth.get_current_admin)
 ):
     existing = db.query(models.Business).filter(models.Business.name == business_data.name).first()
     if existing:
@@ -316,7 +256,8 @@ def create_business(
     new_biz = models.Business(
         name=business_data.name,
         description=business_data.description,
-        created_by=current_user.id
+        created_by=admin_user.id,
+        manager_id=business_data.manager_id
     )
     db.add(new_biz)
     db.commit()
@@ -327,15 +268,39 @@ def create_business(
 def delete_business(
     id: int,
     db: Session = Depends(get_db),
-    admin_user: models.User = Depends(auth.get_current_admin)
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     biz = db.query(models.Business).filter(models.Business.id == id).first()
     if not biz:
         raise HTTPException(status_code=404, detail="Business card not found.")
     
+    if current_user.role != "admin" and biz.manager_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this business.")
+    
     db.delete(biz)
     db.commit()
     return None
+
+@app.patch("/api/businesses/{id}/manager", response_model=schemas.BusinessResponse)
+def update_business_manager(
+    id: int,
+    manager_data: schemas.BusinessUpdateManager,
+    db: Session = Depends(get_db),
+    admin_user: models.User = Depends(auth.get_current_admin)
+):
+    biz = db.query(models.Business).filter(models.Business.id == id).first()
+    if not biz:
+        raise HTTPException(status_code=404, detail="Business not found.")
+    
+    if manager_data.manager_id is not None:
+        user = db.query(models.User).filter(models.User.id == manager_data.manager_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Manager user not found.")
+            
+    biz.manager_id = manager_data.manager_id
+    db.commit()
+    db.refresh(biz)
+    return biz
 
 
 # ----------------- BUSINESS MONTHLY RECORD ENDPOINTS -----------------
@@ -362,6 +327,9 @@ def create_or_update_business_record(
     biz = db.query(models.Business).filter(models.Business.id == record_data.business_id).first()
     if not biz:
         raise HTTPException(status_code=404, detail="Business not found.")
+        
+    if current_user.role != "admin" and biz.manager_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to add details to this business.")
     
     # Check if record for this month already exists; if so, update it. Otherwise, insert new.
     record = db.query(models.BusinessRecord).filter(

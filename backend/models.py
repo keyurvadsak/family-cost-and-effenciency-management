@@ -14,7 +14,7 @@ class User(Base):
 
     # Relationships
     expenses_added = relationship("FamilyExpense", back_populates="creator")
-    businesses_created = relationship("Business", back_populates="creator")
+    businesses_created = relationship("Business", foreign_keys="[Business.created_by]", back_populates="creator")
     records_added = relationship("BusinessRecord", back_populates="creator")
 
 
@@ -23,6 +23,7 @@ class FamilyMember(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False) # e.g. Jayeshbhai
+    allowed_user_ids = Column(JSON, default=list, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships
@@ -53,10 +54,12 @@ class Business(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     description = Column(String, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    manager_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships
-    creator = relationship("User", back_populates="businesses_created")
+    creator = relationship("User", foreign_keys=[created_by], back_populates="businesses_created")
+    manager = relationship("User", foreign_keys=[manager_id])
     records = relationship("BusinessRecord", back_populates="business", cascade="all, delete-orphan")
 
 

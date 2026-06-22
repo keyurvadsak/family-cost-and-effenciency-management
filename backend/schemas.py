@@ -29,10 +29,15 @@ class UserResponse(BaseModel):
 # Family Member schemas
 class FamilyMemberCreate(BaseModel):
     name: str
+    allowed_user_ids: List[int] = []
+
+class FamilyMemberUpdateAccess(BaseModel):
+    allowed_user_ids: List[int] = []
 
 class FamilyMemberResponse(BaseModel):
     id: int
     name: str
+    allowed_user_ids: List[int]
     created_at: datetime.datetime
 
     class Config:
@@ -63,12 +68,17 @@ class FamilyExpenseResponse(BaseModel):
 class BusinessCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    manager_id: Optional[int] = None
+
+class BusinessUpdateManager(BaseModel):
+    manager_id: Optional[int] = None
 
 class BusinessResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
     created_by: Optional[int]
+    manager_id: Optional[int]
     created_at: datetime.datetime
 
     class Config:
