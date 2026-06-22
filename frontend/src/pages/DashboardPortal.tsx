@@ -5,7 +5,7 @@ import type { User, FamilyMember, FamilyExpense, Business, BusinessRecord } from
 import {
   ArrowLeft, Home, Briefcase, Settings, LogOut,
   Plus, Trash2, IndianRupee, Sparkles,
-  LayoutGrid, X, TrendingUp, PieChart as PieIcon
+  LayoutGrid, X, TrendingUp, PieChart as PieIcon, Menu
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -20,6 +20,7 @@ const COLORS = ['#8b5cf6', '#06b6d4', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'
 export default function DashboardPortal() {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -349,21 +350,41 @@ export default function DashboardPortal() {
   return (
     <div style={styles.appContainer}>
       {/* Top Navbar */}
-      <header style={{ ...styles.navbar, padding: isMobile ? '12px 16px' : '16px 40px' }} className="glass-card">
-        <div style={styles.navBrand} onClick={resetPortal}>
-          <div style={styles.logoBadge}>VP</div>
-          <span style={{ ...styles.logoText, fontSize: isMobile ? '0.95rem' : '1.2rem' }}>વડસક પરિવાર</span>
+      <header style={{ ...styles.navbar, padding: isMobile ? '12px 16px' : '16px 40px', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }} className="glass-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: isMobile ? '100%' : 'auto' }}>
+          <div style={styles.navBrand} onClick={resetPortal}>
+            <div style={styles.logoBadge}>VP</div>
+            <span style={{ ...styles.logoText, fontSize: isMobile ? '1rem' : '1.2rem' }}>વડસક પરિવાર</span>
+          </div>
+          {isMobile && (
+            <button className="btn-icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          )}
         </div>
 
-        <div style={{ ...styles.navActions, gap: isMobile ? '6px' : '16px' }}>
-          <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', border: '1px solid var(--border-glass)' }} />
-          <div style={{ ...styles.userSection, padding: isMobile ? '4px 8px' : '6px 12px', gap: isMobile ? '6px' : '10px' }}>
+        <div style={{ 
+          ...styles.navActions, 
+          display: isMobile ? (isMenuOpen ? 'flex' : 'none') : 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '12px' : '16px',
+          marginTop: isMobile && isMenuOpen ? '16px' : '0',
+          width: isMobile ? '100%' : 'auto',
+          alignItems: isMobile ? 'stretch' : 'center',
+          borderTop: isMobile && isMenuOpen ? '1px solid var(--border-glass)' : 'none',
+          paddingTop: isMobile && isMenuOpen ? '16px' : '0'
+        }}>
+          <div style={{ alignSelf: isMobile ? 'center' : 'auto' }}>
+            <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', border: '1px solid var(--border-glass)' }} />
+          </div>
+          
+          <div style={{ ...styles.userSection, padding: '6px 12px', gap: '10px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
             <div style={styles.avatar}>
               {user?.username.charAt(0).toUpperCase()}
             </div>
             <div style={styles.profileText}>
-              <span style={{ ...styles.username, fontSize: isMobile ? '0.75rem' : '0.85rem' }}>{user?.username}</span>
-              <span className={`badge ${user?.role === 'admin' ? 'badge-primary' : 'badge-secondary'}`} style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', padding: isMobile ? '2px 6px' : '4px 10px' }}>
+              <span style={{ ...styles.username, fontSize: '0.85rem' }}>{user?.username}</span>
+              <span className={`badge ${user?.role === 'admin' ? 'badge-primary' : 'badge-secondary'}`} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
                 {user?.role === 'admin' ? 'એડમિન' : 'સભ્ય'}
               </span>
             </div>
@@ -372,21 +393,21 @@ export default function DashboardPortal() {
           {user?.role === 'admin' && (
             <button
               className="btn btn-secondary"
-              onClick={() => navigate('/dashboard/admin')}
-              style={{ padding: isMobile ? '8px' : '8px 14px' }}
+              onClick={() => { setIsMenuOpen(false); navigate('/dashboard/admin'); }}
+              style={{ padding: '10px 14px', width: isMobile ? '100%' : 'auto' }}
             >
               <Settings size={16} />
-              <span style={isMobile ? { display: 'none' } : styles.btnText}>સેટિંગ્સ</span>
+              <span style={styles.btnText}>સેટિંગ્સ</span>
             </button>
           )}
 
           <button
             className="btn btn-danger"
             onClick={handleLogout}
-            style={{ padding: isMobile ? '8px' : '8px 14px' }}
+            style={{ padding: '10px 14px', width: isMobile ? '100%' : 'auto' }}
           >
             <LogOut size={16} />
-            <span style={isMobile ? { display: 'none' } : styles.btnText}>લોગઆઉટ</span>
+            <span style={styles.btnText}>લોગઆઉટ</span>
           </button>
         </div>
       </header>
