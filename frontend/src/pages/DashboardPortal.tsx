@@ -342,7 +342,6 @@ export default function DashboardPortal() {
     return (
       <div style={styles.loadingContainer}>
         <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '140px', marginBottom: '20px' }} />
-        <p style={{ marginTop: '12px', color: 'var(--text-muted)' }}>પ્રોફાઇલ ચકાસણી ચાલુ છે...</p>
       </div>
     );
   }

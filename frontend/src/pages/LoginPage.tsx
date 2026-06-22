@@ -37,11 +37,17 @@ export default function LoginPage() {
       <div style={styles.orb2}></div>
 
       <div className="glass-card animate-fade-in" style={styles.card}>
-        <div style={styles.header}>
-          <img src="/logo.png" alt="Logo" className="logo-img-large" style={{ height: '160px', marginBottom: '10px' }} />
-        </div>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+            <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '160px' }} />
+          </div>
+        ) : (
+          <>
+            <div style={styles.header}>
+              <img src="/logo.png" alt="Logo" className="logo-img-large" style={{ height: '160px', marginBottom: '10px' }} />
+            </div>
 
-        {error && (
+            {error && (
           <div style={styles.errorAlert}>
             <AlertCircle size={18} />
             <span>{error}</span>
@@ -93,9 +99,10 @@ export default function LoginPage() {
             style={styles.submitBtn}
             disabled={loading}
           >
-            {loading ? 'લોગિન થઈ રહ્યું છે...' : 'સાઇન ઇન કરો'}
+            સાઇન ઇન કરો
           </button>
         </form>
+        )}
 
 
       </div>
