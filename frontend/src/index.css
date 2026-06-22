@@ -257,6 +257,10 @@ body {
   background: var(--bg-glass-hover);
 }
 
+.input-with-icon {
+  padding-left: 44px !important;
+}
+
 .input-field::placeholder {
   color: var(--text-muted);
   opacity: 0.7;
@@ -528,9 +532,12 @@ h1, h2, h3, h4, h5 {
     font-size: 0.75rem !important;
   }
   .input-field {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    border-radius: var(--radius-md);
+    padding: 10px 12px !important;
+    font-size: 0.85rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .input-with-icon {
+    padding-left: 44px !important;
   }
   .btn {
     padding: 10px 16px !important;

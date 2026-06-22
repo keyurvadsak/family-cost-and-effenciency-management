@@ -62,7 +62,7 @@ export default function LoginPage() {
               <input
                 id="username"
                 type="text"
-                className="input-field"
+                className="input-field input-with-icon"
                 placeholder="નામ લખો"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -81,7 +81,7 @@ export default function LoginPage() {
               <input
                 id="password"
                 type="password"
-                className="input-field"
+                className="input-field input-with-icon"
                 placeholder="પાસવર્ડ લખો"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -201,7 +201,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     width: '100%',
-    paddingLeft: '44px',
   },
   submitBtn: {
     width: '100%',
