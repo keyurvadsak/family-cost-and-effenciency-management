@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api';
-import { KeyRound, User, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
+import { KeyRound, User, Lock, AlertCircle } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -26,13 +27,11 @@ export default function LoginPage() {
     }
   };
 
-  const useQuickCredentials = (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-  };
+
 
   return (
     <div style={styles.container}>
+      <ThemeToggle />
       {/* Decorative Blur Orbs */}
       <div style={styles.orb1}></div>
       <div style={styles.orb2}></div>
@@ -102,31 +101,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Demo Credentials Quick-click */}
-        <div style={styles.demoBox}>
-          <div style={styles.demoHeader}>
-            <ShieldAlert size={14} color="#06b6d4" />
-            <span style={styles.demoTitle}>ઝડપી ટેસ્ટ એકાઉન્ટ્સ</span>
-          </div>
-          <div style={styles.demoButtons}>
-            <button
-              onClick={() => useQuickCredentials('admin', 'admin123')}
-              style={styles.demoBtn}
-              type="button"
-            >
-              <span>એડમિન એકાઉન્ટ</span>
-              <small>admin / admin123</small>
-            </button>
-            <button
-              onClick={() => useQuickCredentials('member', 'member123')}
-              style={styles.demoBtn}
-              type="button"
-            >
-              <span>પરિવારના સભ્ય</span>
-              <small>member / member123</small>
-            </button>
-          </div>
-        </div>
+
       </div>
     </div>
   );
@@ -234,40 +209,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '1rem',
     padding: '14px',
   },
-  demoBox: {
-    marginTop: '28px',
-    paddingTop: '20px',
-    borderTop: '1px solid var(--border-glass)',
-  },
-  demoHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginBottom: '10px',
-  },
-  demoTitle: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  demoButtons: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '10px',
-  },
-  demoBtn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    padding: '8px 12px',
-    borderRadius: 'var(--radius-sm)',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid var(--border-glass)',
-    cursor: 'pointer',
-    color: 'var(--text-main)',
-    textAlign: 'left',
-    transition: 'var(--transition-smooth)',
-  },
+
 };

@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   --font-primary: 'Plus Jakarta Sans', sans-serif;
   --font-heading: 'Outfit', sans-serif;
 
@@ -28,6 +28,10 @@
   --text-main: #f3f4f6;
   --text-muted: #9ca3af;
   --text-inverse: #0b0c15;
+  --text-btn-primary: #ffffff;
+
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-glass-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -36,6 +40,37 @@
 
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+[data-theme="light"] {
+  /* Color Palette - Premium Crisp Light Theme - Unique and Ethereal */
+  --bg-main: #fdfdfd;
+  --bg-glass-card: rgba(255, 255, 255, 0.7);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+  --bg-input: rgba(255, 255, 255, 0.9);
+  
+  --border-glass: rgba(255, 255, 255, 1);
+  --border-glass-active: rgba(139, 92, 246, 0.6);
+  
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --primary-glow: rgba(139, 92, 246, 0.25);
+  
+  --secondary: #0ea5e9;
+  --secondary-hover: #0284c7;
+  
+  --accent: #db2777;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+  --text-btn-primary: #ffffff;
+
+  --shadow-glass: 0 10px 40px -10px rgba(31, 38, 135, 0.08);
+  --shadow-glass-hover: 0 16px 50px -12px rgba(31, 38, 135, 0.15);
 }
 
 * {
@@ -50,11 +85,19 @@ body {
   font-family: var(--font-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
   background-image: 
     radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
   background-attachment: fixed;
+}
+
+[data-theme="light"] body {
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 60%);
 }
 
 /* Scrollbars */
@@ -76,26 +119,27 @@ body {
 /* Glassmorphism Card Utility */
 .glass-card {
   background: var(--bg-glass-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: var(--shadow-glass);
   transition: var(--transition-smooth);
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+  border-color: var(--border-glass-active);
+  box-shadow: var(--shadow-glass-hover);
 }
 
 .glass-card-interactive {
   background: var(--bg-glass-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   cursor: pointer;
+  box-shadow: var(--shadow-glass);
   transition: var(--transition-bounce);
 }
 
@@ -103,7 +147,7 @@ body {
   transform: translateY(-5px);
   background: var(--bg-glass-hover);
   border-color: var(--border-glass-active);
-  box-shadow: 0 10px 25px var(--primary-glow);
+  box-shadow: 0 10px 25px var(--primary-glow), var(--shadow-glass-hover);
 }
 
 /* Buttons */
@@ -124,7 +168,7 @@ body {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), #7c3aed);
-  color: var(--text-main);
+  color: var(--text-btn-primary);
   box-shadow: 0 4px 15px var(--primary-glow);
 }
 
@@ -135,19 +179,22 @@ body {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-glass-card);
   border: 1px solid var(--border-glass);
   color: var(--text-main);
+  box-shadow: var(--shadow-glass);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--bg-glass-hover);
+  border-color: var(--border-glass-active);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-glass-hover);
 }
 
 .btn-danger {
   background: linear-gradient(135deg, var(--error), #dc2626);
-  color: var(--text-main);
+  color: var(--text-btn-primary);
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
 }
 
@@ -200,16 +247,19 @@ body {
   font-family: var(--font-primary);
   font-size: 0.95rem;
   outline: none;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
   transition: var(--transition-smooth);
 }
 
 .input-field:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-glow);
+  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  background: var(--bg-glass-hover);
 }
 
 .input-field::placeholder {
-  color: #4b5563;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 /* Tabs */
@@ -344,16 +394,15 @@ h1, h2, h3, h4, h5 {
   width: 100%;
 }
 
+/* Add special treatment for the portal choice cards */
 .portal-choice-card {
-  height: 280px;
+  padding: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
-  padding: 30px;
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   cursor: pointer;
-  transition: var(--transition-bounce);
   position: relative;
   overflow: hidden;
 }
@@ -372,6 +421,24 @@ h1, h2, h3, h4, h5 {
   border-color: rgba(6, 182, 212, 0.6);
   background: rgba(6, 182, 212, 0.08);
   animation: glowCyan 3s infinite;
+}
+
+[data-theme="light"] .portal-choice-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
+  box-shadow: 0 10px 40px -10px rgba(31, 38, 135, 0.1);
+  border: 1px solid rgba(255, 255, 255, 1);
+}
+
+[data-theme="light"] .portal-choice-card.expenses:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(243, 232, 255, 0.8) 100%);
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 16px 50px -12px rgba(139, 92, 246, 0.3);
+}
+
+[data-theme="light"] .portal-choice-card.business:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(207, 250, 254, 0.8) 100%);
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 16px 50px -12px rgba(6, 182, 212, 0.3);
 }
 
 .back-navigation-btn {
@@ -480,6 +547,37 @@ h1, h2, h3, h4, h5 {
     padding: 10px !important;
     font-size: 0.8rem !important;
   }
+}
+
+/* Enhancing Badges for Light Mode Contrast */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-xl);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+}
+
+.badge-primary {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--primary);
+}
+
+[data-theme="light"] .badge-primary {
+  background: rgba(124, 58, 237, 0.15);
+  color: #6d28d9;
+}
+
+.badge-secondary {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--secondary);
+}
+
+[data-theme="light"] .badge-secondary {
+  background: rgba(8, 145, 178, 0.15);
+  color: #0e7490;
 }
 
 

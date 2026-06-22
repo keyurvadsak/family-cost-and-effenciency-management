@@ -34,6 +34,7 @@ export interface User {
 export interface FamilyMember {
   id: number;
   name: string;
+  allowed_user_ids: number[];
   created_at: string;
 }
 
@@ -53,6 +54,7 @@ export interface Business {
   name: string;
   description: string | null;
   created_by: number | null;
+  manager_id: number | null;
   created_at: string;
 }
 
@@ -86,6 +88,10 @@ export const authApi = {
   register: async (username: string, password: string, role: string = 'member'): Promise<User> => {
     const response = await api.post('/auth/register', { username, password, role });
     return response.data;
+  },
+  getUsers: async (): Promise<User[]> => {
+    const response = await api.get('/users');
+    return response.data;
   }
 };
 
@@ -95,8 +101,12 @@ export const familyApi = {
     const response = await api.get('/family-members');
     return response.data;
   },
-  create: async (name: string): Promise<FamilyMember> => {
-    const response = await api.post('/family-members', { name });
+  create: async (name: string, allowed_user_ids?: number[]): Promise<FamilyMember> => {
+    const response = await api.post('/family-members', { name, allowed_user_ids: allowed_user_ids || [] });
+    return response.data;
+  },
+  updateAccess: async (id: number, allowed_user_ids: number[]): Promise<FamilyMember> => {
+    const response = await api.patch(`/family-members/${id}/access`, { allowed_user_ids });
     return response.data;
   },
   delete: async (id: number): Promise<void> => {
@@ -131,8 +141,12 @@ export const businessApi = {
     const response = await api.get('/businesses');
     return response.data;
   },
-  create: async (name: string, description?: string): Promise<Business> => {
-    const response = await api.post('/businesses', { name, description });
+  create: async (name: string, description?: string, manager_id?: number): Promise<Business> => {
+    const response = await api.post('/businesses', { name, description, manager_id });
+    return response.data;
+  },
+  updateManager: async (id: number, manager_id?: number | null): Promise<Business> => {
+    const response = await api.patch(`/businesses/${id}/manager`, { manager_id });
     return response.data;
   },
   delete: async (id: number): Promise<void> => {

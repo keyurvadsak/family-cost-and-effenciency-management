@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { familyApi, authApi } from '../api';
-import type { FamilyMember } from '../api';
-import { Plus, Trash2, UserPlus, Users, ShieldAlert, Sparkles, Shield, ArrowLeft } from 'lucide-react';
+import { familyApi, authApi, businessApi } from '../api';
+import type { FamilyMember, Business, User } from '../api';
+import { Plus, Trash2, UserPlus, Users, ShieldAlert, Sparkles, Shield, ArrowLeft, Briefcase } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -16,11 +17,16 @@ export default function AdminPage() {
 
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberManagerIds, setNewMemberManagerIds] = useState<number[]>([]);
   
   // Register User form
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'member'>('member');
+
+  // Business Manager state
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -29,11 +35,17 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const list = await familyApi.list();
+      const [list, bizList, userList] = await Promise.all([
+        familyApi.list(),
+        businessApi.list(),
+        authApi.getUsers()
+      ]);
       setMembers(list);
+      setBusinesses(bizList);
+      setUsers(userList);
     } catch (err) {
       console.error(err);
-      setError('પરિવારના મોભીઓની યાદી મેળવવામાં નિષ્ફળતા મળી.');
+      setError('ડેટા મેળવવામાં નિષ્ફળતા મળી.');
     } finally {
       setLoading(false);
     }
@@ -51,10 +63,11 @@ export default function AdminPage() {
     setActionLoading(true);
 
     try {
-      const created = await familyApi.create(newMemberName.trim());
+      const created = await familyApi.create(newMemberName.trim(), newMemberManagerIds);
       setMembers((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
       setSuccessMsg(`પરિવારના મોભી "${created.name}" સફળતાપૂર્વક ઉમેરવામાં આવ્યા છે!`);
       setNewMemberName('');
+      setNewMemberManagerIds([]);
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || 'પરિવારના મોભી ઉમેરવામાં ભૂલ આવી છે.');
@@ -98,6 +111,37 @@ export default function AdminPage() {
     }
   };
 
+  const handleManagerChange = async (bizId: number, val: string) => {
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const managerId = val ? parseInt(val) : null;
+      await businessApi.updateManager(bizId, managerId);
+      setBusinesses(prev => prev.map(b => b.id === bizId ? { ...b, manager_id: managerId } : b));
+      setSuccessMsg('ધંધાના સંચાલકને સફળતાપૂર્વક અપડેટ કરવામાં આવ્યા છે.');
+    } catch (err: any) {
+      console.error(err);
+      setError('સંચાલકને અપડેટ કરવામાં ભૂલ આવી છે.');
+    }
+  };
+
+  const toggleFamilyAccess = async (member: FamilyMember, userId: number) => {
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const currentIds = member.allowed_user_ids || [];
+      const newIds = currentIds.includes(userId) 
+        ? currentIds.filter(id => id !== userId) 
+        : [...currentIds, userId];
+      await familyApi.updateAccess(member.id, newIds);
+      setMembers(prev => prev.map(m => m.id === member.id ? { ...m, allowed_user_ids: newIds } : m));
+      setSuccessMsg('પરિવારના મોભી સભ્યની એક્સેસ સફળતાપૂર્વક અપડેટ કરવામાં આવી છે.');
+    } catch (err: any) {
+      console.error(err);
+      setError('પરિવારની એક્સેસ અપડેટ કરવામાં ભૂલ આવી છે.');
+    }
+  };
+
   if (loading) {
     return (
       <div style={styles.spinnerWrapper}>
@@ -108,6 +152,7 @@ export default function AdminPage() {
 
   return (
     <div style={styles.container} className="animate-fade-in">
+      <ThemeToggle />
       <button className="back-navigation-btn" onClick={() => navigate('/dashboard')} style={{ marginBottom: '20px' }}>
         <ArrowLeft size={16} />
         <span>પોર્ટલ પર પાછા જાઓ</span>
@@ -137,20 +182,31 @@ export default function AdminPage() {
           <form onSubmit={handleAddMember} style={styles.innerForm}>
             <div className="form-group">
               <label className="form-label">નવા મોભી સભ્યનું નામ ઉમેરો</label>
-              <div style={styles.inputRow}>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="દા.ત. જયેશભાઈ"
-                  value={newMemberName}
-                  onChange={(e) => setNewMemberName(e.target.value)}
-                  style={{ flex: 1 }}
-                  required
-                />
-                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  <Plus size={16} /> ઉમેરો
-                </button>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="દા.ત. જયેશભાઈ"
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                style={{ width: '100%', marginBottom: '8px' }}
+                required
+              />
+              <label className="form-label">ખર્ચ ઉમેરવાની પરવાનગી આપવા સભ્યો પસંદ કરો</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)', maxHeight: '150px', overflowY: 'auto' }}>
+                {users.map(u => (
+                  <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={newMemberManagerIds.includes(u.id)}
+                      onChange={() => setNewMemberManagerIds(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id])}
+                    />
+                    {u.username}
+                  </label>
+                ))}
               </div>
+              <button type="submit" className="btn btn-primary" disabled={actionLoading} style={{ width: '100%' }}>
+                <Plus size={16} /> ઉમેરો
+              </button>
             </div>
           </form>
 
@@ -162,16 +218,33 @@ export default function AdminPage() {
             ) : (
               <div style={styles.membersList}>
                 {members.map((m) => (
-                  <div key={m.id} style={styles.memberRow}>
-                    <span style={styles.memberName}>{m.name}</span>
-                    <button
-                      className="btn-icon"
-                      style={{ color: 'var(--error)' }}
-                      onClick={() => handleDeleteMember(m.id, m.name)}
-                      title="પરિવારના મોભીને દૂર કરો"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <div key={m.id} style={{ ...styles.memberRow, flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                      <span style={styles.memberName}>{m.name}</span>
+                      <button
+                        className="btn-icon"
+                        style={{ color: 'var(--error)' }}
+                        onClick={() => handleDeleteMember(m.id, m.name)}
+                        title="પરિવારના મોભીને દૂર કરો"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>આ પરિવારમાં ખર્ચ ઉમેરવાની પરવાનગી:</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                        {users.map(u => (
+                          <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={(m.allowed_user_ids || []).includes(u.id)}
+                              onChange={() => toggleFamilyAccess(m, u.id)}
+                            />
+                            {u.username}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -228,6 +301,42 @@ export default function AdminPage() {
             </button>
           </form>
         </div>
+
+        {/* Third Side: Business Manager Assignment */}
+        <div className="glass-card" style={{ ...styles.panelCard, padding: isMobile ? '16px' : '30px' }}>
+          <div style={styles.panelHeader}>
+            <Briefcase size={20} color="var(--primary)" />
+            <h3 style={styles.panelTitle}>ધંધાના સંચાલકનું સંચાલન</h3>
+          </div>
+          <div style={{...styles.listWrapper, marginTop: 0, borderTop: 'none', paddingTop: 0}}>
+            <span style={styles.listTitle}>નોંધાયેલા ધંધાઓ અને તેમના સંચાલકો</span>
+            {businesses.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>હજુ સુધી કોઈ ધંધો ઉમેરવામાં આવ્યો નથી.</p>
+            ) : (
+              <div style={styles.membersList}>
+                {businesses.map((biz) => (
+                  <div key={biz.id} style={{ ...styles.memberRow, flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ fontWeight: 600 }}>{biz.name}</div>
+                    <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                      <select
+                        className="input-field"
+                        style={{ flex: 1, padding: '4px 8px', fontSize: '0.85rem' }}
+                        value={biz.manager_id || ''}
+                        onChange={(e) => handleManagerChange(biz.id, e.target.value)}
+                      >
+                        <option value="">કોઈ સંચાલક નથી (બધા વાંચી શકે)</option>
+                        {users.map(u => (
+                          <option key={u.id} value={u.id}>{u.username}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi, familyApi, expenseApi, businessApi } from '../api';
 import type { User, FamilyMember, FamilyExpense, Business, BusinessRecord } from '../api';
 import {
@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
   AreaChart, Area, XAxis, YAxis, CartesianGrid
 } from 'recharts';
+import ThemeToggle from '../components/ThemeToggle';
 
 // Config constants in Gujarati
 const CATEGORIES = ['કરિયાણું', 'બિલ (લાઈટ/ફોન)', 'શિક્ષણ', 'તબીબી / દવાઓ', 'રોકાણ', 'મનોરંજન / જમવું', 'અન્ય ખર્ચ'];
@@ -29,28 +30,49 @@ export default function DashboardPortal() {
   // Navigation states
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<'portal' | 'expenses' | 'business'>('portal');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const mode = searchParams.get('mode') || 'portal';
 
   // Expenses drill down state
   const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+  const memberId = searchParams.get('member');
+  const selectedMember = memberId ? members.find(m => m.id === parseInt(memberId, 10)) || null : null;
   const [expenses, setExpenses] = useState<FamilyExpense[]>([]);
 
   // Business drill down state
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const bizId = searchParams.get('biz');
+  const selectedBiz = bizId ? businesses.find(b => b.id === parseInt(bizId, 10)) || null : null;
   const [records, setRecords] = useState<BusinessRecord[]>([]);
+
+  // Navigation handlers
+  const setMode = (m: 'portal' | 'expenses' | 'business') => {
+    setSearchParams({ mode: m });
+  };
+  const setSelectedMember = (m: FamilyMember | null) => {
+    if (m) setSearchParams({ mode: 'expenses', member: m.id.toString() });
+    else setSearchParams({ mode: 'expenses' });
+  };
+  const setSelectedBiz = (b: Business | null) => {
+    if (b) setSearchParams({ mode: 'business', biz: b.id.toString() });
+    else setSearchParams({ mode: 'business' });
+  };
 
   // Expenses Form state
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [description, setDescription] = useState('');
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   // Business Modal & Form states
   const [bizName, setBizName] = useState('');
   const [bizDesc, setBizDesc] = useState('');
+  const [bizManagerId, setBizManagerId] = useState('');
   const [showBizModal, setShowBizModal] = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(false);
   const [bizMonth, setBizMonth] = useState(new Date().toISOString().slice(0, 7));
   const [bizCost, setBizCost] = useState('');
   const [bizRevenue, setBizRevenue] = useState('');
@@ -76,6 +98,13 @@ export default function DashboardPortal() {
         setMembers(membersList);
         const bizList = await businessApi.list();
         setBusinesses(bizList);
+        
+        try {
+          const uList = await authApi.getUsers();
+          setAllUsers(uList);
+        } catch (e) {
+          console.error("Failed to load users", e);
+        }
       } catch (err) {
         console.error("Authentication failed. Redirecting to login...", err);
         authApi.logout();
@@ -127,9 +156,7 @@ export default function DashboardPortal() {
   };
 
   const resetPortal = () => {
-    setMode('portal');
-    setSelectedMember(null);
-    setSelectedBiz(null);
+    setSearchParams({});
     setError(null);
     setSuccess(null);
   };
@@ -159,7 +186,8 @@ export default function DashboardPortal() {
       setAmount('');
       setDescription('');
       setExpenseDate(new Date().toISOString().split('T')[0]);
-      setSuccess('ખર્ચ સફળતાપૂર્વક નોંધવામાં આવ્યો છે!');
+      setShowExpenseModal(false);
+      setSuccess('નવો ખર્ચ સફળતાપૂર્વક નોંધવામાં આવ્યો છે!');
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'ખર્ચ નોંધવામાં ભૂલ આવી છે.');
@@ -188,11 +216,13 @@ export default function DashboardPortal() {
     setActionLoading(true);
 
     try {
-      const newBiz = await businessApi.create(bizName.trim(), bizDesc.trim());
+      const parsedManagerId = bizManagerId ? parseInt(bizManagerId) : undefined;
+      const newBiz = await businessApi.create(bizName.trim(), bizDesc.trim(), parsedManagerId);
       setBusinesses((prev) => [...prev, newBiz]);
       setSelectedBiz(newBiz);
       setBizName('');
       setBizDesc('');
+      setBizManagerId('');
       setShowBizModal(false);
       setSuccess(`ધંધો "${newBiz.name}" સફળતાપૂર્વક રજીસ્ટર થયો છે!`);
     } catch (err: any) {
@@ -270,6 +300,7 @@ export default function DashboardPortal() {
       setBizRevenue('');
       setBizExpenses('');
       setCustomFields([]);
+      setShowRecordModal(false);
       setSuccess('માસિક હિસાબ સફળતાપૂર્વક સંગ્રહિત થયો!');
     } catch (err: any) {
       console.error(err);
@@ -325,6 +356,7 @@ export default function DashboardPortal() {
         </div>
 
         <div style={{ ...styles.navActions, gap: isMobile ? '6px' : '16px' }}>
+          <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', border: '1px solid var(--border-glass)' }} />
           <div style={{ ...styles.userSection, padding: isMobile ? '4px 8px' : '6px 12px', gap: isMobile ? '6px' : '10px' }}>
             <div style={styles.avatar}>
               {user?.username.charAt(0).toUpperCase()}
@@ -488,71 +520,16 @@ export default function DashboardPortal() {
               </div>
             </div>
 
-            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-              {/* Form Card */}
-              <div className="glass-card" style={{ padding: '24px' }}>
-                <h3 style={styles.cardTitle}>નવો ખર્ચ ઉમેરો</h3>
-                <form onSubmit={handleAddExpense} style={styles.form}>
-                  <div className="form-group">
-                    <label className="form-label">ખર્ચની રકમ (રૂપિયામાં)</label>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <IndianRupee size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input-field"
-                        placeholder="રકમ લખો"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        style={{ width: '100%', paddingLeft: '36px' }}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                    <div className="form-group">
-                      <label className="form-label">ખર્ચની કેટેગરી</label>
-                      <select
-                        className="input-field"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        style={{ width: '100%' }}
-                      >
-                        {CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">તારીખ</label>
-                      <input
-                        type="date"
-                        className="input-field"
-                        value={expenseDate}
-                        onChange={(e) => setExpenseDate(e.target.value)}
-                        style={{ width: '100%' }}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">ખર્ચની વિગત / નોંધ</label>
-                    <textarea
-                      className="input-field"
-                      placeholder="ખર્ચ કઈ બાબતમાં થયો તેની માહિતી લખો..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      style={{ width: '100%', minHeight: '80px', resize: 'vertical' }}
-                    />
-                  </div>
-
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={actionLoading}>
-                    <Plus size={16} /> ખર્ચ સાચવો
-                  </button>
-                </form>
+            {/* Action Bar for Manager/Admin */}
+            {(user?.role === 'admin' || (selectedMember.allowed_user_ids || []).includes(user?.id)) && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                <button className="btn btn-primary" onClick={() => setShowExpenseModal(true)}>
+                  <Plus size={16} /> નવો ખર્ચ ઉમેરો
+                </button>
               </div>
+            )}
+
+            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
 
               {/* Chart Card */}
               <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
@@ -666,7 +643,7 @@ export default function DashboardPortal() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <LayoutGrid size={24} color="var(--secondary)" />
-                      {user?.role === 'admin' && (
+                      {(user?.role === 'admin' || biz.manager_id === user?.id) && (
                         <button
                           className="btn-icon"
                           style={{ color: 'var(--error)' }}
@@ -729,146 +706,14 @@ export default function DashboardPortal() {
               </div>
             </div>
 
-            {/* Graphs & Logging forms */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginTop: '24px' }}>
-              {/* Performance chart */}
-              <div className="glass-card" style={{ padding: '24px' }}>
-                <h3 style={styles.cardTitle}>આવક અને નફાકારકતાનો વળાંક</h3>
-                {processedRecords.length === 0 ? (
-                  <div style={styles.noData}>
-                    <TrendingUp size={48} color="var(--border-glass-active)" />
-                    <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>પત્રક દોરવા માટે પૂરતો નાણાકીય ડેટા નથી.</p>
-                  </div>
-                ) : (
-                  <div style={{ height: '260px', width: '100%' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={[...processedRecords].reverse()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorRevPortal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorProfitPortal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="displayMonth" stroke="var(--text-muted)" fontSize={10} />
-                        <YAxis stroke="var(--text-muted)" fontSize={10} />
-                        <Tooltip contentStyle={{ background: '#121426', border: '1px solid var(--border-glass)' }} />
-                        <Area type="monotone" dataKey="revenue" stroke="var(--secondary)" fillOpacity={1} fill="url(#colorRevPortal)" name="આવક" />
-                        <Area type="monotone" dataKey="profit" stroke="var(--primary)" fillOpacity={1} fill="url(#colorProfitPortal)" name="નફો" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
+            {/* Log monthly financials button */}
+            {(user?.role === 'admin' || selectedBiz.manager_id === user?.id) && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                <button className="btn btn-primary" onClick={() => setShowRecordModal(true)}>
+                  <Plus size={16} /> માસિક નાણાકીય વિગતો ભરો
+                </button>
               </div>
-
-              {/* Log monthly financials */}
-              <div className="glass-card" style={{ padding: '24px' }}>
-                <h3 style={styles.cardTitle}>માસિક નાણાકીય વિગતો ભરો</h3>
-                <form onSubmit={handleAddBusinessRecord} style={styles.form}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                    <div className="form-group">
-                      <label className="form-label">નાણાકીય માસ</label>
-                      <input
-                        type="month"
-                        className="input-field"
-                        value={bizMonth}
-                        onChange={(e) => setBizMonth(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">કુલ આવક (રૂપિયામાં)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input-field"
-                        placeholder="આવક લખો"
-                        value={bizRevenue}
-                        onChange={(e) => setBizRevenue(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                    <div className="form-group">
-                      <label className="form-label">માલસામાન ખરીદી ખર્ચ</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input-field"
-                        placeholder="ખરીદીનો ખર્ચ લખો"
-                        value={bizCost}
-                        onChange={(e) => setBizCost(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">સંચાલન ખર્ચ (ભાડું/પાવર)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input-field"
-                        placeholder="બીજા સંચાલન ખર્ચાઓ"
-                        value={bizExpenses}
-                        onChange={(e) => setBizExpenses(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Dynamic fields */}
-                  <div style={styles.customFieldBuilder}>
-                    <label className="form-label" style={{ marginBottom: '6px', display: 'block', fontSize: '0.8rem' }}>
-                      વધારાની વિશિષ્ટ વિગતો (દા.ત. બોનસ / કરવેરા)
-                    </label>
-
-                    {customFields.length > 0 && (
-                      <div style={styles.customFieldsList}>
-                        {customFields.map((f, i) => (
-                          <div key={i} style={styles.fieldTag}>
-                            <span><strong>{f.key}:</strong> {f.value}</span>
-                            <button type="button" onClick={() => handleRemoveCustomField(i)} style={styles.removeFieldBtn}>
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="નામ લખો"
-                        value={newFieldName}
-                        onChange={(e) => setNewFieldName(e.target.value)}
-                        style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
-                      />
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="રકમ"
-                        value={newFieldValue}
-                        onChange={(e) => setNewFieldValue(e.target.value)}
-                        style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
-                      />
-                      <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '6px 10px' }}>
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '6px' }} disabled={actionLoading}>
-                    માસિક પત્રક સાચવો
-                  </button>
-                </form>
-              </div>
-            </div>
+            )}
 
             {/* Ledger Table */}
             <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
@@ -918,6 +763,40 @@ export default function DashboardPortal() {
                 </div>
               )}
             </div>
+
+            {/* Performance chart */}
+            <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
+              <h3 style={styles.cardTitle}>આવક અને નફાકારકતાનો વળાંક</h3>
+              {processedRecords.length === 0 ? (
+                <div style={styles.noData}>
+                  <TrendingUp size={48} color="var(--border-glass-active)" />
+                  <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>પત્રક દોરવા માટે પૂરતો નાણાકીય ડેટા નથી.</p>
+                </div>
+              ) : (
+                <div style={{ height: '260px', width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={[...processedRecords].reverse()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorRevPortal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorProfitPortal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="displayMonth" stroke="var(--text-muted)" fontSize={10} />
+                      <YAxis stroke="var(--text-muted)" fontSize={10} />
+                      <Tooltip contentStyle={{ background: '#121426', border: '1px solid var(--border-glass)' }} />
+                      <Area type="monotone" dataKey="revenue" stroke="var(--secondary)" fillOpacity={1} fill="url(#colorRevPortal)" name="આવક" />
+                      <Area type="monotone" dataKey="profit" stroke="var(--primary)" fillOpacity={1} fill="url(#colorProfitPortal)" name="નફો" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -954,6 +833,20 @@ export default function DashboardPortal() {
                   style={{ minHeight: '80px', resize: 'vertical' }}
                 />
               </div>
+              <div className="form-group">
+                <label className="form-label">મેનેજિંગ પર્સન (સંચાલક)</label>
+                <select
+                  className="input-field"
+                  value={bizManagerId}
+                  onChange={(e) => setBizManagerId(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">-- સંચાલક પસંદ કરો --</option>
+                  {allUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.username} ({u.role === 'admin' ? 'એડમિન' : 'સભ્ય'})</option>
+                  ))}
+                </select>
+              </div>
               <div style={styles.modalFooter}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowBizModal(false)}>
                   રદ કરો
@@ -966,6 +859,203 @@ export default function DashboardPortal() {
           </div>
         </div>
       )}
+
+      {/* Add Business Record Modal Overlay */}
+      {showRecordModal && selectedBiz && (
+        <div style={styles.modalBackdrop}>
+          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '700px', padding: isMobile ? '20px 16px' : '30px' }}>
+            <div style={styles.modalHeader}>
+              <h3>માસિક નાણાકીય વિગતો ભરો ({selectedBiz.name})</h3>
+              <button className="btn-icon" onClick={() => setShowRecordModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAddBusinessRecord} style={{...styles.form, marginTop: '20px'}}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">નાણાકીય માસ</label>
+                  <input
+                    type="month"
+                    className="input-field"
+                    value={bizMonth}
+                    onChange={(e) => setBizMonth(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">કુલ આવક (રૂપિયામાં)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    placeholder="આવક લખો"
+                    value={bizRevenue}
+                    onChange={(e) => setBizRevenue(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">માલસામાન ખરીદી ખર્ચ</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    placeholder="ખરીદીનો ખર્ચ લખો"
+                    value={bizCost}
+                    onChange={(e) => setBizCost(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">સંચાલન ખર્ચ (ભાડું/પાવર)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    placeholder="બીજા સંચાલન ખર્ચાઓ"
+                    value={bizExpenses}
+                    onChange={(e) => setBizExpenses(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic fields */}
+              <div style={styles.customFieldBuilder}>
+                <label className="form-label" style={{ marginBottom: '6px', display: 'block', fontSize: '0.8rem' }}>
+                  વધારાની વિશિષ્ટ વિગતો (દા.ત. બોનસ / કરવેરા)
+                </label>
+
+                {customFields.length > 0 && (
+                  <div style={styles.customFieldsList}>
+                    {customFields.map((f, i) => (
+                      <div key={i} style={styles.fieldTag}>
+                        <span><strong>{f.key}:</strong> {f.value}</span>
+                        <button type="button" onClick={() => handleRemoveCustomField(i)} style={styles.removeFieldBtn}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="નામ લખો"
+                    value={newFieldName}
+                    onChange={(e) => setNewFieldName(e.target.value)}
+                    style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
+                  />
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="રકમ"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ flex: 1, padding: '6px 12px', fontSize: '0.8rem' }}
+                  />
+                  <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '6px 10px' }}>
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRecordModal(false)}>
+                  રદ કરો
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                  માસિક પત્રક સાચવો
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Add Family Expense Modal Overlay */}
+      {showExpenseModal && selectedMember && (
+        <div style={styles.modalBackdrop}>
+          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '600px', padding: isMobile ? '20px 16px' : '30px' }}>
+            <div style={styles.modalHeader}>
+              <h3>નવો ખર્ચ ઉમેરો ({selectedMember.name})</h3>
+              <button className="btn-icon" onClick={() => setShowExpenseModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAddExpense} style={{...styles.form, marginTop: '20px'}}>
+              <div className="form-group">
+                <label className="form-label">ખર્ચની રકમ (રૂપિયામાં)</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <IndianRupee size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    placeholder="રકમ લખો"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    style={{ width: '100%', paddingLeft: '36px' }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">ખર્ચની કેટેગરી</label>
+                  <select
+                    className="input-field"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">તારીખ</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    style={{ width: '100%' }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">ખર્ચની વિગત / નોંધ</label>
+                <textarea
+                  className="input-field"
+                  placeholder="ખર્ચ કઈ બાબતમાં થયો તેની માહિતી લખો..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  style={{ width: '100%', minHeight: '80px', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowExpenseModal(false)}>
+                  રદ કરો
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                  ખર્ચ સાચવો
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -1110,9 +1200,7 @@ const styles: Record<string, React.CSSProperties> = {
   portalTitle: {
     fontSize: '2.5rem',
     fontWeight: 800,
-    background: 'linear-gradient(135deg, #fff, var(--text-muted))',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    color: 'var(--text-main)',
     marginBottom: '10px',
   },
   portalSubtitle: {
