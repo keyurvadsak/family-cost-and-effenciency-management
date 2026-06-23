@@ -79,8 +79,13 @@ export default function DashboardPortal() {
   const [bizRevenue, setBizRevenue] = useState('');
   const [bizExpenses, setBizExpenses] = useState('');
   const [customFields, setCustomFields] = useState<{ key: string; value: string }[]>([]);
+  const [globalCustomValues, setGlobalCustomValues] = useState<Record<string, string>>({});
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldValue, setNewFieldValue] = useState('');
+  
+  // Add Column Modal State
+  const [showAddColumnModal, setShowAddColumnModal] = useState(false);
+  const [newGlobalColumnName, setNewGlobalColumnName] = useState('');
 
   // Investments state
   const [investments, setInvestments] = useState<any[]>([]);
@@ -271,6 +276,26 @@ export default function DashboardPortal() {
     setCustomFields((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleAddGlobalColumn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBiz || !newGlobalColumnName.trim()) return;
+    setActionLoading(true);
+    try {
+      const updatedColumns = [...(selectedBiz.custom_columns || []), newGlobalColumnName.trim()];
+      const updatedBiz = await businessApi.updateColumns(selectedBiz.id, updatedColumns);
+      setSelectedBiz(updatedBiz);
+      setBusinesses(prev => prev.map(b => b.id === updatedBiz.id ? updatedBiz : b));
+      setShowAddColumnModal(false);
+      setNewGlobalColumnName('');
+      setSuccess("નવી કોલમ ઉમેરવામાં આવી!");
+    } catch(err) {
+      console.error(err);
+      setError("કોલમ ઉમેરવામાં ભૂલ આવી.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAddBusinessRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBiz) return;
@@ -283,6 +308,17 @@ export default function DashboardPortal() {
       const expVal = parseFloat(bizExpenses) || 0;
 
       const customDataObj: Record<string, any> = {};
+
+      if (selectedBiz.custom_columns) {
+        selectedBiz.custom_columns.forEach(col => {
+          const val = globalCustomValues[col]?.trim();
+          if (val) {
+             const numVal = parseFloat(val);
+             customDataObj[col] = isNaN(numVal) ? val : numVal;
+          }
+        });
+      }
+
       customFields.forEach(field => {
         const key = field.key.trim();
         if (key) {
@@ -314,6 +350,7 @@ export default function DashboardPortal() {
       setBizRevenue('');
       setBizExpenses('');
       setCustomFields([]);
+      setGlobalCustomValues({});
       setShowRecordModal(false);
       setSuccess('માસિક હિસાબ સફળતાપૂર્વક સંગ્રહિત થયો!');
     } catch (err: any) {
@@ -789,7 +826,7 @@ export default function DashboardPortal() {
 
             {/* Investment Summary */}
             <div className="glass-card" style={{ padding: '20px', marginTop: '16px' }}>
-              <h3 style={{ ...styles.cardTitle, marginBottom: '16px' }}>રોકાણ અને ઉપાડ સારાંશ</h3>
+              <h3 style={{ ...styles.cardTitle, marginBottom: '16px' }}>રોકાણ અને ઉપાડ</h3>
               <div className="layout-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
                   <span style={styles.metricLabel}>કુલ રોકાણ (Total Invested)</span>
@@ -823,7 +860,12 @@ export default function DashboardPortal() {
 
             {/* Ledger Table */}
             <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
-              <h3 style={styles.cardTitle}>ધંધાકીય ખાતાવહીનું માસિક પત્રક</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <h3 style={{...styles.cardTitle, margin: 0, borderBottom: 'none', paddingBottom: 0}}>ધંધાકીય ખાતાવહીનું માસિક પત્રક</h3>
+                <button className="btn btn-secondary" onClick={() => setShowAddColumnModal(true)} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Plus size={16} /> નવી કોલમ ઉમેરો
+                </button>
+              </div>
               {processedRecords.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>કોઈ માસિક એન્ટ્રી નથી.</p>
               ) : (
@@ -835,6 +877,9 @@ export default function DashboardPortal() {
                         <th style={styles.th}>વેચાણ આવક</th>
                         <th style={styles.th}>માલ ખરીદી ખર્ચ</th>
                         <th style={styles.th}>સંચાલન ખર્ચ</th>
+                        {selectedBiz.custom_columns?.map((col: string) => (
+                          <th key={col} style={styles.th}>{col}</th>
+                        ))}
                         <th style={styles.th}>અન્ય વિશિષ્ટ ખર્ચ</th>
                         <th style={styles.th}>ચોખ્ખો નફો / નુકસાન</th>
                       </tr>
@@ -842,22 +887,37 @@ export default function DashboardPortal() {
                     <tbody>
                       {processedRecords.map((rec) => (
                         <tr key={rec.id} style={styles.tr}>
-                          <td style={{ ...styles.td, fontWeight: 700, color: 'var(--text-main)' }}>{new Date(rec.date).toLocaleDateString('en-IN')}</td>
+                          <td style={{ ...styles.td, fontWeight: 700, color: 'var(--text-main)' }}>
+                            {new Date(rec.date).toString() === 'Invalid Date' ? rec.date : new Date(rec.date).toLocaleDateString('en-IN')}
+                          </td>
                           <td style={{ ...styles.td, color: 'var(--success)' }}>₹{rec.revenue.toLocaleString('en-IN')}</td>
                           <td style={styles.td}>₹{rec.cost.toLocaleString('en-IN')}</td>
                           <td style={styles.td}>₹{rec.expenses.toLocaleString('en-IN')}</td>
+                          
+                          {selectedBiz.custom_columns?.map((col: string) => (
+                            <td key={col} style={styles.td}>
+                              {rec.custom_data && rec.custom_data[col] !== undefined 
+                                ? (typeof rec.custom_data[col] === 'number' ? `₹${rec.custom_data[col].toLocaleString('en-IN')}` : rec.custom_data[col]) 
+                                : '-'}
+                            </td>
+                          ))}
+                          
                           <td style={styles.td}>
-                            {Object.keys(rec.custom_data).length === 0 ? (
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>કંઈ નથી</span>
-                            ) : (
-                              <div style={styles.customGrid}>
-                                {Object.entries(rec.custom_data).map(([k, v]) => (
-                                  <span key={k} style={styles.customFieldBadge}>
-                                    <strong>{k}:</strong> {v}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            {(() => {
+                              const otherData = { ...(rec.custom_data || {}) };
+                              selectedBiz.custom_columns?.forEach((col: string) => delete otherData[col]);
+                              const keys = Object.keys(otherData);
+                              if (keys.length === 0) return <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>કંઈ નથી</span>;
+                              return (
+                                <div style={styles.customGrid}>
+                                  {keys.map((k) => (
+                                    <span key={k} style={styles.customFieldBadge}>
+                                      <strong>{k}:</strong> {otherData[k]}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td style={{ ...styles.td, fontWeight: 700, color: rec.profit >= 0 ? 'var(--success)' : 'var(--error)' }}>
                             ₹{rec.profit.toLocaleString('en-IN')}
@@ -1079,6 +1139,27 @@ export default function DashboardPortal() {
                   />
                 </div>
               </div>
+
+              {selectedBiz?.custom_columns && selectedBiz.custom_columns.length > 0 && (
+                <>
+                  <h4 style={{ margin: '20px 0 10px', fontSize: '0.9rem', color: 'var(--text-main)' }}>કોલમની વિગતો</h4>
+                  <div style={styles.formGrid}>
+                    {selectedBiz.custom_columns.map((col: string) => (
+                      <div className="form-group" key={col}>
+                        <label className="form-label">{col}</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="input-field"
+                          placeholder="રકમ"
+                          value={globalCustomValues[col] || ''}
+                          onChange={(e) => setGlobalCustomValues({...globalCustomValues, [col]: e.target.value})}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <div style={styles.customFieldBuilder}>
                 <label className="form-label" style={{ marginBottom: '12px', display: 'block', fontSize: '0.85rem' }}>
@@ -1305,9 +1386,43 @@ export default function DashboardPortal() {
         </div>
       )}
 
+      {/* Add Global Column Modal */}
+      {showAddColumnModal && selectedBiz && (
+        <div style={styles.modalBackdrop}>
+          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '400px', padding: '30px' }}>
+            <div style={styles.modalHeader}>
+              <h3>નવી કોલમ ઉમેરો</h3>
+              <button className="btn-icon" onClick={() => setShowAddColumnModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAddGlobalColumn} style={{...styles.form, marginTop: '20px'}}>
+              <div className="form-group">
+                <label className="form-label">કોલમનું નામ (દા.ત. Diamond Duty)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="કોલમનું નામ લખો"
+                  value={newGlobalColumnName}
+                  onChange={(e) => setNewGlobalColumnName(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={styles.modalFooter}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddColumnModal(false)}>
+                  રદ કરો
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                  ઉમેરો
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 const styles: Record<string, React.CSSProperties> = {
   appContainer: {

@@ -55,6 +55,7 @@ class Business(Base):
     description = Column(String, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     manager_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    custom_columns = Column(JSON, default=list, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships

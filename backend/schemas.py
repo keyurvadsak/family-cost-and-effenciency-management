@@ -73,12 +73,16 @@ class BusinessCreate(BaseModel):
 class BusinessUpdateManager(BaseModel):
     manager_id: Optional[int] = None
 
+class BusinessUpdateColumns(BaseModel):
+    custom_columns: List[str]
+
 class BusinessResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
     created_by: Optional[int]
     manager_id: Optional[int]
+    custom_columns: List[str]
     created_at: datetime.datetime
 
     class Config:

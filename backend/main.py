@@ -312,6 +312,22 @@ def update_business_manager(
     db.refresh(biz)
     return biz
 
+@app.put("/api/businesses/{id}/columns", response_model=schemas.BusinessResponse)
+def update_business_columns(
+    id: int,
+    column_data: schemas.BusinessUpdateColumns,
+    db: Session = Depends(get_db),
+    admin_user: models.User = Depends(auth.get_current_admin)
+):
+    biz = db.query(models.Business).filter(models.Business.id == id).first()
+    if not biz:
+        raise HTTPException(status_code=404, detail="Business not found.")
+    
+    biz.custom_columns = column_data.custom_columns
+    db.commit()
+    db.refresh(biz)
+    return biz
+
 
 # ----------------- BUSINESS MONTHLY RECORD ENDPOINTS -----------------
 @app.get("/api/businesses/{business_id}/records", response_model=List[schemas.BusinessRecordResponse])

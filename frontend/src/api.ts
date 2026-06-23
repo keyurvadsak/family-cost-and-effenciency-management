@@ -55,6 +55,7 @@ export interface Business {
   description: string | null;
   created_by: number | null;
   manager_id: number | null;
+  custom_columns?: string[];
   created_at: string;
 }
 
@@ -158,6 +159,10 @@ export const businessApi = {
   },
   updateManager: async (id: number, manager_id?: number | null): Promise<Business> => {
     const response = await api.patch(`/businesses/${id}/manager`, { manager_id });
+    return response.data;
+  },
+  updateColumns: async (id: number, custom_columns: string[]): Promise<Business> => {
+    const response = await api.put(`/businesses/${id}/columns`, { custom_columns });
     return response.data;
   },
   delete: async (id: number): Promise<void> => {
