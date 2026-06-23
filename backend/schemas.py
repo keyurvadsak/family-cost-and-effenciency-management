@@ -106,3 +106,24 @@ class BusinessRecordResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Business Investment schemas
+class BusinessInvestmentCreate(BaseModel):
+    business_id: int
+    person_name: str
+    date: datetime.date = Field(default_factory=datetime.date.today)
+    amount: float = Field(gt=0)
+    type: str # "INVESTMENT" or "WITHDRAWAL"
+
+class BusinessInvestmentResponse(BaseModel):
+    id: int
+    business_id: int
+    person_name: str
+    date: datetime.date
+    amount: float
+    type: str
+    added_by: Optional[int]
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True

@@ -368,6 +368,66 @@ def create_or_update_business_record(
     db.commit()
     db.refresh(record)
     return record
+
+# ----------------- BUSINESS INVESTMENT ENDPOINTS -----------------
+@app.get("/api/businesses/{business_id}/investments", response_model=List[schemas.BusinessInvestmentResponse])
+def get_business_investments(
+    business_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    biz = db.query(models.Business).filter(models.Business.id == business_id).first()
+    if not biz:
+        raise HTTPException(status_code=404, detail="Business not found.")
+    
+    return db.query(models.BusinessInvestment).filter(
+        models.BusinessInvestment.business_id == business_id
+    ).order_by(models.BusinessInvestment.date.desc()).all()
+
+@app.post("/api/business-investments", response_model=schemas.BusinessInvestmentResponse, status_code=status.HTTP_201_CREATED)
+def create_business_investment(
+    inv_data: schemas.BusinessInvestmentCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    biz = db.query(models.Business).filter(models.Business.id == inv_data.business_id).first()
+    if not biz:
+        raise HTTPException(status_code=404, detail="Business not found.")
+        
+    if current_user.role != "admin" and biz.manager_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to add details to this business.")
+    
+    inv = models.BusinessInvestment(
+        business_id=inv_data.business_id,
+        person_name=inv_data.person_name,
+        date=inv_data.date,
+        amount=inv_data.amount,
+        type=inv_data.type,
+        added_by=current_user.id
+    )
+    db.add(inv)
+    db.commit()
+    db.refresh(inv)
+    return inv
+
+@app.delete("/api/business-investments/{investment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_business_investment(
+    investment_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    inv = db.query(models.BusinessInvestment).filter(models.BusinessInvestment.id == investment_id).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Investment record not found.")
+        
+    biz = db.query(models.Business).filter(models.Business.id == inv.business_id).first()
+    if current_user.role != "admin" and (not biz or biz.manager_id != current_user.id):
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this record.")
+        
+    db.delete(inv)
+    db.commit()
+    return None
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True, log_level="info", access_log=True)

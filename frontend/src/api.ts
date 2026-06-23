@@ -70,6 +70,17 @@ export interface BusinessRecord {
   created_at: string;
 }
 
+export interface BusinessInvestment {
+  id: number;
+  business_id: number;
+  person_name: string;
+  date: string;
+  amount: number;
+  type: "INVESTMENT" | "WITHDRAWAL";
+  added_by: number | null;
+  created_at: string;
+}
+
 // Authentication API methods
 export const authApi = {
   login: async (username: string, password: string): Promise<string> => {
@@ -152,8 +163,8 @@ export const businessApi = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/businesses/${id}`);
   },
-  listRecords: async (businessId: number): Promise<BusinessRecord[]> => {
-    const response = await api.get(`/businesses/${businessId}/records`);
+  getRecords: async (business_id: number): Promise<BusinessRecord[]> => {
+    const response = await api.get(`/businesses/${business_id}/records`);
     return response.data;
   },
   saveRecord: async (payload: {
@@ -166,5 +177,22 @@ export const businessApi = {
   }): Promise<BusinessRecord> => {
     const response = await api.post('/business-records', payload);
     return response.data;
+  },
+  getInvestments: async (business_id: number): Promise<BusinessInvestment[]> => {
+    const response = await api.get(`/businesses/${business_id}/investments`);
+    return response.data;
+  },
+  saveInvestment: async (payload: {
+    business_id: number;
+    person_name: string;
+    date: string;
+    amount: number;
+    type: "INVESTMENT" | "WITHDRAWAL";
+  }): Promise<BusinessInvestment> => {
+    const response = await api.post('/business-investments', payload);
+    return response.data;
+  },
+  deleteInvestment: async (investment_id: number): Promise<void> => {
+    await api.delete(`/business-investments/${investment_id}`);
   }
 };

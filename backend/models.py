@@ -61,6 +61,7 @@ class Business(Base):
     creator = relationship("User", foreign_keys=[created_by], back_populates="businesses_created")
     manager = relationship("User", foreign_keys=[manager_id])
     records = relationship("BusinessRecord", back_populates="business", cascade="all, delete-orphan")
+    investments = relationship("BusinessInvestment", back_populates="business", cascade="all, delete-orphan")
 
 
 class BusinessRecord(Base):
@@ -79,3 +80,20 @@ class BusinessRecord(Base):
     # Relationships
     business = relationship("Business", back_populates="records")
     creator = relationship("User", back_populates="records_added")
+
+
+class BusinessInvestment(Base):
+    __tablename__ = "business_investments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
+    person_name = Column(String, nullable=False)
+    date = Column(Date, default=datetime.date.today, nullable=False) # YYYY-MM-DD format
+    amount = Column(Float, nullable=False)
+    type = Column(String, nullable=False) # "INVESTMENT" or "WITHDRAWAL"
+    added_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    # Relationships
+    business = relationship("Business", back_populates="investments")
+    creator = relationship("User")

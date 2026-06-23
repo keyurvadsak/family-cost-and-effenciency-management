@@ -32,7 +32,7 @@ export default function DashboardPortal() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const mode = searchParams.get('mode') || 'portal';
 
   // Expenses drill down state
@@ -82,6 +82,14 @@ export default function DashboardPortal() {
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldValue, setNewFieldValue] = useState('');
 
+  // Investments state
+  const [investments, setInvestments] = useState<any[]>([]);
+  const [showInvModal, setShowInvModal] = useState(false);
+  const [invPersonName, setInvPersonName] = useState('');
+  const [invDate, setInvDate] = useState(new Date().toISOString().split('T')[0]);
+  const [invAmount, setInvAmount] = useState('');
+  const [invType, setInvType] = useState<"INVESTMENT" | "WITHDRAWAL">("INVESTMENT");
+
   // General state
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +107,7 @@ export default function DashboardPortal() {
         setMembers(membersList);
         const bizList = await businessApi.list();
         setBusinesses(bizList);
-        
+
         try {
           const uList = await authApi.getUsers();
           setAllUsers(uList);
@@ -142,8 +150,10 @@ export default function DashboardPortal() {
     }
     const fetchRecords = async () => {
       try {
-        const list = await businessApi.listRecords(selectedBiz.id);
+        const list = await businessApi.getRecords(selectedBiz.id);
         setRecords(list);
+        const invList = await businessApi.getInvestments(selectedBiz.id);
+        setInvestments(invList);
       } catch (err) {
         console.error("Failed to load records", err);
       }
@@ -314,6 +324,52 @@ export default function DashboardPortal() {
     }
   };
 
+  const handleAddInvestment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBiz) return;
+    setError(null);
+    setActionLoading(true);
+
+    try {
+      const amtVal = parseFloat(invAmount) || 0;
+      if (amtVal <= 0) {
+        throw new Error("રકમ શૂન્ય કરતાં વધુ હોવી જોઈએ.");
+      }
+
+      const newInv = await businessApi.saveInvestment({
+        business_id: selectedBiz.id,
+        person_name: invPersonName,
+        date: invDate,
+        amount: amtVal,
+        type: invType,
+      });
+
+      setInvestments((prev) => [newInv, ...prev].sort((a, b) => b.date.localeCompare(a.date)));
+
+      setInvPersonName('');
+      setInvAmount('');
+      setShowInvModal(false);
+      setSuccess('નોંધ સફળતાપૂર્વક ઉમેરવામાં આવી!');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'માહિતી સાચવવામાં નિષ્ફળતા મળી.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteInvestment = async (id: number) => {
+    if (!window.confirm('શું તમે ખરેખર આ નોંધ કાઢી નાખવા માંગો છો?')) return;
+    try {
+      await businessApi.deleteInvestment(id);
+      setInvestments(investments.filter(i => i.id !== id));
+      setSuccess('નોંધ કાઢી નાખવામાં આવી છે.');
+    } catch (err) {
+      console.error(err);
+      alert('નોંધ કાઢી નાખવામાં ભૂલ આવી છે.');
+    }
+  };
+
   // ----------------- CALCULATIONS -----------------
   const totalSpent = expenses.reduce((sum, item) => sum + item.amount, 0);
   const avgExpense = expenses.length > 0 ? (totalSpent / expenses.length) : 0;
@@ -341,6 +397,9 @@ export default function DashboardPortal() {
   const totalCost = processedRecords.reduce((sum, item) => sum + item.cost + item.expenses, 0);
   const netProfit = totalRev - totalCost;
 
+  const totalInvested = investments.filter(i => i.type === 'INVESTMENT').reduce((sum, i) => sum + i.amount, 0);
+  const totalWithdrawn = investments.filter(i => i.type === 'WITHDRAWAL').reduce((sum, i) => sum + i.amount, 0);
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -364,8 +423,8 @@ export default function DashboardPortal() {
           )}
         </div>
 
-        <div style={{ 
-          ...styles.navActions, 
+        <div style={{
+          ...styles.navActions,
           display: isMobile ? (isMenuOpen ? 'flex' : 'none') : 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           gap: isMobile ? '12px' : '16px',
@@ -378,7 +437,7 @@ export default function DashboardPortal() {
           <div style={{ alignSelf: isMobile ? 'center' : 'auto' }}>
             <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', border: '1px solid var(--border-glass)' }} />
           </div>
-          
+
           <div style={{ ...styles.userSection, padding: '6px 12px', gap: '10px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
             <div style={styles.avatar}>
               {user?.username.charAt(0).toUpperCase()}
@@ -721,10 +780,35 @@ export default function DashboardPortal() {
                 <h3 style={{ ...styles.metricVal, color: '#f87171' }}>₹{totalCost.toLocaleString('en-IN')}</h3>
               </div>
               <div className="glass-card" style={styles.metricCard}>
-                <span style={styles.metricLabel}>ચોખ્ખો ચોક્કસ નફો (Net Profit)</span>
+                <span style={styles.metricLabel}>ચોખ્ખો નફો (Net Profit)</span>
                 <h3 style={{ ...styles.metricVal, color: netProfit >= 0 ? '#34d399' : '#f87171' }}>
                   ₹{netProfit.toLocaleString('en-IN')}
                 </h3>
+              </div>
+            </div>
+
+            {/* Investment Summary */}
+            <div className="glass-card" style={{ padding: '20px', marginTop: '16px' }}>
+              <h3 style={{ ...styles.cardTitle, marginBottom: '16px' }}>રોકાણ અને ઉપાડ સારાંશ</h3>
+              <div className="layout-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+                  <span style={styles.metricLabel}>કુલ રોકાણ (Total Invested)</span>
+                  <h3 style={{ ...styles.metricVal, color: '#34d399', marginTop: '8px' }}>
+                    ₹{totalInvested.toLocaleString('en-IN')}
+                  </h3>
+                </div>
+                <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+                  <span style={styles.metricLabel}>કુલ ઉપાડ (Total Withdrawn)</span>
+                  <h3 style={{ ...styles.metricVal, color: '#f87171', marginTop: '8px' }}>
+                    ₹{totalWithdrawn.toLocaleString('en-IN')}
+                  </h3>
+                </div>
+                <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+                  <span style={styles.metricLabel}>બાકી રોકાણ (Remaining Balance)</span>
+                  <h3 style={{ ...styles.metricVal, color: (totalInvested - totalWithdrawn) >= 0 ? '#60a5fa' : '#f87171', marginTop: '8px' }}>
+                    ₹{(totalInvested - totalWithdrawn).toLocaleString('en-IN')}
+                  </h3>
+                </div>
               </div>
             </div>
 
@@ -777,6 +861,57 @@ export default function DashboardPortal() {
                           </td>
                           <td style={{ ...styles.td, fontWeight: 700, color: rec.profit >= 0 ? 'var(--success)' : 'var(--error)' }}>
                             ₹{rec.profit.toLocaleString('en-IN')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Investments Table */}
+            <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                <h3 style={{ ...styles.cardTitle, marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>રોકાણ અને ઉપાડ</h3>
+                <button className="btn btn-primary" onClick={() => setShowInvModal(true)}>
+                  <Plus size={16} /> રોકાણ / ઉપાડ ઉમેરો
+                </button>
+              </div>
+
+              {investments.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>કોઈ નોંધ નથી.</p>
+              ) : (
+                <div style={styles.tableResponsive}>
+                  <table style={{ ...styles.table, minWidth: isMobile ? '600px' : '100%' }}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>તારીખ</th>
+                        <th style={styles.th}>વ્યક્તિનું નામ</th>
+                        <th style={styles.th}>પ્રકાર</th>
+                        <th style={styles.th}>રકમ</th>
+                        <th style={styles.th}>કાર્ય</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {investments.map((inv) => (
+                        <tr key={inv.id} style={styles.tr}>
+                          <td style={{ ...styles.td, color: 'var(--text-main)' }}>{new Date(inv.date).toLocaleDateString('en-IN')}</td>
+                          <td style={{ ...styles.td, fontWeight: 600, color: 'var(--text-main)' }}>{inv.person_name}</td>
+                          <td style={styles.td}>
+                            {inv.type === 'INVESTMENT' ? (
+                              <span style={{ padding: '4px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', fontSize: '0.75rem', fontWeight: 600 }}>રોકાણ (Invested)</span>
+                            ) : (
+                              <span style={{ padding: '4px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', fontSize: '0.75rem', fontWeight: 600 }}>ઉપાડ (Get back)</span>
+                            )}
+                          </td>
+                          <td style={{ ...styles.td, fontWeight: 700, color: inv.type === 'INVESTMENT' ? 'var(--success)' : 'var(--error)' }}>
+                            ₹{inv.amount.toLocaleString('en-IN')}
+                          </td>
+                          <td style={styles.td}>
+                            <button type="button" onClick={() => handleDeleteInvestment(inv.id)} className="btn-icon" style={{ color: 'var(--error)' }}>
+                              <Trash2 size={16} />
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -892,7 +1027,7 @@ export default function DashboardPortal() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddBusinessRecord} style={{...styles.form, marginTop: '20px'}}>
+            <form onSubmit={handleAddBusinessRecord} style={{ ...styles.form, marginTop: '20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">તારીખ</label>
@@ -950,18 +1085,22 @@ export default function DashboardPortal() {
                   વધારાની વિશિષ્ટ વિગતો (દા.ત. બોનસ / કરવેરા)
                 </label>
 
-                {customFields.length > 0 && (
-                  <div style={{ marginBottom: '12px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                      <thead style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                <div style={{ marginBottom: '12px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                      <tr>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>વિગતનું નામ</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>રકમ</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--text-muted)', width: '50px' }}>કાર્ય</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customFields.length === 0 ? (
                         <tr>
-                          <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>વિગતનું નામ</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>રકમ</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--text-muted)', width: '50px' }}>કાર્ય</th>
+                          <td colSpan={3} style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)' }}>કોઈ વિગત નથી. નવી વિગત નીચેથી ઉમેરો.</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {customFields.map((f, i) => (
+                      ) : (
+                        customFields.map((f, i) => (
                           <tr key={i} style={{ borderTop: '1px solid var(--border-glass)' }}>
                             <td style={{ padding: '8px 12px', color: 'var(--text-main)' }}>{f.key}</td>
                             <td style={{ padding: '8px 12px', color: 'var(--text-main)' }}>{f.value}</td>
@@ -971,11 +1110,11 @@ export default function DashboardPortal() {
                               </button>
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
@@ -1023,7 +1162,7 @@ export default function DashboardPortal() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddExpense} style={{...styles.form, marginTop: '20px'}}>
+            <form onSubmit={handleAddExpense} style={{ ...styles.form, marginTop: '20px' }}>
               <div className="form-group">
                 <label className="form-label">ખર્ચની રકમ (રૂપિયામાં)</label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -1085,6 +1224,80 @@ export default function DashboardPortal() {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={actionLoading}>
                   ખર્ચ સાચવો
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Investment Modal */}
+      {showInvModal && selectedBiz && (
+        <div style={styles.modalBackdrop}>
+          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '500px', padding: isMobile ? '20px 16px' : '30px' }}>
+            <div style={styles.modalHeader}>
+              <h3>રોકાણ / ઉપાડ નોંધ (Investment / Withdrawal)</h3>
+              <button className="btn-icon" onClick={() => setShowInvModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleAddInvestment} style={{ ...styles.form, marginTop: '20px' }}>
+              <div className="form-group">
+                <label className="form-label">વ્યક્તિનું નામ</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="નામ લખો"
+                  value={invPersonName}
+                  onChange={(e) => setInvPersonName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">પ્રકાર</label>
+                  <select
+                    className="input-field"
+                    value={invType}
+                    onChange={(e) => setInvType(e.target.value as "INVESTMENT" | "WITHDRAWAL")}
+                    required
+                  >
+                    <option value="INVESTMENT">રોકાણ (Invested)</option>
+                    <option value="WITHDRAWAL">ઉપાડ (Get back)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">તારીખ</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={invDate}
+                    onChange={(e) => setInvDate(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">રકમ</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input-field"
+                  placeholder="રકમ"
+                  value={invAmount}
+                  onChange={(e) => setInvAmount(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowInvModal(false)}>
+                  રદ કરો
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+                  સાચવો
                 </button>
               </div>
             </form>
