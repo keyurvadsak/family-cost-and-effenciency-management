@@ -61,7 +61,7 @@ export interface Business {
 export interface BusinessRecord {
   id: number;
   business_id: number;
-  month: string; // YYYY-MM
+  date: string; // YYYY-MM-DD
   cost: number;
   revenue: number;
   expenses: number;
@@ -158,7 +158,7 @@ export const businessApi = {
   },
   saveRecord: async (payload: {
     business_id: number;
-    month: string;
+    date: string;
     cost: number;
     revenue: number;
     expenses: number;

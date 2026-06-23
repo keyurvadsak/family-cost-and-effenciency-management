@@ -87,7 +87,7 @@ class BusinessResponse(BaseModel):
 # Business Record schemas
 class BusinessRecordCreate(BaseModel):
     business_id: int
-    month: str = Field(pattern=r"^\d{4}-\d{2}$") # YYYY-MM
+    date: datetime.date = Field(default_factory=datetime.date.today)
     cost: float = Field(default=0.0, ge=0)
     revenue: float = Field(default=0.0, ge=0)
     expenses: float = Field(default=0.0, ge=0)
@@ -96,7 +96,7 @@ class BusinessRecordCreate(BaseModel):
 class BusinessRecordResponse(BaseModel):
     id: int
     business_id: int
-    month: str
+    date: datetime.date
     cost: float
     revenue: float
     expenses: float

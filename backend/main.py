@@ -326,7 +326,7 @@ def get_business_records(
     
     return db.query(models.BusinessRecord).filter(
         models.BusinessRecord.business_id == business_id
-    ).order_by(models.BusinessRecord.month.desc()).all()
+    ).order_by(models.BusinessRecord.date.desc()).all()
 
 @app.post("/api/business-records", response_model=schemas.BusinessRecordResponse, status_code=status.HTTP_201_CREATED)
 def create_or_update_business_record(
@@ -344,7 +344,7 @@ def create_or_update_business_record(
     # Check if record for this month already exists; if so, update it. Otherwise, insert new.
     record = db.query(models.BusinessRecord).filter(
         models.BusinessRecord.business_id == record_data.business_id,
-        models.BusinessRecord.month == record_data.month
+        models.BusinessRecord.date == record_data.date
     ).first()
     
     if record:
@@ -356,7 +356,7 @@ def create_or_update_business_record(
     else:
         record = models.BusinessRecord(
             business_id=record_data.business_id,
-            month=record_data.month,
+            date=record_data.date,
             cost=record_data.cost,
             revenue=record_data.revenue,
             expenses=record_data.expenses,

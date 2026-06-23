@@ -74,7 +74,7 @@ export default function DashboardPortal() {
   const [bizManagerId, setBizManagerId] = useState('');
   const [showBizModal, setShowBizModal] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
-  const [bizMonth, setBizMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [bizDate, setBizDate] = useState(new Date().toISOString().split('T')[0]);
   const [bizCost, setBizCost] = useState('');
   const [bizRevenue, setBizRevenue] = useState('');
   const [bizExpenses, setBizExpenses] = useState('');
@@ -274,13 +274,16 @@ export default function DashboardPortal() {
 
       const customDataObj: Record<string, any> = {};
       customFields.forEach(field => {
-        const numVal = parseFloat(field.value);
-        customDataObj[field.key] = isNaN(numVal) ? field.value : numVal;
+        const key = field.key.trim();
+        if (key) {
+          const numVal = parseFloat(field.value);
+          customDataObj[key] = isNaN(numVal) ? field.value : numVal;
+        }
       });
 
       const updatedRecord = await businessApi.saveRecord({
         business_id: selectedBiz.id,
-        month: bizMonth,
+        date: bizDate,
         cost: costVal,
         revenue: revVal,
         expenses: expVal,
@@ -288,13 +291,13 @@ export default function DashboardPortal() {
       });
 
       setRecords((prev) => {
-        const index = prev.findIndex((r) => r.month === bizMonth);
+        const index = prev.findIndex((r) => r.date === bizDate);
         if (index > -1) {
           const updated = [...prev];
           updated[index] = updatedRecord;
           return updated;
         }
-        return [updatedRecord, ...prev].sort((a, b) => b.month.localeCompare(a.month));
+        return [updatedRecord, ...prev].sort((a, b) => b.date.localeCompare(a.date));
       });
 
       setBizCost('');
@@ -330,7 +333,7 @@ export default function DashboardPortal() {
     return {
       ...rec,
       profit,
-      displayMonth: new Date(rec.month + "-02").toLocaleDateString('gu-IN', { month: 'short', year: '2-digit' })
+      displayMonth: new Date(rec.date).toLocaleDateString('gu-IN', { day: 'numeric', month: 'short', year: '2-digit' })
     };
   });
 
@@ -744,7 +747,7 @@ export default function DashboardPortal() {
                   <table style={{ ...styles.table, minWidth: isMobile ? '700px' : '100%' }}>
                     <thead>
                       <tr>
-                        <th style={styles.th}>મહિનો</th>
+                        <th style={styles.th}>તારીખ</th>
                         <th style={styles.th}>વેચાણ આવક</th>
                         <th style={styles.th}>માલ ખરીદી ખર્ચ</th>
                         <th style={styles.th}>સંચાલન ખર્ચ</th>
@@ -755,7 +758,7 @@ export default function DashboardPortal() {
                     <tbody>
                       {processedRecords.map((rec) => (
                         <tr key={rec.id} style={styles.tr}>
-                          <td style={{ ...styles.td, fontWeight: 700, color: 'var(--text-main)' }}>{rec.month}</td>
+                          <td style={{ ...styles.td, fontWeight: 700, color: 'var(--text-main)' }}>{new Date(rec.date).toLocaleDateString('en-IN')}</td>
                           <td style={{ ...styles.td, color: 'var(--success)' }}>₹{rec.revenue.toLocaleString('en-IN')}</td>
                           <td style={styles.td}>₹{rec.cost.toLocaleString('en-IN')}</td>
                           <td style={styles.td}>₹{rec.expenses.toLocaleString('en-IN')}</td>
@@ -892,12 +895,12 @@ export default function DashboardPortal() {
             <form onSubmit={handleAddBusinessRecord} style={{...styles.form, marginTop: '20px'}}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
-                  <label className="form-label">નાણાકીય માસ</label>
+                  <label className="form-label">તારીખ</label>
                   <input
-                    type="month"
+                    type="date"
                     className="input-field"
-                    value={bizMonth}
-                    onChange={(e) => setBizMonth(e.target.value)}
+                    value={bizDate}
+                    onChange={(e) => setBizDate(e.target.value)}
                     required
                   />
                 </div>
@@ -942,44 +945,58 @@ export default function DashboardPortal() {
                 </div>
               </div>
 
-              {/* Dynamic fields */}
               <div style={styles.customFieldBuilder}>
-                <label className="form-label" style={{ marginBottom: '6px', display: 'block', fontSize: '0.8rem' }}>
+                <label className="form-label" style={{ marginBottom: '12px', display: 'block', fontSize: '0.85rem' }}>
                   વધારાની વિશિષ્ટ વિગતો (દા.ત. બોનસ / કરવેરા)
                 </label>
 
                 {customFields.length > 0 && (
-                  <div style={styles.customFieldsList}>
-                    {customFields.map((f, i) => (
-                      <div key={i} style={styles.fieldTag}>
-                        <span><strong>{f.key}:</strong> {f.value}</span>
-                        <button type="button" onClick={() => handleRemoveCustomField(i)} style={styles.removeFieldBtn}>
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
+                  <div style={{ marginBottom: '12px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                        <tr>
+                          <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>વિગતનું નામ</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>રકમ</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--text-muted)', width: '50px' }}>કાર્ય</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customFields.map((f, i) => (
+                          <tr key={i} style={{ borderTop: '1px solid var(--border-glass)' }}>
+                            <td style={{ padding: '8px 12px', color: 'var(--text-main)' }}>{f.key}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--text-main)' }}>{f.value}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <button type="button" onClick={() => handleRemoveCustomField(i)} className="btn-icon" style={{ color: 'var(--error)' }}>
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
                     type="text"
                     className="input-field"
-                    placeholder="નામ લખો"
+                    placeholder="નામ લખો (દા.ત. બોનસ)"
                     value={newFieldName}
                     onChange={(e) => setNewFieldName(e.target.value)}
-                    style={{ flex: 1, minWidth: 0, padding: '6px 12px', fontSize: '0.8rem' }}
+                    style={{ flex: 1, minWidth: 0, padding: '8px 12px', fontSize: '0.85rem' }}
                   />
                   <input
-                    type="text"
+                    type="number"
+                    step="0.01"
                     className="input-field"
                     placeholder="રકમ"
                     value={newFieldValue}
                     onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ flex: 1, minWidth: 0, padding: '6px 12px', fontSize: '0.8rem' }}
+                    style={{ flex: 1, minWidth: 0, padding: '8px 12px', fontSize: '0.85rem' }}
                   />
-                  <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '6px 10px' }}>
-                    <Plus size={14} />
+                  <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                    <Plus size={16} /> ઉમેરો
                   </button>
                 </div>
               </div>

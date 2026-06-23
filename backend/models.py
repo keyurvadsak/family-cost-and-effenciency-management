@@ -68,7 +68,7 @@ class BusinessRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     business_id = Column(Integer, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
-    month = Column(String, nullable=False) # YYYY-MM format
+    date = Column(Date, default=datetime.date.today, nullable=False) # YYYY-MM-DD format
     cost = Column(Float, default=0.0, nullable=False)
     revenue = Column(Float, default=0.0, nullable=False)
     expenses = Column(Float, default=0.0, nullable=False) # standard operational expenses
