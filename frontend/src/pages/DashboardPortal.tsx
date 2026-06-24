@@ -238,6 +238,10 @@ export default function DashboardPortal() {
   const handleCreateBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bizName.trim()) return;
+    if (user?.role !== 'admin') {
+      setError('માત્ર એડમિન જ નવો ધંધો ઉમેરી શકે છે.');
+      return;
+    }
     setError(null);
     setActionLoading(true);
 
@@ -689,17 +693,7 @@ export default function DashboardPortal() {
               </p>
             </div>
 
-            {/* Quick Stats */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '28px' }}>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatValue}>{members.length}</span>
-                <span style={styles.quickStatLabel}>સભ્યો</span>
-              </div>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatValue}>{businesses.length}</span>
-                <span style={styles.quickStatLabel}>ધંધાઓ</span>
-              </div>
-            </div>
+
 
             {/* Choice Cards */}
             <div className="portal-grid">
@@ -963,7 +957,7 @@ export default function DashboardPortal() {
                 <span>મુખ્ય પોર્ટલ</span>
               </button>
 
-              {!isMobile && (
+              {user?.role === 'admin' && !isMobile && (
                 <button className="btn btn-primary" onClick={() => setShowBizModal(true)}>
                   <Plus size={16} /> નવો ધંધો
                 </button>
@@ -974,7 +968,7 @@ export default function DashboardPortal() {
             <p style={styles.sectionSubtitle}>હિસાબ જોવા ધંધાનું નામ પસંદ કરો.</p>
 
             {/* FAB for mobile */}
-            {isMobile && (
+            {user?.role === 'admin' && isMobile && (
               <button className="fab" onClick={() => setShowBizModal(true)} aria-label="નવો ધંધો">
                 <Plus size={24} />
               </button>
