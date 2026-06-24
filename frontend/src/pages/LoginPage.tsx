@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api';
-import { User, Lock, AlertCircle } from 'lucide-react';
+import { User, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function LoginPage() {
@@ -27,80 +27,98 @@ export default function LoginPage() {
     }
   };
 
-
-
   return (
     <div style={styles.container}>
       <ThemeToggle />
-      {/* Decorative Blur Orbs */}
-      <div style={styles.orb1}></div>
-      <div style={styles.orb2}></div>
+
+      {/* Animated mesh background */}
+      <div style={styles.meshBg}>
+        <div style={styles.meshOrb1} />
+        <div style={styles.meshOrb2} />
+        <div style={styles.meshOrb3} />
+      </div>
 
       {loading ? (
-        <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
-          <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '180px' }} />
+        <div className="animate-fade-in" style={styles.loadingWrap}>
+          <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '140px' }} />
         </div>
       ) : (
-        <div className="glass-card animate-fade-in" style={styles.card}>
-          <div style={styles.header}>
-            <img src="/logo.png" alt="Logo" className="logo-img-large" style={{ height: '160px', marginBottom: '10px' }} />
-          </div>
+        <div className="animate-scale-in" style={styles.cardWrapper}>
+          {/* Animated border glow */}
+          <div style={styles.cardGlow} />
 
+          <div className="glass-card" style={styles.card}>
+            {/* Header */}
+            <div style={styles.header}>
+              <img src="/logo.png" alt="Logo" className="logo-img-large" style={{ height: '100px', marginBottom: '8px' }} />
+              <h1 style={styles.title}>વડસક પરિવાર</h1>
+              <p style={styles.subtitle}>પારિવારિક ખર્ચ અને ધંધાકીય સંચાલન</p>
+            </div>
+
+            {/* Error */}
             {error && (
-          <div style={styles.errorAlert}>
-            <AlertCircle size={18} />
-            <span>{error}</span>
-          </div>
-        )}
+              <div style={styles.errorAlert} className="animate-fade-in">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="username">
-              વપરાશકર્તાનું નામ (Username)
-            </label>
-            <div style={styles.inputWrapper}>
-              <User size={18} style={styles.inputIcon} />
-              <input
-                id="username"
-                type="text"
-                className="input-field input-with-icon"
-                placeholder="નામ લખો"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                style={styles.input}
-                required
-              />
-            </div>
-          </div>
+            {/* Form */}
+            <form onSubmit={handleLogin} style={styles.form}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="username">
+                  વપરાશકર્તાનું નામ (Username)
+                </label>
+                <div style={styles.inputWrapper}>
+                  <User size={18} style={styles.inputIcon} />
+                  <input
+                    id="username"
+                    type="text"
+                    className="input-field input-with-icon"
+                    placeholder="નામ લખો"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">
-              પાસવર્ડ (Password)
-            </label>
-            <div style={styles.inputWrapper}>
-              <Lock size={18} style={styles.inputIcon} />
-              <input
-                id="password"
-                type="password"
-                className="input-field input-with-icon"
-                placeholder="પાસવર્ડ લખો"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={styles.input}
-                required
-              />
-            </div>
-          </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="password">
+                  પાસવર્ડ (Password)
+                </label>
+                <div style={styles.inputWrapper}>
+                  <Lock size={18} style={styles.inputIcon} />
+                  <input
+                    id="password"
+                    type="password"
+                    className="input-field input-with-icon"
+                    placeholder="પાસવર્ડ લખો"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+              </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary"
-            style={styles.submitBtn}
-            disabled={loading}
-          >
-            સાઇન ઇન કરો
-          </button>
-        </form>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={styles.submitBtn}
+                disabled={loading}
+              >
+                <span>સાઇન ઇન કરો</span>
+                <ArrowRight size={18} />
+              </button>
+            </form>
+
+            {/* Footer */}
+            <p style={styles.footer}>
+              © {new Date().getFullYear()} વડસક પરિવાર · સુરક્ષિત લૉગિન
+            </p>
+          </div>
         </div>
       )}
     </div>
@@ -110,6 +128,7 @@ export default function LoginPage() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     minHeight: '100vh',
+    minHeight: '100dvh' as any,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -117,96 +136,141 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '20px',
     overflow: 'hidden',
   },
-  orb1: {
+
+  /* Mesh background */
+  meshBg: {
     position: 'absolute',
-    width: '350px',
-    height: '350px',
-    borderRadius: '50%',
-    background: 'rgba(139, 92, 246, 0.2)',
-    filter: 'blur(80px)',
-    top: '20%',
-    left: '25%',
-    transform: 'translate(-50%, -50%)',
+    inset: 0,
+    overflow: 'hidden',
     zIndex: 0,
   },
-  orb2: {
+  meshOrb1: {
+    position: 'absolute',
+    width: '500px',
+    height: '500px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(212, 168, 83, 0.12) 0%, transparent 70%)',
+    top: '-10%',
+    left: '-5%',
+    animation: 'float 8s ease-in-out infinite',
+  },
+  meshOrb2: {
+    position: 'absolute',
+    width: '400px',
+    height: '400px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(96, 165, 250, 0.08) 0%, transparent 70%)',
+    bottom: '-15%',
+    right: '-10%',
+    animation: 'float 10s ease-in-out infinite',
+    animationDelay: '-3s',
+  },
+  meshOrb3: {
     position: 'absolute',
     width: '300px',
     height: '300px',
     borderRadius: '50%',
-    background: 'rgba(6, 182, 212, 0.15)',
-    filter: 'blur(80px)',
-    bottom: '20%',
-    right: '25%',
-    transform: 'translate(50%, 50%)',
-    zIndex: 0,
+    background: 'radial-gradient(circle, rgba(167, 139, 250, 0.06) 0%, transparent 70%)',
+    top: '50%',
+    left: '60%',
+    transform: 'translate(-50%, -50%)',
+    animation: 'float 12s ease-in-out infinite',
+    animationDelay: '-6s',
   },
-  card: {
-    width: '100%',
-    maxWidth: '440px',
-    padding: '40px 32px',
-    position: 'relative',
+
+  loadingWrap: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 1,
   },
+
+  cardWrapper: {
+    position: 'relative',
+    zIndex: 1,
+    width: '100%',
+    maxWidth: '420px',
+  },
+
+  cardGlow: {
+    position: 'absolute',
+    inset: '-1px',
+    borderRadius: '18px',
+    background: 'linear-gradient(135deg, rgba(212, 168, 83, 0.3), transparent 40%, transparent 60%, rgba(96, 165, 250, 0.2))',
+    zIndex: -1,
+    opacity: 0.6,
+  },
+
+  card: {
+    width: '100%',
+    padding: '36px 28px',
+    position: 'relative',
+  },
+
   header: {
     textAlign: 'center',
-    marginBottom: '30px',
+    marginBottom: '28px',
   },
-  logoIcon: {
-    width: '56px',
-    height: '56px',
-    borderRadius: '16px',
-    background: 'rgba(139, 92, 246, 0.12)',
-    border: '1px solid rgba(139, 92, 246, 0.25)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 16px auto',
-  },
+
   title: {
-    fontSize: '1.8rem',
+    fontSize: '1.6rem',
+    fontWeight: 800,
     color: 'var(--text-main)',
-    marginBottom: '8px',
+    marginBottom: '6px',
+    letterSpacing: '-0.02em',
   },
+
   subtitle: {
     fontSize: '0.85rem',
     color: 'var(--text-muted)',
     lineHeight: '1.4',
   },
+
   errorAlert: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '10px',
     padding: '12px 16px',
     borderRadius: 'var(--radius-md)',
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    color: '#f87171',
+    background: 'var(--error-muted)',
+    border: '1px solid rgba(248, 113, 113, 0.2)',
+    color: 'var(--error)',
     fontSize: '0.85rem',
     marginBottom: '20px',
+    lineHeight: '1.4',
   },
+
   form: {
     display: 'flex',
     flexDirection: 'column',
   },
+
   inputWrapper: {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
   },
+
   inputIcon: {
     position: 'absolute',
     left: '14px',
     color: 'var(--text-muted)',
-  },
-  input: {
-    width: '100%',
-  },
-  submitBtn: {
-    width: '100%',
-    marginTop: '10px',
-    fontSize: '1rem',
-    padding: '14px',
+    pointerEvents: 'none',
   },
 
+  submitBtn: {
+    width: '100%',
+    marginTop: '8px',
+    fontSize: '1rem',
+    padding: '14px',
+    gap: '10px',
+  },
+
+  footer: {
+    textAlign: 'center',
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    marginTop: '24px',
+    opacity: 0.6,
+  },
 };

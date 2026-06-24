@@ -5,7 +5,9 @@ import type { User, FamilyMember, FamilyExpense, Business, BusinessRecord } from
 import {
   ArrowLeft, Home, Briefcase, Settings, LogOut,
   Plus, Trash2, IndianRupee, Sparkles,
-  LayoutGrid, X, TrendingUp, PieChart as PieIcon, Menu
+  LayoutGrid, X, TrendingUp, PieChart as PieIcon, Menu,
+  User as UserIcon, ChevronRight, Calendar, Tag, FileText,
+  DollarSign, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -15,7 +17,7 @@ import ThemeToggle from '../components/ThemeToggle';
 
 // Config constants in Gujarati
 const CATEGORIES = ['કરિયાણું', 'બિલ (લાઈટ/ફોન)', 'શિક્ષણ', 'તબીબી / દવાઓ', 'રોકાણ', 'મનોરંજન / જમવું', 'અન્ય ખર્ચ'];
-const COLORS = ['#8b5cf6', '#06b6d4', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#9ca3af'];
+const COLORS = ['#d4a853', '#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#64748b'];
 
 export default function DashboardPortal() {
   const navigate = useNavigate();
@@ -99,6 +101,14 @@ export default function DashboardPortal() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Auto-dismiss success messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   // Authenticate and load base options
   useEffect(() => {
@@ -437,148 +447,315 @@ export default function DashboardPortal() {
   const totalInvested = investments.filter(i => i.type === 'INVESTMENT').reduce((sum, i) => sum + i.amount, 0);
   const totalWithdrawn = investments.filter(i => i.type === 'WITHDRAWAL').reduce((sum, i) => sum + i.amount, 0);
 
+  // Greeting based on time
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'સુપ્રભાત';
+    if (hour < 17) return 'શુભ બપોર';
+    return 'શુભ સાંજ';
+  };
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
-        <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '140px', marginBottom: '20px' }} />
+        <img src="/logo.png" alt="Loading" className="logo-img-large logo-loader" style={{ height: '120px', marginBottom: '20px' }} />
       </div>
     );
   }
 
+  // Helper: Render a modal wrapper (bottom sheet on mobile, centered on desktop)
+  const renderModal = (show: boolean, onClose: () => void, title: string, children: React.ReactNode, maxWidth = '500px') => {
+    if (!show) return null;
+    return (
+      <div style={styles.modalBackdrop} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div
+          className="glass-card modal-card-sheet animate-slide-up"
+          style={{
+            ...styles.modalCard,
+            width: isMobile ? '100%' : '90%',
+            maxWidth,
+            padding: isMobile ? '20px 16px 32px' : '28px',
+          }}
+        >
+          <div style={styles.modalHeader}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{title}</h3>
+            <button className="btn-icon" onClick={onClose} style={{ flexShrink: 0 }}>
+              <X size={20} />
+            </button>
+          </div>
+          {children}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={styles.appContainer}>
-      {/* Top Navbar */}
-      <header style={{ ...styles.navbar, padding: isMobile ? '12px 16px' : '16px 40px', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }} className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: isMobile ? '100%' : 'auto' }}>
-          <div style={styles.navBrand} onClick={resetPortal}>
-            <img src="/logo.png" alt="Logo" className="logo-img" style={{ height: '56px' }} />
-          </div>
-          {isMobile && (
-            <button className="btn-icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          )}
-        </div>
-
-        <div style={{
-          ...styles.navActions,
-          display: isMobile ? (isMenuOpen ? 'flex' : 'none') : 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? '12px' : '16px',
-          marginTop: isMobile && isMenuOpen ? '16px' : '0',
-          width: isMobile ? '100%' : 'auto',
-          alignItems: isMobile ? 'stretch' : 'center',
-          borderTop: isMobile && isMenuOpen ? '1px solid var(--border-glass)' : 'none',
-          paddingTop: isMobile && isMenuOpen ? '16px' : '0'
-        }}>
-          <div style={{ alignSelf: isMobile ? 'center' : 'auto' }}>
-            <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', border: '1px solid var(--border-glass)' }} />
-          </div>
-
-          <div style={{ ...styles.userSection, padding: '6px 12px', gap: '10px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-            <div style={styles.avatar}>
-              {user?.username.charAt(0).toUpperCase()}
+      {/* ═══ MOBILE SIDEBAR DRAWER ═══ */}
+      {isMobile && isMenuOpen && (
+        <>
+          <div className="sidebar-overlay" onClick={() => setIsMenuOpen(false)} />
+          <aside className="sidebar-drawer">
+            {/* Sidebar Header */}
+            <div className="sidebar-header">
+              <img src="/logo.png" alt="Logo" className="logo-img" style={{ height: '36px' }} />
+              <button className="btn-icon" onClick={() => setIsMenuOpen(false)}>
+                <X size={22} />
+              </button>
             </div>
-            <div style={styles.profileText}>
-              <span style={{ ...styles.username, fontSize: '0.85rem' }}>{user?.username}</span>
-              <span className={`badge ${user?.role === 'admin' ? 'badge-primary' : 'badge-secondary'}`} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+
+            {/* Profile Section */}
+            <div className="sidebar-profile">
+              <div className="sidebar-avatar">
+                {user?.username.charAt(0).toUpperCase()}
+              </div>
+              <span className="sidebar-username">{user?.username}</span>
+              <span className={`badge ${user?.role === 'admin' ? 'badge-primary' : 'badge-secondary'}`}>
                 {user?.role === 'admin' ? 'એડમિન' : 'સભ્ય'}
               </span>
             </div>
+
+            {/* Menu Items */}
+            <div className="sidebar-menu">
+              <button
+                className={`sidebar-menu-item ${mode === 'portal' ? 'active' : ''}`}
+                onClick={() => { resetPortal(); setIsMenuOpen(false); }}
+              >
+                <Home size={20} />
+                <span>મુખ્ય પોર્ટલ</span>
+              </button>
+
+              <button
+                className={`sidebar-menu-item ${mode === 'expenses' ? 'active' : ''}`}
+                onClick={() => { setMode('expenses'); setIsMenuOpen(false); setSuccess(null); setError(null); }}
+              >
+                <IndianRupee size={20} />
+                <span>પારિવારિક ખર્ચ</span>
+              </button>
+
+              <button
+                className={`sidebar-menu-item ${mode === 'business' ? 'active' : ''}`}
+                onClick={() => { setMode('business'); setIsMenuOpen(false); setSuccess(null); setError(null); }}
+              >
+                <Briefcase size={20} />
+                <span>ધંધાકીય ખાતાવહી</span>
+              </button>
+
+              <div className="sidebar-divider" />
+
+              {/* Theme Toggle Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', fontFamily: 'var(--font-heading)' }}>થીમ બદલો</span>
+                <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', width: '40px', height: '40px' }} />
+              </div>
+
+              {user?.role === 'admin' && (
+                <button
+                  className="sidebar-menu-item"
+                  onClick={() => { setIsMenuOpen(false); navigate('/dashboard/admin'); }}
+                >
+                  <Settings size={20} />
+                  <span>એડમિન સેટિંગ્સ</span>
+                </button>
+              )}
+
+              <div style={{ flex: 1 }} />
+
+              <div className="sidebar-divider" />
+
+              <button className="sidebar-menu-item danger" onClick={handleLogout}>
+                <LogOut size={20} />
+                <span>લોગઆઉટ</span>
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="sidebar-footer">
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', opacity: 0.6 }}>
+                © {new Date().getFullYear()} વડસક પરિવાર
+              </p>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* ═══ TOP NAVBAR ═══ */}
+      <header
+        className="glass-card"
+        style={{
+          ...styles.navbar,
+          padding: isMobile ? '10px 16px' : '12px 32px',
+          borderRadius: 0,
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div style={styles.navBrand} onClick={resetPortal}>
+            <img src="/logo.png" alt="Logo" className="logo-img" style={{ height: isMobile ? '40px' : '48px' }} />
           </div>
 
-          {user?.role === 'admin' && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => { setIsMenuOpen(false); navigate('/dashboard/admin'); }}
-              style={{ padding: '10px 14px', width: isMobile ? '100%' : 'auto' }}
-            >
-              <Settings size={16} />
-              <span style={styles.btnText}>સેટિંગ્સ</span>
-            </button>
+          {/* Desktop nav actions */}
+          {!isMobile && (
+            <div style={styles.navActions}>
+              <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto' }} />
+
+              <div style={styles.userPill}>
+                <div style={styles.avatar}>
+                  {user?.username.charAt(0).toUpperCase()}
+                </div>
+                <div style={styles.profileText}>
+                  <span style={styles.username}>{user?.username}</span>
+                  <span className={`badge ${user?.role === 'admin' ? 'badge-primary' : 'badge-secondary'}`}>
+                    {user?.role === 'admin' ? 'એડમિન' : 'સભ્ય'}
+                  </span>
+                </div>
+              </div>
+
+              {user?.role === 'admin' && (
+                <button className="btn btn-secondary" onClick={() => navigate('/dashboard/admin')} style={{ padding: '8px 14px', gap: '6px' }}>
+                  <Settings size={16} /> સેટિંગ્સ
+                </button>
+              )}
+
+              <button className="btn btn-danger" onClick={handleLogout} style={{ padding: '8px 14px', gap: '6px' }}>
+                <LogOut size={16} /> લોગઆઉટ
+              </button>
+            </div>
           )}
 
-          <button
-            className="btn btn-danger"
-            onClick={handleLogout}
-            style={{ padding: '10px 14px', width: isMobile ? '100%' : 'auto' }}
-          >
-            <LogOut size={16} />
-            <span style={styles.btnText}>લોગઆઉટ</span>
-          </button>
+          {/* Mobile: menu toggle only */}
+          {isMobile && (
+            <button
+              className="btn-icon"
+              onClick={() => setIsMenuOpen(true)}
+              style={{ width: '40px', height: '40px' }}
+              aria-label="મેનુ ખોલો"
+            >
+              <Menu size={22} />
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Main Content Space */}
-      <main style={{ ...styles.mainContent, padding: isMobile ? '16px 12px' : '30px 40px' }}>
+      {/* ═══ BOTTOM NAV (Mobile only) ═══ */}
+      {isMobile && (
+        <nav className="bottom-nav">
+          <button className={`bottom-nav-item ${mode === 'portal' ? 'active' : ''}`} onClick={resetPortal}>
+            <Home size={22} />
+            <span>હોમ</span>
+          </button>
+          <button className={`bottom-nav-item ${mode === 'expenses' ? 'active' : ''}`} onClick={() => { setMode('expenses'); setSuccess(null); setError(null); }}>
+            <IndianRupee size={22} />
+            <span>ખર્ચ</span>
+          </button>
+          <button className={`bottom-nav-item ${mode === 'business' ? 'active' : ''}`} onClick={() => { setMode('business'); setSuccess(null); setError(null); }}>
+            <Briefcase size={22} />
+            <span>ધંધો</span>
+          </button>
+          <button className={`bottom-nav-item`} onClick={() => setIsMenuOpen(true)}>
+            <UserIcon size={22} />
+            <span>મેનુ</span>
+          </button>
+        </nav>
+      )}
+
+      {/* ═══ MAIN CONTENT ═══ */}
+      <main style={{ ...styles.mainContent, padding: isMobile ? '16px 14px' : '24px 32px' }}>
         {/* Alerts */}
         {error && (
-          <div className="glass-card animate-slide-up" style={styles.alertError}>
-            <X size={16} style={{ cursor: 'pointer' }} onClick={() => setError(null)} />
+          <div className="animate-fade-in" style={styles.alertError}>
+            <X size={14} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => setError(null)} />
             <span>{error}</span>
           </div>
         )}
         {success && (
-          <div className="glass-card animate-slide-up" style={styles.alertSuccess}>
-            <Sparkles size={16} />
+          <div className="animate-fade-in" style={styles.alertSuccess}>
+            <Sparkles size={14} style={{ flexShrink: 0 }} />
             <span>{success}</span>
           </div>
         )}
 
-        {/* ================= PHASE 1: CHOICE SCREEN ================= */}
+        {/* ═══════════ PORTAL HOME ═══════════ */}
         {mode === 'portal' && (
-          <div style={{ ...styles.portalChoiceContainer, minHeight: isMobile ? '50vh' : '70vh' }} className="animate-slide-up">
-            <h1 style={{ ...styles.portalTitle, fontSize: isMobile ? '1.8rem' : '2.5rem' }}>વડસક પરિવાર</h1>
-            <p style={{ ...styles.portalSubtitle, fontSize: isMobile ? '0.85rem' : '1rem' }}>પરિવારના સભ્યોના ખર્ચાઓ અથવા ધંધાની માસિક આવક-જાવક સંચાલન કરવા માટે નીચેનામાંથી પસંદગી કરો.</p>
+          <div className="animate-slide-up" style={styles.portalContainer}>
+            {/* Hero greeting */}
+            <div style={styles.heroSection}>
+              <p style={styles.greeting}>{getGreeting()},</p>
+              <h1 style={styles.heroTitle}>{user?.username || 'વડસક પરિવાર'}</h1>
+              <p style={styles.heroSubtitle}>
+                પરિવારના ખર્ચાઓ અથવા ધંધાકીય ખાતાવહી સંચાલન કરવા માટે પસંદગી કરો.
+              </p>
+            </div>
 
+            {/* Quick Stats */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '28px' }}>
+              <div style={styles.quickStat}>
+                <span style={styles.quickStatValue}>{members.length}</span>
+                <span style={styles.quickStatLabel}>સભ્યો</span>
+              </div>
+              <div style={styles.quickStat}>
+                <span style={styles.quickStatValue}>{businesses.length}</span>
+                <span style={styles.quickStatLabel}>ધંધાઓ</span>
+              </div>
+            </div>
+
+            {/* Choice Cards */}
             <div className="portal-grid">
               <div
                 className="glass-card portal-choice-card expenses"
                 onClick={() => { setMode('expenses'); setSuccess(null); setError(null); }}
               >
-                <div style={{ ...styles.choiceIconBox, background: 'rgba(139, 92, 246, 0.15)', borderColor: 'var(--primary)' }}>
-                  <Home size={36} color="var(--primary)" />
+                <div style={{ ...styles.choiceIconBox, background: 'var(--primary-muted)', borderColor: 'var(--primary)' }}>
+                  <Home size={28} color="var(--primary)" />
                 </div>
-                <h3 style={styles.choiceCardTitle}>પારિવારિક ખર્ચ</h3>
-                <p style={styles.choiceCardDesc}>
-                  પરિવારના સભ્યોના ઘર વપરાશ અને અન્ય વ્યક્તિગત ખર્ચાઓનું દૈનિક અને માસિક પત્રક.
-                </p>
-                <span className="badge badge-primary" style={{ marginTop: '10px' }}>
-                  {members.length} મોભી સભ્યો
-                </span>
+                <div style={isMobile ? { flex: 1 } : { textAlign: 'center' }}>
+                  <h3 style={styles.choiceCardTitle}>પારિવારિક ખર્ચ</h3>
+                  <p style={styles.choiceCardDesc}>
+                    પરિવારના સભ્યોના ખર્ચાઓનું દૈનિક અને માસિક પત્રક.
+                  </p>
+                  <span className="badge badge-primary" style={{ marginTop: '8px' }}>
+                    {members.length} સભ્યો
+                  </span>
+                </div>
+                {isMobile && <ChevronRight size={20} color="var(--text-muted)" />}
               </div>
 
               <div
                 className="glass-card portal-choice-card business"
                 onClick={() => { setMode('business'); setSuccess(null); setError(null); }}
               >
-                <div style={{ ...styles.choiceIconBox, background: 'rgba(6, 182, 212, 0.15)', borderColor: 'var(--secondary)' }}>
-                  <Briefcase size={36} color="var(--secondary)" />
+                <div style={{ ...styles.choiceIconBox, background: 'rgba(96, 165, 250, 0.1)', borderColor: 'var(--secondary)' }}>
+                  <Briefcase size={28} color="var(--secondary)" />
                 </div>
-                <h3 style={styles.choiceCardTitle}>ધંધાકીય ખાતાવહી</h3>
-                <p style={styles.choiceCardDesc}>
-                  ધંધાની માસિક આવક, માલસામાનની ખરીદી અને ઓફિસ સંચાલન ખર્ચાઓની હિસાબી નોંધ.
-                </p>
-                <span className="badge badge-secondary" style={{ marginTop: '10px' }}>
-                  {businesses.length} નોંધાયેલા ધંધાઓ
-                </span>
+                <div style={isMobile ? { flex: 1 } : { textAlign: 'center' }}>
+                  <h3 style={styles.choiceCardTitle}>ધંધાકીય ખાતાવહી</h3>
+                  <p style={styles.choiceCardDesc}>
+                    ધંધાની માસિક આવક-જાવક અને હિસાબી નોંધ.
+                  </p>
+                  <span className="badge badge-secondary" style={{ marginTop: '8px' }}>
+                    {businesses.length} ધંધાઓ
+                  </span>
+                </div>
+                {isMobile && <ChevronRight size={20} color="var(--text-muted)" />}
               </div>
             </div>
           </div>
         )}
 
-        {/* ================= PHASE 2: FAMILY SELECTION GRID ================= */}
+        {/* ═══════════ FAMILY MEMBER SELECTION ═══════════ */}
         {mode === 'expenses' && !selectedMember && (
           <div className="animate-slide-up" style={styles.subPageContainer}>
             <button className="back-navigation-btn" onClick={resetPortal}>
               <ArrowLeft size={16} />
-              <span>મુખ્ય પોર્ટલ પર પાછા જાઓ</span>
+              <span>મુખ્ય પોર્ટલ</span>
             </button>
 
-            <h2 style={styles.sectionTitle}>પારિવારિક સભ્યોની યાદી</h2>
-            <p style={styles.sectionSubtitle}>જે સભ્યના ખર્ચની વિગતો જોવી અથવા ઉમેરવી હોય તેમના કાર્ડ પર ક્લિક કરો.</p>
+            <h2 style={styles.sectionTitle}>પારિવારિક સભ્યો</h2>
+            <p style={styles.sectionSubtitle}>ખર્ચની વિગતો જોવા સભ્ય પસંદ કરો.</p>
 
-            <div className="layout-grid" style={{ marginTop: '24px' }}>
+            <div className="layout-grid stagger-children" style={{ marginTop: '20px' }}>
               {members.map((m) => (
                 <div
                   key={m.id}
@@ -588,135 +765,179 @@ export default function DashboardPortal() {
                   <div className="selection-avatar-badge">
                     {m.name.charAt(0).toUpperCase()}
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>{m.name}</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>પરિવારના સભ્ય</p>
-                  <button className="btn btn-secondary" style={{ marginTop: '16px', padding: '6px 14px', fontSize: '0.85rem' }}>
-                    પત્રક જુઓ
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '4px' }}>{m.name}</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '12px' }}>પરિવારના સભ્ય</p>
+                  <button className="btn btn-secondary" style={{ padding: '6px 16px', fontSize: '0.8rem' }}>
+                    પત્રક જુઓ <ChevronRight size={14} />
                   </button>
                 </div>
               ))}
               {members.length === 0 && (
-                <div className="glass-card" style={{ padding: '40px', gridColumn: '1/-1', textAlign: 'center' }}>
-                  <p style={{ color: 'var(--text-muted)' }}>કોઈ સભ્ય હજી નોંધાયેલ નથી. એડમિન સેટિંગ્સમાં જઈને સભ્યોના નામ ઉમેરી શકે છે.</p>
+                <div className="glass-card empty-state" style={{ gridColumn: '1/-1' }}>
+                  <UserIcon size={40} />
+                  <p>કોઈ સભ્ય નોંધાયેલ નથી. એડમિન સેટિંગ્સમાં સભ્યોના નામ ઉમેરો.</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ================= PHASE 3: EXPENSE DRILL DOWN ================= */}
+        {/* ═══════════ EXPENSE DETAIL ═══════════ */}
         {mode === 'expenses' && selectedMember && (
           <div className="animate-slide-up" style={styles.subPageContainer}>
             <button className="back-navigation-btn" onClick={() => { setSelectedMember(null); setSuccess(null); setError(null); }}>
               <ArrowLeft size={16} />
-              <span>સભ્યોની યાદી પર પાછા જાઓ</span>
+              <span>સભ્યોની યાદી</span>
             </button>
 
-            <div className="glass-card" style={{ ...styles.entityBanner, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', padding: isMobile ? '12px 16px' : '16px 24px' }}>
-              <div className="selection-avatar-badge" style={{ margin: 0, width: '50px', height: '50px', fontSize: '1.3rem' }}>
+            {/* Entity Banner */}
+            <div className="glass-card" style={{ ...styles.entityBanner, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', padding: isMobile ? '14px' : '16px 20px' }}>
+              <div className="selection-avatar-badge" style={{ margin: 0, width: '44px', height: '44px', fontSize: '1.1rem' }}>
                 {selectedMember.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h2 style={{ fontSize: isMobile ? '1.2rem' : '1.4rem' }}>{selectedMember.name}નું ખર્ચ પત્રક</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>માસિક ફાળવણી અને વિવિધ શ્રેણીઓના ખર્ચનું સંચાલન.</p>
+                <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.3rem' }}>{selectedMember.name}નું ખર્ચ પત્રક</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>માસિક ફાળવણી અને વિવિધ શ્રેણીઓના ખર્ચ.</p>
               </div>
             </div>
 
-            {/* Metrics cards */}
-            <div className="layout-grid" style={{ marginTop: '24px' }}>
+            {/* Metric Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? '10px' : '14px', marginTop: '16px' }}>
               <div className="glass-card" style={styles.metricCard}>
-                <span style={styles.metricLabel}>કુલ નોંધાયેલ ખર્ચ</span>
-                <h3 style={styles.metricVal}>₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+                <span style={styles.metricLabel}>કુલ ખર્ચ</span>
+                <h3 style={{ ...styles.metricVal, color: 'var(--primary)' }}>₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 0 })}</h3>
               </div>
               <div className="glass-card" style={styles.metricCard}>
                 <span style={styles.metricLabel}>કુલ એન્ટ્રીઓ</span>
-                <h3 style={styles.metricVal}>{expenses.length} નોંધ</h3>
+                <h3 style={styles.metricVal}>{expenses.length}</h3>
               </div>
-              <div className="glass-card" style={styles.metricCard}>
-                <span style={styles.metricLabel}>સરેરાશ ખર્ચ એન્ટ્રી</span>
-                <h3 style={styles.metricVal}>₹{avgExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
-              </div>
+              {!isMobile && (
+                <div className="glass-card" style={styles.metricCard}>
+                  <span style={styles.metricLabel}>સરેરાશ</span>
+                  <h3 style={styles.metricVal}>₹{avgExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
+                </div>
+              )}
             </div>
 
-            {/* Action Bar for Manager/Admin */}
+            {/* FAB for adding expense (mobile) / Button (desktop) */}
             {(user?.role === 'admin' || (selectedMember.allowed_user_ids || []).includes(user?.id as number)) && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                <button className="btn btn-primary" onClick={() => setShowExpenseModal(true)}>
-                  <Plus size={16} /> નવો ખર્ચ ઉમેરો
+              isMobile ? (
+                <button className="fab" onClick={() => setShowExpenseModal(true)} aria-label="નવો ખર્ચ ઉમેરો">
+                  <Plus size={24} />
                 </button>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                  <button className="btn btn-primary" onClick={() => setShowExpenseModal(true)}>
+                    <Plus size={16} /> નવો ખર્ચ ઉમેરો
+                  </button>
+                </div>
+              )
             )}
 
-            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-
-              {/* Chart Card */}
-              <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                <h3 style={styles.cardTitle}>કેટેગરી મુજબ ખર્ચનું વિતરણ</h3>
-                {expenses.length === 0 ? (
-                  <div style={styles.noData}>
-                    <PieIcon size={48} color="var(--border-glass-active)" />
-                    <p style={{ marginTop: '12px', color: 'var(--text-muted)' }}>ગ્રાફ પ્રદર્શિત કરવા કોઈ ડેટા નથી.</p>
+            {/* Chart */}
+            <div className="glass-card" style={{ padding: isMobile ? '16px' : '20px', marginTop: '16px' }}>
+              <h3 style={styles.cardTitle}>કેટેગરી મુજબ ખર્ચ</h3>
+              {expenses.length === 0 ? (
+                <div className="empty-state">
+                  <PieIcon size={40} />
+                  <p>ગ્રાફ પ્રદર્શિત કરવા ડેટા નથી.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie
+                        data={pieChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieChartData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '8px', fontSize: '0.8rem' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={styles.legendGrid}>
+                    {pieChartData.map((item, index) => (
+                      <div key={item.name} style={styles.legendItem}>
+                        <span style={{ ...styles.legendDot, background: COLORS[index % COLORS.length] }}></span>
+                        <span style={styles.legendText}>{item.name}</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-main)', marginLeft: 'auto' }}>₹{item.value.toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {pieChartData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip contentStyle={{ background: '#121426', border: '1px solid var(--border-glass)' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={styles.legendGrid}>
-                      {pieChartData.map((item, index) => (
-                        <div key={item.name} style={styles.legendItem}>
-                          <span style={{ ...styles.legendDot, background: COLORS[index % COLORS.length] }}></span>
-                          <span style={styles.legendText}>{item.name}: ₹{item.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            {/* Transactions Ledger Table */}
-            <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
-              <h3 style={styles.cardTitle}>ખર્ચ પત્રકની હિસાબી વિગતો</h3>
+            {/* Expense List — Card-based on mobile, Table on desktop */}
+            <div className="glass-card" style={{ padding: isMobile ? '14px' : '20px', marginTop: '16px' }}>
+              <h3 style={styles.cardTitle}>ખર્ચ પત્રક</h3>
               {expenses.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>હજુ સુધી કોઈ ખર્ચ નોંધાયેલ નથી.</p>
+                <div className="empty-state">
+                  <FileText size={40} />
+                  <p>હજુ સુધી કોઈ ખર્ચ નોંધાયેલ નથી.</p>
+                </div>
+              ) : isMobile ? (
+                /* Mobile: Card list */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {expenses.map((exp) => (
+                    <div key={exp.id} style={styles.expenseCard}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                            <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>{exp.category}</span>
+                          </div>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            {exp.description || 'કોઈ નોંધ નથી'}
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                            <Calendar size={11} color="var(--text-muted)" />
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              {new Date(exp.date).toLocaleDateString('en-IN')}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-heading)' }}>
+                            ₹{exp.amount.toLocaleString('en-IN')}
+                          </span>
+                          {(user?.role === 'admin' || exp.added_by === user?.id) && (
+                            <button className="btn-icon" style={{ color: 'var(--error)', width: '28px', height: '28px' }} onClick={() => handleDeleteExpense(exp.id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
+                /* Desktop: Table */
                 <div style={styles.tableResponsive}>
-                  <table style={{ ...styles.table, minWidth: isMobile ? '550px' : '100%' }}>
+                  <table>
                     <thead>
                       <tr>
-                        <th style={styles.th}>તારીખ</th>
-                        <th style={styles.th}>કેટેગરી</th>
-                        <th style={styles.th}>વિગત / નોંધ</th>
-                        <th style={styles.th}>રકમ</th>
-                        <th style={styles.th}>કાર્યવહી</th>
+                        <th>તારીખ</th>
+                        <th>કેટેગરી</th>
+                        <th>વિગત / નોંધ</th>
+                        <th>રકમ</th>
+                        <th>કાર્ય</th>
                       </tr>
                     </thead>
                     <tbody>
                       {expenses.map((exp) => (
-                        <tr key={exp.id} style={styles.tr}>
-                          <td style={styles.td}>{new Date(exp.date).toLocaleDateString('en-IN')}</td>
-                          <td style={styles.td}>
-                            <span className="badge badge-primary">{exp.category}</span>
-                          </td>
-                          <td style={styles.td}>{exp.description || 'કોઈ નોંધ નથી'}</td>
-                          <td style={{ ...styles.td, fontWeight: 700, color: 'var(--text-main)' }}>₹{exp.amount.toLocaleString('en-IN')}</td>
-                          <td style={styles.td}>
+                        <tr key={exp.id}>
+                          <td>{new Date(exp.date).toLocaleDateString('en-IN')}</td>
+                          <td><span className="badge badge-primary">{exp.category}</span></td>
+                          <td>{exp.description || 'કોઈ નોંધ નથી'}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--primary)' }}>₹{exp.amount.toLocaleString('en-IN')}</td>
+                          <td>
                             {(user?.role === 'admin' || exp.added_by === user?.id) && (
                               <button className="btn-icon" style={{ color: 'var(--error)' }} onClick={() => handleDeleteExpense(exp.id)}>
                                 <Trash2 size={16} />
@@ -733,185 +954,205 @@ export default function DashboardPortal() {
           </div>
         )}
 
-        {/* ================= PHASE 4: BUSINESS SELECTION GRID ================= */}
+        {/* ═══════════ BUSINESS SELECTION ═══════════ */}
         {mode === 'business' && !selectedBiz && (
           <div className="animate-slide-up" style={styles.subPageContainer}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
               <button className="back-navigation-btn" onClick={resetPortal}>
                 <ArrowLeft size={16} />
-                <span>મુખ્ય પોર્ટલ પર પાછા જાઓ</span>
+                <span>મુખ્ય પોર્ટલ</span>
               </button>
 
-              <button className="btn btn-primary" onClick={() => setShowBizModal(true)}>
-                <Plus size={16} /> નવો ધંધો રજીસ્ટર કરો
-              </button>
+              {!isMobile && (
+                <button className="btn btn-primary" onClick={() => setShowBizModal(true)}>
+                  <Plus size={16} /> નવો ધંધો
+                </button>
+              )}
             </div>
 
-            <h2 style={styles.sectionTitle}>નોંધાયેલા ધંધાઓની યાદી</h2>
-            <p style={styles.sectionSubtitle}>નાણાકીય હિસાબ પત્રકો અને ખરીદી-વેચાણનો ચાર્ટ જોવા ધંધાનું નામ પસંદ કરો.</p>
+            <h2 style={styles.sectionTitle}>નોંધાયેલા ધંધાઓ</h2>
+            <p style={styles.sectionSubtitle}>હિસાબ જોવા ધંધાનું નામ પસંદ કરો.</p>
 
-            <div className="layout-grid" style={{ marginTop: '24px' }}>
+            {/* FAB for mobile */}
+            {isMobile && (
+              <button className="fab" onClick={() => setShowBizModal(true)} aria-label="નવો ધંધો">
+                <Plus size={24} />
+              </button>
+            )}
+
+            <div className="layout-grid stagger-children" style={{ marginTop: '20px' }}>
               {businesses.map((biz) => (
                 <div
                   key={biz.id}
                   className="glass-card-interactive"
-                  style={{ padding: '24px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                  style={{ padding: isMobile ? '16px' : '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '160px' }}
                   onClick={() => setSelectedBiz(biz)}
                 >
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <LayoutGrid size={24} color="var(--secondary)" />
+                      <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(96, 165, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <LayoutGrid size={20} color="var(--secondary)" />
+                      </div>
                       {(user?.role === 'admin' || biz.manager_id === user?.id) && (
-                        <button
-                          className="btn-icon"
-                          style={{ color: 'var(--error)' }}
-                          onClick={(e) => handleDeleteBusiness(biz.id, e)}
-                        >
+                        <button className="btn-icon" style={{ color: 'var(--error)' }} onClick={(e) => handleDeleteBusiness(biz.id, e)}>
                           <Trash2 size={16} />
                         </button>
                       )}
                     </div>
-                    <h3 style={{ fontSize: '1.25rem', marginTop: '14px' }}>{biz.name}</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '6px' }}>{biz.description || 'કોઈ વિગત લખેલી નથી.'}</p>
+                    <h3 style={{ fontSize: '1.1rem', marginTop: '12px' }}>{biz.name}</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '4px' }}>{biz.description || 'કોઈ વિગત નથી.'}</p>
                   </div>
-                  <button className="btn btn-secondary" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem', padding: '6px' }}>
-                    પત્રક ખોલો
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 600 }}>
+                    <span>પત્રક ખોલો</span>
+                    <ChevronRight size={14} />
+                  </div>
                 </div>
               ))}
               {businesses.length === 0 && (
-                <div className="glass-card" style={{ padding: '40px', gridColumn: '1/-1', textAlign: 'center' }}>
-                  <p style={{ color: 'var(--text-muted)' }}>હજુ સુધી કોઈ ધંધાનું રજીસ્ટ્રેશન થયેલ નથી. નવો ધંધો ઉમેરવા ઉપરના બટન પર ક્લિક કરો.</p>
+                <div className="glass-card empty-state" style={{ gridColumn: '1/-1' }}>
+                  <Briefcase size={40} />
+                  <p>કોઈ ધંધો નોંધાયેલ નથી. નવો ધંધો ઉમેરો.</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ================= PHASE 5: BUSINESS DRILL DOWN ================= */}
+        {/* ═══════════ BUSINESS DETAIL ═══════════ */}
         {mode === 'business' && selectedBiz && (
           <div className="animate-slide-up" style={styles.subPageContainer}>
             <button className="back-navigation-btn" onClick={() => { setSelectedBiz(null); setSuccess(null); setError(null); }}>
               <ArrowLeft size={16} />
-              <span>ધંધાઓની યાદી પર પાછા જાઓ</span>
+              <span>ધંધાઓની યાદી</span>
             </button>
 
-            <div className="glass-card" style={{ marginTop: '16px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px', padding: isMobile ? '12px 16px' : '20px' }}>
-              <div className="selection-avatar-badge" style={{ margin: 0, width: '50px', height: '50px', fontSize: '1.3rem', background: 'linear-gradient(135deg, var(--secondary), var(--primary))' }}>
-                <Briefcase size={20} />
+            {/* Entity Banner */}
+            <div className="glass-card" style={{ marginTop: '12px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: '14px', padding: isMobile ? '14px' : '16px 20px' }}>
+              <div className="selection-avatar-badge" style={{ margin: 0, width: '44px', height: '44px', fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--secondary), var(--accent))' }}>
+                <Briefcase size={18} />
               </div>
               <div>
-                <h2 style={{ fontSize: isMobile ? '1.2rem' : '1.4rem' }}>{selectedBiz.name} ખાતાવહી</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{selectedBiz.description || 'ધંધાકીય હિસાબ સંચાલન'}</p>
+                <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.3rem' }}>{selectedBiz.name} ખાતાવહી</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{selectedBiz.description || 'ધંધાકીય હિસાબ સંચાલન'}</p>
               </div>
             </div>
 
-            {/* Metrics cards */}
-            <div className="layout-grid" style={{ marginTop: '24px' }}>
+            {/* Metric Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? '10px' : '14px', marginTop: '16px' }}>
               <div className="glass-card" style={styles.metricCard}>
-                <span style={styles.metricLabel}>કુલ માસિક આવક</span>
-                <h3 style={{ ...styles.metricVal, color: 'var(--secondary-hover)' }}>₹{totalRev.toLocaleString('en-IN')}</h3>
+                <span style={styles.metricLabel}>કુલ આવક</span>
+                <h3 style={{ ...styles.metricVal, color: 'var(--success)' }}>₹{totalRev.toLocaleString('en-IN')}</h3>
               </div>
               <div className="glass-card" style={styles.metricCard}>
-                <span style={styles.metricLabel}>કુલ માસિક ખર્ચ (ખરીદી + સંચાલન)</span>
-                <h3 style={{ ...styles.metricVal, color: '#f87171' }}>₹{totalCost.toLocaleString('en-IN')}</h3>
+                <span style={styles.metricLabel}>કુલ ખર્ચ</span>
+                <h3 style={{ ...styles.metricVal, color: 'var(--error)' }}>₹{totalCost.toLocaleString('en-IN')}</h3>
               </div>
-              <div className="glass-card" style={styles.metricCard}>
-                <span style={styles.metricLabel}>ચોખ્ખો નફો (Net Profit)</span>
-                <h3 style={{ ...styles.metricVal, color: netProfit >= 0 ? '#34d399' : '#f87171' }}>
+              <div className="glass-card" style={{ ...styles.metricCard, gridColumn: isMobile ? '1 / -1' : 'auto' }}>
+                <span style={styles.metricLabel}>ચોખ્ખો નફો</span>
+                <h3 style={{ ...styles.metricVal, color: netProfit >= 0 ? 'var(--success)' : 'var(--error)' }}>
                   ₹{netProfit.toLocaleString('en-IN')}
                 </h3>
               </div>
             </div>
 
             {/* Investment Summary */}
-            <div className="glass-card" style={{ padding: '20px', marginTop: '16px' }}>
-              <h3 style={{ ...styles.cardTitle, marginBottom: '16px' }}>રોકાણ અને ઉપાડ</h3>
-              <div className="layout-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
-                  <span style={styles.metricLabel}>કુલ રોકાણ (Total Invested)</span>
-                  <h3 style={{ ...styles.metricVal, color: '#34d399', marginTop: '8px' }}>
-                    ₹{totalInvested.toLocaleString('en-IN')}
-                  </h3>
+            <div className="glass-card" style={{ padding: isMobile ? '14px' : '20px', marginTop: '14px' }}>
+              <h3 style={{ ...styles.cardTitle, marginBottom: '12px' }}>રોકાણ અને ઉપાડ</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
+                <div style={styles.investStatCard}>
+                  <ArrowUpRight size={16} color="var(--success)" />
+                  <div>
+                    <span style={{ ...styles.metricLabel, fontSize: '0.7rem' }}>કુલ રોકાણ</span>
+                    <h4 style={{ ...styles.metricVal, fontSize: '1.1rem', color: 'var(--success)' }}>₹{totalInvested.toLocaleString('en-IN')}</h4>
+                  </div>
                 </div>
-                <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
-                  <span style={styles.metricLabel}>કુલ ઉપાડ (Total Withdrawn)</span>
-                  <h3 style={{ ...styles.metricVal, color: '#f87171', marginTop: '8px' }}>
-                    ₹{totalWithdrawn.toLocaleString('en-IN')}
-                  </h3>
+                <div style={styles.investStatCard}>
+                  <ArrowDownRight size={16} color="var(--error)" />
+                  <div>
+                    <span style={{ ...styles.metricLabel, fontSize: '0.7rem' }}>કુલ ઉપાડ</span>
+                    <h4 style={{ ...styles.metricVal, fontSize: '1.1rem', color: 'var(--error)' }}>₹{totalWithdrawn.toLocaleString('en-IN')}</h4>
+                  </div>
                 </div>
-                <div style={{ ...styles.metricCard, background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
-                  <span style={styles.metricLabel}>બાકી રોકાણ (Remaining Balance)</span>
-                  <h3 style={{ ...styles.metricVal, color: (totalInvested - totalWithdrawn) >= 0 ? '#60a5fa' : '#f87171', marginTop: '8px' }}>
-                    ₹{(totalInvested - totalWithdrawn).toLocaleString('en-IN')}
-                  </h3>
+                <div style={styles.investStatCard}>
+                  <DollarSign size={16} color="var(--secondary)" />
+                  <div>
+                    <span style={{ ...styles.metricLabel, fontSize: '0.7rem' }}>બાકી</span>
+                    <h4 style={{ ...styles.metricVal, fontSize: '1.1rem', color: 'var(--secondary)' }}>₹{(totalInvested - totalWithdrawn).toLocaleString('en-IN')}</h4>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Log monthly financials button */}
+            {/* Action buttons (desktop) / FAB (mobile) */}
             {(user?.role === 'admin' || selectedBiz.manager_id === user?.id) && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                <button className="btn btn-primary" onClick={() => setShowRecordModal(true)}>
-                  <Plus size={16} /> માસિક નાણાકીય વિગતો ભરો
+              isMobile ? (
+                <button className="fab" onClick={() => setShowRecordModal(true)} aria-label="માસિક વિગતો">
+                  <Plus size={24} />
                 </button>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px', gap: '10px' }}>
+                  <button className="btn btn-primary" onClick={() => setShowRecordModal(true)}>
+                    <Plus size={16} /> માસિક વિગતો
+                  </button>
+                </div>
+              )
             )}
 
-            {/* Ledger Table */}
-            <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                <h3 style={{...styles.cardTitle, margin: 0, borderBottom: 'none', paddingBottom: 0}}>ધંધાકીય ખાતાવહીનું માસિક પત્રક</h3>
-                <button className="btn btn-secondary" onClick={() => setShowAddColumnModal(true)} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={16} /> નવી કોલમ ઉમેરો
+            {/* Business Ledger Table */}
+            <div className="glass-card" style={{ padding: isMobile ? '14px' : '20px', marginTop: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                <h3 style={{ ...styles.cardTitle, margin: 0, borderBottom: 'none', paddingBottom: 0 }}>માસિક પત્રક</h3>
+                <button className="btn btn-secondary" onClick={() => setShowAddColumnModal(true)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                  <Plus size={14} /> કોલમ
                 </button>
               </div>
               {processedRecords.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>કોઈ માસિક એન્ટ્રી નથી.</p>
+                <div className="empty-state">
+                  <FileText size={40} />
+                  <p>કોઈ માસિક એન્ટ્રી નથી.</p>
+                </div>
               ) : (
                 <div style={styles.tableResponsive}>
-                  <table style={{ ...styles.table, minWidth: isMobile ? '700px' : '100%' }}>
+                  <table style={{ minWidth: isMobile ? '700px' : '100%' }}>
                     <thead>
                       <tr>
-                        <th style={styles.th}>તારીખ</th>
-                        <th style={styles.th}>વેચાણ આવક</th>
-                        <th style={styles.th}>માલ ખરીદી ખર્ચ</th>
-                        <th style={styles.th}>સંચાલન ખર્ચ</th>
+                        <th>તારીખ</th>
+                        <th>વેચાણ આવક</th>
+                        <th>માલ ખરીદી</th>
+                        <th>સંચાલન ખર્ચ</th>
                         {selectedBiz.custom_columns?.map((col: string) => (
-                          <th key={col} style={styles.th}>{col}</th>
+                          <th key={col}>{col}</th>
                         ))}
-                        <th style={styles.th}>અન્ય વિશિષ્ટ ખર્ચ</th>
-                        <th style={styles.th}>ચોખ્ખો નફો / નુકસાન</th>
+                        <th>અન્ય વિશિષ્ટ</th>
+                        <th>નફો / નુકસાન</th>
                       </tr>
                     </thead>
                     <tbody>
                       {processedRecords.map((rec) => (
-                        <tr key={rec.id} style={styles.tr}>
-                          <td style={{ ...styles.td, fontWeight: 700, color: 'var(--text-main)' }}>
+                        <tr key={rec.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                             {new Date(rec.date).toString() === 'Invalid Date' ? rec.date : new Date(rec.date).toLocaleDateString('en-IN')}
                           </td>
-                          <td style={{ ...styles.td, color: 'var(--success)' }}>₹{rec.revenue.toLocaleString('en-IN')}</td>
-                          <td style={styles.td}>₹{rec.cost.toLocaleString('en-IN')}</td>
-                          <td style={styles.td}>₹{rec.expenses.toLocaleString('en-IN')}</td>
-                          
+                          <td style={{ color: 'var(--success)' }}>₹{rec.revenue.toLocaleString('en-IN')}</td>
+                          <td>₹{rec.cost.toLocaleString('en-IN')}</td>
+                          <td>₹{rec.expenses.toLocaleString('en-IN')}</td>
                           {selectedBiz.custom_columns?.map((col: string) => (
-                            <td key={col} style={styles.td}>
+                            <td key={col}>
                               {rec.custom_data && rec.custom_data[col] !== undefined 
                                 ? (typeof rec.custom_data[col] === 'number' ? `₹${rec.custom_data[col].toLocaleString('en-IN')}` : rec.custom_data[col]) 
                                 : '-'}
                             </td>
                           ))}
-                          
-                          <td style={styles.td}>
+                          <td>
                             {(() => {
                               const otherData = { ...(rec.custom_data || {}) };
                               selectedBiz.custom_columns?.forEach((col: string) => delete otherData[col]);
                               const keys = Object.keys(otherData);
-                              if (keys.length === 0) return <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>કંઈ નથી</span>;
+                              if (keys.length === 0) return <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>-</span>;
                               return (
-                                <div style={styles.customGrid}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                   {keys.map((k) => (
-                                    <span key={k} style={styles.customFieldBadge}>
+                                    <span key={k} style={{ fontSize: '0.7rem', background: 'var(--primary-muted)', padding: '1px 6px', borderRadius: '4px', width: 'fit-content' }}>
                                       <strong>{k}:</strong> {otherData[k]}
                                     </span>
                                   ))}
@@ -919,7 +1160,7 @@ export default function DashboardPortal() {
                               );
                             })()}
                           </td>
-                          <td style={{ ...styles.td, fontWeight: 700, color: rec.profit >= 0 ? 'var(--success)' : 'var(--error)' }}>
+                          <td style={{ fontWeight: 700, color: rec.profit >= 0 ? 'var(--success)' : 'var(--error)' }}>
                             ₹{rec.profit.toLocaleString('en-IN')}
                           </td>
                         </tr>
@@ -931,45 +1172,76 @@ export default function DashboardPortal() {
             </div>
 
             {/* Investments Table */}
-            <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                <h3 style={{ ...styles.cardTitle, marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>રોકાણ અને ઉપાડ</h3>
-                <button className="btn btn-primary" onClick={() => setShowInvModal(true)}>
-                  <Plus size={16} /> રોકાણ / ઉપાડ ઉમેરો
+            <div className="glass-card" style={{ padding: isMobile ? '14px' : '20px', marginTop: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <h3 style={{ ...styles.cardTitle, marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>રોકાણ / ઉપાડ</h3>
+                <button className="btn btn-primary" onClick={() => setShowInvModal(true)} style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
+                  <Plus size={14} /> ઉમેરો
                 </button>
               </div>
 
               {investments.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>કોઈ નોંધ નથી.</p>
+                <div className="empty-state">
+                  <TrendingUp size={40} />
+                  <p>કોઈ નોંધ નથી.</p>
+                </div>
+              ) : isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {investments.map((inv) => (
+                    <div key={inv.id} style={styles.expenseCard}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>{inv.person_name}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                            {inv.type === 'INVESTMENT' ? (
+                              <span className="badge badge-success" style={{ fontSize: '0.6rem' }}>રોકાણ</span>
+                            ) : (
+                              <span className="badge badge-danger" style={{ fontSize: '0.6rem' }}>ઉપાડ</span>
+                            )}
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(inv.date).toLocaleDateString('en-IN')}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 800, color: inv.type === 'INVESTMENT' ? 'var(--success)' : 'var(--error)', fontFamily: 'var(--font-heading)' }}>
+                            ₹{inv.amount.toLocaleString('en-IN')}
+                          </span>
+                          <button className="btn-icon" style={{ color: 'var(--error)', width: '28px', height: '28px' }} onClick={() => handleDeleteInvestment(inv.id)}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div style={styles.tableResponsive}>
-                  <table style={{ ...styles.table, minWidth: isMobile ? '600px' : '100%' }}>
+                  <table>
                     <thead>
                       <tr>
-                        <th style={styles.th}>તારીખ</th>
-                        <th style={styles.th}>વ્યક્તિનું નામ</th>
-                        <th style={styles.th}>પ્રકાર</th>
-                        <th style={styles.th}>રકમ</th>
-                        <th style={styles.th}>કાર્ય</th>
+                        <th>તારીખ</th>
+                        <th>વ્યક્તિ</th>
+                        <th>પ્રકાર</th>
+                        <th>રકમ</th>
+                        <th>કાર્ય</th>
                       </tr>
                     </thead>
                     <tbody>
                       {investments.map((inv) => (
-                        <tr key={inv.id} style={styles.tr}>
-                          <td style={{ ...styles.td, color: 'var(--text-main)' }}>{new Date(inv.date).toLocaleDateString('en-IN')}</td>
-                          <td style={{ ...styles.td, fontWeight: 600, color: 'var(--text-main)' }}>{inv.person_name}</td>
-                          <td style={styles.td}>
+                        <tr key={inv.id}>
+                          <td style={{ color: 'var(--text-main)' }}>{new Date(inv.date).toLocaleDateString('en-IN')}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{inv.person_name}</td>
+                          <td>
                             {inv.type === 'INVESTMENT' ? (
-                              <span style={{ padding: '4px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', fontSize: '0.75rem', fontWeight: 600 }}>રોકાણ (Invested)</span>
+                              <span className="badge badge-success">રોકાણ</span>
                             ) : (
-                              <span style={{ padding: '4px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', fontSize: '0.75rem', fontWeight: 600 }}>ઉપાડ (Get back)</span>
+                              <span className="badge badge-danger">ઉપાડ</span>
                             )}
                           </td>
-                          <td style={{ ...styles.td, fontWeight: 700, color: inv.type === 'INVESTMENT' ? 'var(--success)' : 'var(--error)' }}>
+                          <td style={{ fontWeight: 700, color: inv.type === 'INVESTMENT' ? 'var(--success)' : 'var(--error)' }}>
                             ₹{inv.amount.toLocaleString('en-IN')}
                           </td>
-                          <td style={styles.td}>
-                            <button type="button" onClick={() => handleDeleteInvestment(inv.id)} className="btn-icon" style={{ color: 'var(--error)' }}>
+                          <td>
+                            <button className="btn-icon" style={{ color: 'var(--error)' }} onClick={() => handleDeleteInvestment(inv.id)}>
                               <Trash2 size={16} />
                             </button>
                           </td>
@@ -981,33 +1253,33 @@ export default function DashboardPortal() {
               )}
             </div>
 
-            {/* Performance chart */}
-            <div className="glass-card" style={{ padding: '24px', marginTop: '24px' }}>
-              <h3 style={styles.cardTitle}>આવક અને નફાકારકતાનો વળાંક</h3>
+            {/* Performance Chart */}
+            <div className="glass-card" style={{ padding: isMobile ? '14px' : '20px', marginTop: '14px' }}>
+              <h3 style={styles.cardTitle}>આવક અને નફાકારકતા</h3>
               {processedRecords.length === 0 ? (
-                <div style={styles.noData}>
-                  <TrendingUp size={48} color="var(--border-glass-active)" />
-                  <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>પત્રક દોરવા માટે પૂરતો નાણાકીય ડેટા નથી.</p>
+                <div className="empty-state">
+                  <TrendingUp size={40} />
+                  <p>પૂરતો ડેટા નથી.</p>
                 </div>
               ) : (
-                <div style={{ height: '260px', width: '100%' }}>
+                <div style={{ height: '240px', width: '100%' }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={[...processedRecords].reverse()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <AreaChart data={[...processedRecords].reverse()} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRevPortal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0} />
+                          <stop offset="5%" stopColor="var(--success)" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="colorProfitPortal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                          <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
                           <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glass)" />
                       <XAxis dataKey="displayMonth" stroke="var(--text-muted)" fontSize={10} />
                       <YAxis stroke="var(--text-muted)" fontSize={10} />
-                      <Tooltip contentStyle={{ background: '#121426', border: '1px solid var(--border-glass)' }} />
-                      <Area type="monotone" dataKey="revenue" stroke="var(--secondary)" fillOpacity={1} fill="url(#colorRevPortal)" name="આવક" />
+                      <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '8px', fontSize: '0.8rem' }} />
+                      <Area type="monotone" dataKey="revenue" stroke="var(--success)" fillOpacity={1} fill="url(#colorRevPortal)" name="આવક" />
                       <Area type="monotone" dataKey="profit" stroke="var(--primary)" fillOpacity={1} fill="url(#colorProfitPortal)" name="નફો" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -1018,407 +1290,167 @@ export default function DashboardPortal() {
         )}
       </main>
 
-      {/* Add Business Modal Overlay */}
-      {showBizModal && (
-        <div style={styles.modalBackdrop}>
-          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '450px', padding: isMobile ? '20px 16px' : '24px' }}>
-            <div style={styles.modalHeader}>
-              <h3>નવો ધંધો રજીસ્ટર કરો</h3>
-              <button className="btn-icon" onClick={() => setShowBizModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleCreateBusiness} style={styles.form}>
-              <div className="form-group">
-                <label className="form-label">ધંધાનું નામ</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="દા.ત. વ્રજ કાપડ ઉદ્યોગ"
-                  value={bizName}
-                  onChange={(e) => setBizName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">ધંધાની વિગત / વર્ણન</label>
-                <textarea
-                  className="input-field"
-                  placeholder="ધંધો કયા પ્રકારનો છે તેની વિગતો લખો..."
-                  value={bizDesc}
-                  onChange={(e) => setBizDesc(e.target.value)}
-                  style={{ minHeight: '80px', resize: 'vertical' }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">મેનેજિંગ પર્સન (સંચાલક)</label>
-                <select
-                  className="input-field"
-                  value={bizManagerId}
-                  onChange={(e) => setBizManagerId(e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  <option value="">-- સંચાલક પસંદ કરો --</option>
-                  {allUsers.map(u => (
-                    <option key={u.id} value={u.id}>{u.username} ({u.role === 'admin' ? 'એડમિન' : 'સભ્ય'})</option>
-                  ))}
-                </select>
-              </div>
-              <div style={styles.modalFooter}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowBizModal(false)}>
-                  રદ કરો
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  રજીસ્ટર કરો
-                </button>
-              </div>
-            </form>
+      {/* ═══════════ MODALS ═══════════ */}
+
+      {/* Add Business Modal */}
+      {renderModal(showBizModal, () => setShowBizModal(false), 'નવો ધંધો રજીસ્ટર કરો',
+        <form onSubmit={handleCreateBusiness} style={styles.form}>
+          <div className="form-group">
+            <label className="form-label">ધંધાનું નામ</label>
+            <input type="text" className="input-field" placeholder="દા.ત. વ્રજ કાપડ ઉદ્યોગ" value={bizName} onChange={(e) => setBizName(e.target.value)} required />
           </div>
-        </div>
+          <div className="form-group">
+            <label className="form-label">વિગત / વર્ણન</label>
+            <textarea className="input-field" placeholder="ધંધો કયા પ્રકારનો છે..." value={bizDesc} onChange={(e) => setBizDesc(e.target.value)} style={{ minHeight: '70px' }} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">સંચાલક</label>
+            <select className="input-field" value={bizManagerId} onChange={(e) => setBizManagerId(e.target.value)}>
+              <option value="">-- સંચાલક પસંદ કરો --</option>
+              {allUsers.map(u => (<option key={u.id} value={u.id}>{u.username} ({u.role === 'admin' ? 'એડમિન' : 'સભ્ય'})</option>))}
+            </select>
+          </div>
+          <div style={styles.modalFooter}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowBizModal(false)}>રદ</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>રજીસ્ટર કરો</button>
+          </div>
+        </form>,
+        '450px'
       )}
 
-      {/* Add Business Record Modal Overlay */}
-      {showRecordModal && selectedBiz && (
-        <div style={styles.modalBackdrop}>
-          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '700px', padding: isMobile ? '20px 16px' : '30px' }}>
-            <div style={styles.modalHeader}>
-              <h3>માસિક નાણાકીય વિગતો ભરો ({selectedBiz.name})</h3>
-              <button className="btn-icon" onClick={() => setShowRecordModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleAddBusinessRecord} style={{ ...styles.form, marginTop: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">તારીખ</label>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={bizDate}
-                    onChange={(e) => setBizDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">કુલ આવક (રૂપિયામાં)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input-field"
-                    placeholder="આવક લખો"
-                    value={bizRevenue}
-                    onChange={(e) => setBizRevenue(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+      {/* Add Business Record Modal */}
+      {renderModal(showRecordModal && !!selectedBiz, () => setShowRecordModal(false), `માસિક વિગતો (${selectedBiz?.name || ''})`,
+        <form onSubmit={handleAddBusinessRecord} style={{ ...styles.form, marginTop: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+            <div className="form-group"><label className="form-label">તારીખ</label><input type="date" className="input-field" value={bizDate} onChange={(e) => setBizDate(e.target.value)} required /></div>
+            <div className="form-group"><label className="form-label">કુલ આવક</label><input type="number" step="0.01" className="input-field" placeholder="આવક" value={bizRevenue} onChange={(e) => setBizRevenue(e.target.value)} required /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+            <div className="form-group"><label className="form-label">માલ ખરીદી ખર્ચ</label><input type="number" step="0.01" className="input-field" placeholder="ખરીદી" value={bizCost} onChange={(e) => setBizCost(e.target.value)} required /></div>
+            <div className="form-group"><label className="form-label">સંચાલન ખર્ચ</label><input type="number" step="0.01" className="input-field" placeholder="સંચાલન" value={bizExpenses} onChange={(e) => setBizExpenses(e.target.value)} required /></div>
+          </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">માલસામાન ખરીદી ખર્ચ</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input-field"
-                    placeholder="ખરીદીનો ખર્ચ લખો"
-                    value={bizCost}
-                    onChange={(e) => setBizCost(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">સંચાલન ખર્ચ (ભાડું/પાવર)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input-field"
-                    placeholder="બીજા સંચાલન ખર્ચાઓ"
-                    value={bizExpenses}
-                    onChange={(e) => setBizExpenses(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {selectedBiz?.custom_columns && selectedBiz.custom_columns.length > 0 && (
-                <>
-                  <h4 style={{ margin: '20px 0 10px', fontSize: '0.9rem', color: 'var(--text-main)' }}>કોલમની વિગતો</h4>
-                  <div style={styles.formGrid}>
-                    {selectedBiz.custom_columns.map((col: string) => (
-                      <div className="form-group" key={col}>
-                        <label className="form-label">{col}</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="input-field"
-                          placeholder="રકમ"
-                          value={globalCustomValues[col] || ''}
-                          onChange={(e) => setGlobalCustomValues({...globalCustomValues, [col]: e.target.value})}
-                        />
-                      </div>
-                    ))}
+          {selectedBiz?.custom_columns && selectedBiz.custom_columns.length > 0 && (
+            <>
+              <h4 style={{ margin: '12px 0 8px', fontSize: '0.85rem' }}>કોલમની વિગતો</h4>
+              <div className="formGrid">
+                {selectedBiz.custom_columns.map((col: string) => (
+                  <div className="form-group" key={col}>
+                    <label className="form-label">{col}</label>
+                    <input type="number" step="0.01" className="input-field" placeholder="રકમ" value={globalCustomValues[col] || ''} onChange={(e) => setGlobalCustomValues({...globalCustomValues, [col]: e.target.value})} />
                   </div>
-                </>
-              )}
-
-              <div style={styles.customFieldBuilder}>
-                <label className="form-label" style={{ marginBottom: '12px', display: 'block', fontSize: '0.85rem' }}>
-                  વધારાની વિશિષ્ટ વિગતો (દા.ત. બોનસ / કરવેરા)
-                </label>
-
-                <div style={{ marginBottom: '12px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
-                      <tr>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>વિગતનું નામ</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>રકમ</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--text-muted)', width: '50px' }}>કાર્ય</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {customFields.length === 0 ? (
-                        <tr>
-                          <td colSpan={3} style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)' }}>કોઈ વિગત નથી. નવી વિગત નીચેથી ઉમેરો.</td>
-                        </tr>
-                      ) : (
-                        customFields.map((f, i) => (
-                          <tr key={i} style={{ borderTop: '1px solid var(--border-glass)' }}>
-                            <td style={{ padding: '8px 12px', color: 'var(--text-main)' }}>{f.key}</td>
-                            <td style={{ padding: '8px 12px', color: 'var(--text-main)' }}>{f.value}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                              <button type="button" onClick={() => handleRemoveCustomField(i)} className="btn-icon" style={{ color: 'var(--error)' }}>
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="નામ લખો (દા.ત. બોનસ)"
-                    value={newFieldName}
-                    onChange={(e) => setNewFieldName(e.target.value)}
-                    style={{ flex: 1, minWidth: 0, padding: '8px 12px', fontSize: '0.85rem' }}
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input-field"
-                    placeholder="રકમ"
-                    value={newFieldValue}
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ flex: 1, minWidth: 0, padding: '8px 12px', fontSize: '0.85rem' }}
-                  />
-                  <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
-                    <Plus size={16} /> ઉમેરો
-                  </button>
-                </div>
+                ))}
               </div>
+            </>
+          )}
 
-              <div style={styles.modalFooter}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowRecordModal(false)}>
-                  રદ કરો
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  માસિક પત્રક સાચવો
-                </button>
+          {/* Custom Fields Builder */}
+          <div style={{ border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', padding: '12px', marginTop: '8px', background: 'var(--bg-input)' }}>
+            <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>વધારાની વિગતો</label>
+            {customFields.length > 0 && (
+              <div style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {customFields.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem' }}>
+                    <span><strong>{f.key}:</strong> {f.value}</span>
+                    <button type="button" onClick={() => handleRemoveCustomField(i)} className="btn-icon" style={{ color: 'var(--error)', width: '24px', height: '24px' }}><Trash2 size={12} /></button>
+                  </div>
+                ))}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Add Family Expense Modal Overlay */}
-      {showExpenseModal && selectedMember && (
-        <div style={styles.modalBackdrop}>
-          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '600px', padding: isMobile ? '20px 16px' : '30px' }}>
-            <div style={styles.modalHeader}>
-              <h3>નવો ખર્ચ ઉમેરો ({selectedMember.name})</h3>
-              <button className="btn-icon" onClick={() => setShowExpenseModal(false)}>
-                <X size={20} />
-              </button>
+            )}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input type="text" className="input-field" placeholder="નામ" value={newFieldName} onChange={(e) => setNewFieldName(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '8px 10px', fontSize: '0.8rem' }} />
+              <input type="number" step="0.01" className="input-field" placeholder="રકમ" value={newFieldValue} onChange={(e) => setNewFieldValue(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '8px 10px', fontSize: '0.8rem' }} />
+              <button type="button" className="btn btn-secondary" onClick={handleAddCustomField} style={{ padding: '8px 12px', whiteSpace: 'nowrap', fontSize: '0.8rem' }}><Plus size={14} /></button>
             </div>
-            <form onSubmit={handleAddExpense} style={{ ...styles.form, marginTop: '20px' }}>
-              <div className="form-group">
-                <label className="form-label">ખર્ચની રકમ (રૂપિયામાં)</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <IndianRupee size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input-field"
-                    placeholder="રકમ લખો"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    style={{ width: '100%', paddingLeft: '36px' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">ખર્ચની કેટેગરી</label>
-                  <select
-                    className="input-field"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    style={{ width: '100%' }}
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">તારીખ</label>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={expenseDate}
-                    onChange={(e) => setExpenseDate(e.target.value)}
-                    style={{ width: '100%' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">ખર્ચની વિગત / નોંધ</label>
-                <textarea
-                  className="input-field"
-                  placeholder="ખર્ચ કઈ બાબતમાં થયો તેની માહિતી લખો..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  style={{ width: '100%', minHeight: '80px', resize: 'vertical' }}
-                />
-              </div>
-
-              <div style={styles.modalFooter}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowExpenseModal(false)}>
-                  રદ કરો
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  ખર્ચ સાચવો
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+
+          <div style={styles.modalFooter}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowRecordModal(false)}>રદ</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>સાચવો</button>
+          </div>
+        </form>,
+        '700px'
+      )}
+
+      {/* Add Expense Modal */}
+      {renderModal(showExpenseModal && !!selectedMember, () => setShowExpenseModal(false), `નવો ખર્ચ (${selectedMember?.name || ''})`,
+        <form onSubmit={handleAddExpense} style={{ ...styles.form, marginTop: '12px' }}>
+          <div className="form-group">
+            <label className="form-label">ખર્ચની રકમ (₹)</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <IndianRupee size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+              <input type="number" step="0.01" className="input-field" placeholder="રકમ" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ paddingLeft: '36px' }} required />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+            <div className="form-group">
+              <label className="form-label">કેટેગરી</label>
+              <select className="input-field" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {CATEGORIES.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">તારીખ</label>
+              <input type="date" className="input-field" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">વિગત / નોંધ</label>
+            <textarea className="input-field" placeholder="ખર્ચ કઈ બાબતમાં..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ minHeight: '60px' }} />
+          </div>
+          <div style={styles.modalFooter}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowExpenseModal(false)}>રદ</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>સાચવો</button>
+          </div>
+        </form>,
+        '550px'
       )}
 
       {/* Add Investment Modal */}
-      {showInvModal && selectedBiz && (
-        <div style={styles.modalBackdrop}>
-          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '500px', padding: isMobile ? '20px 16px' : '30px' }}>
-            <div style={styles.modalHeader}>
-              <h3>રોકાણ / ઉપાડ નોંધ (Investment / Withdrawal)</h3>
-              <button className="btn-icon" onClick={() => setShowInvModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleAddInvestment} style={{ ...styles.form, marginTop: '20px' }}>
-              <div className="form-group">
-                <label className="form-label">વ્યક્તિનું નામ</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="નામ લખો"
-                  value={invPersonName}
-                  onChange={(e) => setInvPersonName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">પ્રકાર</label>
-                  <select
-                    className="input-field"
-                    value={invType}
-                    onChange={(e) => setInvType(e.target.value as "INVESTMENT" | "WITHDRAWAL")}
-                    required
-                  >
-                    <option value="INVESTMENT">રોકાણ (Invested)</option>
-                    <option value="WITHDRAWAL">ઉપાડ (Get back)</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">તારીખ</label>
-                  <input
-                    type="date"
-                    className="input-field"
-                    value={invDate}
-                    onChange={(e) => setInvDate(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">રકમ</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input-field"
-                  placeholder="રકમ"
-                  value={invAmount}
-                  onChange={(e) => setInvAmount(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={styles.modalFooter}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowInvModal(false)}>
-                  રદ કરો
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  સાચવો
-                </button>
-              </div>
-            </form>
+      {renderModal(showInvModal && !!selectedBiz, () => setShowInvModal(false), 'રોકાણ / ઉપાડ',
+        <form onSubmit={handleAddInvestment} style={{ ...styles.form, marginTop: '12px' }}>
+          <div className="form-group">
+            <label className="form-label">વ્યક્તિનું નામ</label>
+            <input type="text" className="input-field" placeholder="નામ" value={invPersonName} onChange={(e) => setInvPersonName(e.target.value)} required />
           </div>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+            <div className="form-group">
+              <label className="form-label">પ્રકાર</label>
+              <select className="input-field" value={invType} onChange={(e) => setInvType(e.target.value as "INVESTMENT" | "WITHDRAWAL")} required>
+                <option value="INVESTMENT">રોકાણ (Invested)</option>
+                <option value="WITHDRAWAL">ઉપાડ (Get back)</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">તારીખ</label>
+              <input type="date" className="input-field" value={invDate} onChange={(e) => setInvDate(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">રકમ</label>
+            <input type="number" step="0.01" className="input-field" placeholder="રકમ" value={invAmount} onChange={(e) => setInvAmount(e.target.value)} required />
+          </div>
+          <div style={styles.modalFooter}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowInvModal(false)}>રદ</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>સાચવો</button>
+          </div>
+        </form>,
+        '480px'
       )}
 
-      {/* Add Global Column Modal */}
-      {showAddColumnModal && selectedBiz && (
-        <div style={styles.modalBackdrop}>
-          <div className="glass-card animate-slide-up" style={{ ...styles.modalCard, width: '90%', maxWidth: '400px', padding: '30px' }}>
-            <div style={styles.modalHeader}>
-              <h3>નવી કોલમ ઉમેરો</h3>
-              <button className="btn-icon" onClick={() => setShowAddColumnModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleAddGlobalColumn} style={{...styles.form, marginTop: '20px'}}>
-              <div className="form-group">
-                <label className="form-label">કોલમનું નામ (દા.ત. Diamond Duty)</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="કોલમનું નામ લખો"
-                  value={newGlobalColumnName}
-                  onChange={(e) => setNewGlobalColumnName(e.target.value)}
-                  required
-                />
-              </div>
-              <div style={styles.modalFooter}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddColumnModal(false)}>
-                  રદ કરો
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  ઉમેરો
-                </button>
-              </div>
-            </form>
+      {/* Add Column Modal */}
+      {renderModal(showAddColumnModal && !!selectedBiz, () => setShowAddColumnModal(false), 'નવી કોલમ',
+        <form onSubmit={handleAddGlobalColumn} style={{ ...styles.form, marginTop: '12px' }}>
+          <div className="form-group">
+            <label className="form-label">કોલમનું નામ</label>
+            <input type="text" className="input-field" placeholder="દા.ત. Diamond Duty" value={newGlobalColumnName} onChange={(e) => setNewGlobalColumnName(e.target.value)} required />
           </div>
-        </div>
+          <div style={styles.modalFooter}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowAddColumnModal(false)}>રદ</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>ઉમેરો</button>
+          </div>
+        </form>,
+        '400px'
       )}
     </div>
   );
@@ -1439,319 +1471,273 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    border: '3px solid var(--border-glass)',
-    borderTopColor: 'var(--primary)',
-    animation: 'spin 1s linear infinite',
-  },
   navbar: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 40px',
-    borderRadius: 0,
-    borderTop: 'none',
-    borderLeft: 'none',
-    borderRight: 'none',
+    flexDirection: 'column',
+    justifyContent: 'center',
     zIndex: 90,
-    flexWrap: 'wrap',
-    gap: '16px',
+    position: 'sticky',
+    top: 0,
   },
   navBrand: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
     cursor: 'pointer',
-  },
-  logoBadge: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '10px',
-    background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 800,
-    fontSize: '1rem',
-  },
-  logoText: {
-    fontFamily: 'var(--font-heading)',
-    fontWeight: 700,
-    fontSize: '1.2rem',
   },
   navActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
+    gap: '12px',
   },
-  userSection: {
+  userPill: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    background: 'rgba(255,255,255,0.02)',
+    background: 'var(--bg-surface-elevated)',
     border: '1px solid var(--border-glass)',
-    padding: '6px 12px',
-    borderRadius: 'var(--radius-md)',
+    padding: '6px 14px',
+    borderRadius: 'var(--radius-full)',
   },
   avatar: {
-    width: '28px',
-    height: '28px',
+    width: '30px',
+    height: '30px',
     borderRadius: '50%',
-    background: 'rgba(139, 92, 246, 0.2)',
+    background: 'var(--primary-muted)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontWeight: 700,
-    fontSize: '0.85rem',
-    color: 'var(--primary-hover)',
+    fontSize: '0.8rem',
+    color: 'var(--primary)',
+    fontFamily: 'var(--font-heading)',
   },
   profileText: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
+    gap: '2px',
   },
   username: {
-    fontSize: '0.85rem',
+    fontSize: '0.8rem',
     fontWeight: 600,
-  },
-  btnText: {
-    display: 'inline-block',
   },
   mainContent: {
     flex: 1,
-    padding: '30px 40px',
-    maxWidth: '1400px',
+    maxWidth: '1200px',
     width: '100%',
     margin: '0 auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '0',
   },
   alertSuccess: {
-    padding: '12px 18px',
-    background: 'rgba(16, 185, 129, 0.1)',
-    border: '1px solid rgba(16, 185, 129, 0.2)',
-    color: '#6ee7b7',
+    padding: '10px 14px',
+    background: 'var(--success-muted)',
+    border: '1px solid rgba(52, 211, 153, 0.2)',
+    color: 'var(--success)',
     borderRadius: 'var(--radius-md)',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    fontSize: '0.9rem',
+    gap: '8px',
+    fontSize: '0.85rem',
+    marginBottom: '12px',
   },
   alertError: {
-    padding: '12px 18px',
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    color: '#f87171',
+    padding: '10px 14px',
+    background: 'var(--error-muted)',
+    border: '1px solid rgba(248, 113, 113, 0.2)',
+    color: 'var(--error)',
     borderRadius: 'var(--radius-md)',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    fontSize: '0.9rem',
+    gap: '8px',
+    fontSize: '0.85rem',
+    marginBottom: '12px',
   },
-  portalChoiceContainer: {
+
+  /* Portal */
+  portalContainer: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '70vh',
+    minHeight: '60vh',
     textAlign: 'center',
+    padding: '20px 0',
   },
-  portalTitle: {
-    fontSize: '2.5rem',
-    fontWeight: 800,
-    color: 'var(--text-main)',
-    marginBottom: '10px',
-  },
-  portalSubtitle: {
-    color: 'var(--text-muted)',
-    maxWidth: '600px',
-    fontSize: '1rem',
-    lineHeight: '1.6',
+  heroSection: {
     marginBottom: '20px',
   },
+  greeting: {
+    fontSize: '0.9rem',
+    color: 'var(--text-muted)',
+    fontWeight: 500,
+    marginBottom: '4px',
+  },
+  heroTitle: {
+    fontSize: '2rem',
+    fontWeight: 800,
+    color: 'var(--text-main)',
+    marginBottom: '8px',
+    letterSpacing: '-0.03em',
+  },
+  heroSubtitle: {
+    color: 'var(--text-muted)',
+    maxWidth: '500px',
+    fontSize: '0.9rem',
+    lineHeight: '1.5',
+  },
+  quickStat: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 18px',
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border-glass)',
+    borderRadius: 'var(--radius-full)',
+  },
+  quickStatValue: {
+    fontSize: '1.1rem',
+    fontWeight: 800,
+    color: 'var(--primary)',
+    fontFamily: 'var(--font-heading)',
+  },
+  quickStatLabel: {
+    fontSize: '0.75rem',
+    color: 'var(--text-muted)',
+    fontWeight: 500,
+  },
   choiceIconBox: {
-    width: '70px',
-    height: '70px',
-    borderRadius: '20px',
+    width: '56px',
+    height: '56px',
+    borderRadius: 'var(--radius-lg)',
     border: '1px solid transparent',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '20px',
+    flexShrink: 0,
   },
   choiceCardTitle: {
-    fontSize: '1.4rem',
+    fontSize: '1.15rem',
     fontWeight: 700,
-    marginBottom: '10px',
+    marginBottom: '6px',
   },
   choiceCardDesc: {
     color: 'var(--text-muted)',
-    fontSize: '0.85rem',
-    lineHeight: '1.5',
-    flex: 1,
+    fontSize: '0.8rem',
+    lineHeight: '1.4',
   },
+
+  /* Sub pages */
   subPageContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '0',
   },
   sectionTitle: {
-    fontSize: '1.8rem',
+    fontSize: '1.5rem',
     fontWeight: 700,
-    marginTop: '10px',
+    marginTop: '16px',
   },
   sectionSubtitle: {
     color: 'var(--text-muted)',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
+    marginTop: '4px',
   },
   entityBanner: {
-    padding: '16px 24px',
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
+    gap: '14px',
+    marginTop: '12px',
   },
   metricCard: {
-    padding: '20px',
+    padding: '16px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '4px',
   },
   metricLabel: {
-    fontSize: '0.75rem',
+    fontSize: '0.7rem',
     textTransform: 'uppercase',
     color: 'var(--text-muted)',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.04em',
     fontWeight: 600,
+    fontFamily: 'var(--font-heading)',
   },
   metricVal: {
-    fontSize: '1.6rem',
+    fontSize: '1.4rem',
     fontWeight: 800,
+    fontFamily: 'var(--font-heading)',
+  },
+  investStatCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 14px',
+    background: 'var(--bg-surface-elevated)',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--border-glass)',
   },
   cardTitle: {
-    fontSize: '1.15rem',
-    marginBottom: '16px',
+    fontSize: '1rem',
+    fontWeight: 700,
+    marginBottom: '12px',
     borderBottom: '1px solid var(--border-glass)',
     paddingBottom: '8px',
   },
+
+  /* Expense Card (mobile) */
+  expenseCard: {
+    padding: '12px 14px',
+    background: 'var(--bg-surface-elevated)',
+    border: '1px solid var(--border-glass)',
+    borderRadius: 'var(--radius-md)',
+    transition: 'var(--transition-smooth)',
+  },
+
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
   },
-  noData: {
-    flex: 1,
+
+  /* Legend */
+  legendGrid: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '180px',
-  },
-  legendGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '6px 12px',
+    gap: '6px',
     marginTop: '12px',
-    maxHeight: '80px',
-    overflowY: 'auto',
     width: '100%',
+    maxWidth: '320px',
   },
   legendItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '8px',
   },
   legendDot: {
-    width: '6px',
-    height: '6px',
+    width: '8px',
+    height: '8px',
     borderRadius: '50%',
     flexShrink: 0,
   },
   legendText: {
-    fontSize: '0.7rem',
+    fontSize: '0.75rem',
     color: 'var(--text-muted)',
     whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
     overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
-  tableCard: {
-    padding: '24px',
-  },
+
+  /* Table */
   tableResponsive: {
     overflowX: 'auto',
     width: '100%',
+    WebkitOverflowScrolling: 'touch',
   },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    textAlign: 'left',
-  },
-  th: {
-    padding: '12px 14px',
-    borderBottom: '1px solid var(--border-glass)',
-    color: 'var(--text-muted)',
-    fontSize: '0.8rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    fontWeight: 600,
-  },
-  td: {
-    padding: '14px',
-    borderBottom: '1px solid var(--border-glass)',
-    fontSize: '0.85rem',
-    color: 'var(--text-muted)',
-  },
-  tr: {
-    transition: 'var(--transition-smooth)',
-  },
-  customFieldBuilder: {
-    border: '1px solid var(--border-glass)',
-    borderRadius: 'var(--radius-md)',
-    padding: '12px',
-    marginBottom: '12px',
-    background: 'rgba(255, 255, 255, 0.01)',
-  },
-  customFieldsList: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px',
-    marginBottom: '10px',
-  },
-  fieldTag: {
-    background: 'rgba(139, 92, 246, 0.08)',
-    border: '1px solid rgba(139, 92, 246, 0.15)',
-    padding: '3px 8px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '0.7rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  removeFieldBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-muted)',
-    cursor: 'pointer',
-    display: 'inline-flex',
-    padding: '1px',
-  },
-  customGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '3px',
-  },
-  customFieldBadge: {
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid var(--border-glass)',
-    padding: '1px 6px',
-    borderRadius: '4px',
-    fontSize: '0.7rem',
-    width: 'fit-content',
-  },
+
+  /* Modal */
   modalBackdrop: {
     position: 'fixed',
     top: 0,
@@ -1759,7 +1745,8 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(6px)',
+    backdropFilter: 'blur(4px)',
+    WebkitBackdropFilter: 'blur(4px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1767,9 +1754,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '20px',
   },
   modalCard: {
-    width: '100%',
-    maxWidth: '450px',
-    padding: '24px',
     maxHeight: '90vh',
     overflowY: 'auto',
   },
@@ -1777,13 +1761,19 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '16px',
+    marginBottom: '12px',
   },
   modalFooter: {
     display: 'flex',
     justifyContent: 'flex-end',
     flexWrap: 'wrap',
-    gap: '12px',
+    gap: '10px',
     marginTop: '16px',
+  },
+
+  formGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '10px',
   },
 };
