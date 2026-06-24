@@ -761,6 +761,7 @@ textarea.input-field {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 18px;
   transition: var(--transition-spring);
   cursor: pointer;
   position: relative;
