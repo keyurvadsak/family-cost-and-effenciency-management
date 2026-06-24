@@ -6,7 +6,7 @@ import {
   ArrowLeft, Home, Briefcase, Settings, LogOut,
   Plus, Trash2, IndianRupee, Sparkles,
   LayoutGrid, X, TrendingUp, PieChart as PieIcon, Menu,
-  User as UserIcon, ChevronRight, Calendar, Tag, FileText,
+  User as UserIcon, ChevronRight, Calendar, FileText,
   DollarSign, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import {
