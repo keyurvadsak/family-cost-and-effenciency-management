@@ -14,6 +14,7 @@ import { familyApi, expenseApi } from '../api';
 import type { FamilyMember, FamilyExpense } from '../api';
 import Modal from '../components/ui/Modal';
 import EmptyState from '../components/ui/EmptyState';
+import LoadingScreen from '../components/ui/LoadingScreen';
 
 const CATEGORIES = ['કરિયાણું', 'બિલ (લાઈટ/ફોન)', 'શિક્ષણ', 'તબીબી / દવાઓ', 'રોકાણ', 'મનોરંજન / જમવું', 'અન્ય ખર્ચ'];
 const COLORS = ['#d4a853', '#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#64748b'];
@@ -37,6 +38,7 @@ export default function ExpensesPage() {
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -45,6 +47,8 @@ export default function ExpensesPage() {
         setMembers(list);
       } catch (err) {
         console.error('Failed to load members', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadMembers();
@@ -129,6 +133,9 @@ export default function ExpensesPage() {
       showToast(err.response?.data?.detail || 'ખર્ચ કાઢી નાખવામાં નિષ્ફળતા મળી.', 'error');
     }
   };
+
+  // ═══════ LOADING ═══════
+  if (loading) return <LoadingScreen />;
 
   // ═══════ MEMBER SELECTION ═══════
   if (!selectedMember) {

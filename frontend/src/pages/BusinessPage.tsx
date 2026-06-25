@@ -16,6 +16,7 @@ import { businessApi, authApi } from '../api';
 import type { Business, BusinessRecord, User } from '../api';
 import Modal from '../components/ui/Modal';
 import EmptyState from '../components/ui/EmptyState';
+import LoadingScreen from '../components/ui/LoadingScreen';
 
 export default function BusinessPage() {
   const { user } = useAuth();
@@ -37,6 +38,7 @@ export default function BusinessPage() {
   const [showInvModal, setShowInvModal] = useState(false);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Business form
   const [bizName, setBizName] = useState('');
@@ -71,6 +73,8 @@ export default function BusinessPage() {
         setAllUsers(uList);
       } catch (err) {
         console.error('Failed to load businesses', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
@@ -294,6 +298,9 @@ export default function BusinessPage() {
 
   // Use the latest selectedBiz from businesses array (for updated custom_columns)
   const currentBiz = selectedBiz ? businesses.find(b => b.id === selectedBiz.id) || selectedBiz : null;
+
+  // ═══════ LOADING ═══════
+  if (loading) return <LoadingScreen />;
 
   // ═══════ BUSINESS SELECTION ═══════
   if (!currentBiz) {

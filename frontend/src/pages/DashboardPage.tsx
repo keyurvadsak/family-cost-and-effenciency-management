@@ -4,12 +4,14 @@ import { Home, Briefcase, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { familyApi, businessApi } from '../api';
 import type { FamilyMember, Business } from '../api';
+import LoadingScreen from '../components/ui/LoadingScreen';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -22,6 +24,8 @@ export default function DashboardPage() {
         setBusinesses(bizList);
       } catch (err) {
         console.error('Failed to load portal data', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
@@ -33,6 +37,8 @@ export default function DashboardPage() {
     if (hour < 17) return 'શુભ બપોર';
     return 'શુભ સાંજ';
   };
+
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="animate-slide-up portal-container">
