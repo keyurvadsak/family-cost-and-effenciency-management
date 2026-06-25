@@ -550,7 +550,7 @@ export default function DashboardPortal() {
               {/* Theme Toggle Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', fontFamily: 'var(--font-heading)' }}>થીમ બદલો</span>
-                <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto', width: '40px', height: '40px' }} />
+                <ThemeToggle />
               </div>
 
               {user?.role === 'admin' && (
@@ -603,7 +603,7 @@ export default function DashboardPortal() {
           {/* Desktop nav actions */}
           {!isMobile && (
             <div style={styles.navActions}>
-              <ThemeToggle style={{ position: 'relative', top: 'auto', right: 'auto' }} />
+              <ThemeToggle />
 
               <div style={styles.userPill}>
                 <div style={styles.avatar}>

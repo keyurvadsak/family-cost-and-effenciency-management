@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { familyApi, authApi, businessApi } from '../api';
 import type { FamilyMember, Business, User } from '../api';
 import { Plus, Trash2, UserPlus, Users, Shield, ArrowLeft, Briefcase, ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useIsMobile } from '../hooks/useMediaQuery';
 import LoadingScreen from '../components/ui/LoadingScreen';
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
   const { showToast } = useToast();
   const isMobile = useIsMobile();
 

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Trash2, Briefcase, ChevronRight,
   LayoutGrid, TrendingUp, FileText,
-  DollarSign, ArrowUpRight, ArrowDownRight, X
+  DollarSign, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
