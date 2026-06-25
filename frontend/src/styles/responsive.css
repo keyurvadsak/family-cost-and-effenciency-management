@@ -1,0 +1,141 @@
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile First Overrides
+   ═══════════════════════════════════════════════════════════ */
+
+/* Mobile bottom-sheet modal */
+@media (max-width: 640px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card-sheet {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+    max-height: 92vh !important;
+    animation: slideUpSheet 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  }
+
+  .modal-card-sheet::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border-subtle);
+    border-radius: var(--radius-full);
+    margin: 0 auto 16px auto;
+  }
+}
+
+@media (min-width: 641px) {
+  .modal-card-sheet {
+    animation: scaleIn 0.25s ease-out forwards;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE (< 640px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+
+  h1 { font-size: 1.6rem !important; }
+  h2 { font-size: 1.3rem !important; }
+  h3 { font-size: 1.1rem !important; }
+  h4 { font-size: 0.95rem !important; }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-label {
+    font-size: 0.75rem !important;
+  }
+
+  .input-field {
+    padding: 12px 14px !important;
+    font-size: 16px !important; /* Prevents iOS zoom */
+    border-radius: var(--radius-md) !important;
+  }
+
+  .input-with-icon {
+    padding-left: 42px !important;
+  }
+
+  .btn {
+    padding: 12px 18px !important;
+    font-size: 0.88rem !important;
+    border-radius: var(--radius-md) !important;
+    min-height: 44px;
+  }
+
+  .portal-grid {
+    gap: 14px;
+    margin: 20px auto;
+    grid-template-columns: 1fr;
+  }
+
+  .portal-choice-card {
+    padding: 24px 20px;
+    flex-direction: row;
+    text-align: left;
+    gap: 16px;
+  }
+
+  .portal-choice-card::before {
+    width: 3px;
+    height: 100%;
+    right: auto;
+    bottom: 0;
+  }
+
+  .selection-avatar-card {
+    min-height: 150px;
+    padding: 20px;
+  }
+
+  .selection-avatar-badge {
+    width: 52px;
+    height: 52px;
+    font-size: 1.3rem;
+  }
+
+  .glass-card {
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .layout-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Table mobile adjustments */
+  table th {
+    padding: 8px 10px !important;
+    font-size: 0.7rem !important;
+  }
+  table td {
+    padding: 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Toast mobile center */
+  .toast-container {
+    left: var(--space-4);
+    right: var(--space-4);
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
