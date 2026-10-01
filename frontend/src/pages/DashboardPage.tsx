@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Briefcase, ChevronRight } from 'lucide-react';
+import {
+  Home, Briefcase, ChevronRight,
+  Lock, ArrowUpRight
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { familyApi, businessApi } from '../api';
 import type { FamilyMember, Business } from '../api';
@@ -31,72 +34,195 @@ export default function DashboardPage() {
     loadData();
   }, []);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'સુપ્રભાત';
-    if (hour < 17) return 'શુભ બપોર';
-    return 'શુભ સાંજ';
-  };
-
   if (loading) return <LoadingScreen />;
 
   return (
-    <div className="animate-slide-up portal-container">
-      {/* Hero greeting */}
-      <div style={{ marginBottom: '20px' }}>
-        <p className="hero-greeting">{getGreeting()},</p>
-        <h1 className="hero-title">{user?.username || 'વડસક પરિવાર'}</h1>
-        <p className="hero-subtitle">
-          પરિવારના ખર્ચાઓ અથવા ધંધાકીય ખાતાવહી સંચાલન કરવા માટે પસંદગી કરો.
-        </p>
+    <div className="animate-slide-up dashboard-executive">
+      {/* ═══════ COMPACT PORTAL TITLE ═══════ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+            વડસક પરિવાર ખાતાવહી
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+            દ્વિ-નોંધી ખાતાવહી અને નાણાકીય હિસાબ પોર્ટલ
+          </p>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.25)', padding: '4px 10px', borderRadius: 'var(--radius-full)' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--success)' }}></span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)' }}>ઓડિટ સક્રિય</span>
+        </div>
       </div>
 
-      {/* Choice Cards */}
-      <div className="portal-grid">
+      {/* ═══════ TWO PRIMARY FINANCIAL PORTALS ═══════ */}
+      <div className="dashboard-portals-grid">
+        {/* Business Accounting Hub */}
         <div
-          className="glass-card portal-choice-card expenses"
-          onClick={() => navigate('/dashboard/expenses')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/expenses')}
-        >
-          <div className="choice-icon-box" style={{ background: 'var(--primary-muted)', borderColor: 'var(--primary)' }}>
-            <Home size={28} color="var(--primary)" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '6px' }}>પારિવારિક ખર્ચ</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: '1.4' }}>
-              પરિવારના સભ્યોના ખર્ચાઓનું દૈનિક અને માસિક પત્રક.
-            </p>
-            <span className="badge badge-primary" style={{ marginTop: '8px' }}>
-              {members.length} સભ્યો
-            </span>
-          </div>
-          <ChevronRight size={20} color="var(--text-muted)" className="portal-card-arrow" />
-        </div>
-
-        <div
-          className="glass-card portal-choice-card business"
+          className="dashboard-hub-card business"
           onClick={() => navigate('/dashboard/business')}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/business')}
         >
-          <div className="choice-icon-box" style={{ background: 'rgba(96, 165, 250, 0.1)', borderColor: 'var(--secondary)' }}>
-            <Briefcase size={28} color="var(--secondary)" />
+          <div>
+            <div className="dashboard-hub-header">
+              <div className="dashboard-hub-icon" style={{ background: 'rgba(96, 165, 250, 0.12)', border: '1px solid rgba(96, 165, 250, 0.25)' }}>
+                <Briefcase size={24} color="var(--secondary)" />
+              </div>
+              <div className="dashboard-hub-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                    ધંધાકીય ખાતાવહી & P&L
+                  </h3>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+                  દ્વિ-નોંધી ખાતાવહી, નફો-નુકસાન પત્રક (P&L), મૂડી ખાતું અને ઓડિટ હિસાબ.
+                </p>
+              </div>
+            </div>
+
+            {/* Businesses preview chips */}
+            <div style={{ marginTop: '12px' }}>
+              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
+                નોંધાયેલા વ્યવસાયો ({businesses.length})
+              </span>
+              <div className="dashboard-preview-list">
+                {businesses.length > 0 ? (
+                  businesses.slice(0, 4).map(b => (
+                    <span key={b.id} className="dashboard-preview-item">
+                      <Briefcase size={11} color="var(--secondary)" />
+                      <span>{b.name}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>કોઈ વ્યવસાય નોંધાયેલ નથી.</span>
+                )}
+                {businesses.length > 4 && (
+                  <span className="dashboard-preview-item" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                    +{businesses.length - 4} અન્ય...
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '6px' }}>ધંધાકીય ખાતાવહી</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: '1.4' }}>
-              ધંધાની માસિક આવક-જાવક અને હિસાબી નોંધ.
-            </p>
-            <span className="badge badge-secondary" style={{ marginTop: '8px' }}>
-              {businesses.length} ધંધાઓ
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--border-glass)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {businesses.length} વ્યવસાયિક એકમો સક્રિય
             </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--secondary)', fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>ખાતાવહી ખોલો</span>
+              <ChevronRight size={16} />
+            </div>
           </div>
-          <ChevronRight size={20} color="var(--text-muted)" className="portal-card-arrow" />
+        </div>
+
+        {/* Family Expense Hub */}
+        <div
+          className="dashboard-hub-card family"
+          onClick={() => navigate('/dashboard/expenses')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/expenses')}
+        >
+          <div>
+            <div className="dashboard-hub-header">
+              <div className="dashboard-hub-icon" style={{ background: 'var(--primary-muted)', border: '1px solid rgba(212, 168, 83, 0.25)' }}>
+                <Home size={24} color="var(--primary)" />
+              </div>
+              <div className="dashboard-hub-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                    પારિવારિક ખર્ચ ખાતાવહી
+                  </h3>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+                  પરિવારના દરેક સભ્યનું દૈનિક ખર્ચ પત્રક, શ્રેણીવાર વિશ્લેષણ અને બજેટ ફાળવણી.
+                </p>
+              </div>
+            </div>
+
+            {/* Family Members preview chips */}
+            <div style={{ marginTop: '12px' }}>
+              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
+                પરિવાર સભ્ય ખાતાઓ ({members.length})
+              </span>
+              <div className="dashboard-preview-list">
+                {members.length > 0 ? (
+                  members.slice(0, 4).map(m => (
+                    <span key={m.id} className="dashboard-preview-item">
+                      <span style={{ width: '15px', height: '15px', borderRadius: '50%', background: 'var(--primary)', color: '#000', fontSize: '0.62rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                        {m.name.charAt(0)}
+                      </span>
+                      <span>{m.name}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>કોઈ સભ્ય નોંધાયેલ નથી.</span>
+                )}
+                {members.length > 4 && (
+                  <span className="dashboard-preview-item" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                    +{members.length - 4} અન્ય...
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--border-glass)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {members.length} સભ્યોનું ખર્ચ પત્રક
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>ખર્ચ પત્રક ખોલો</span>
+              <ChevronRight size={16} />
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* ═══════ ADMIN CONTROL STRIP (FULL WIDTH) ═══════ */}
+      {user?.role === 'admin' && (
+        <div
+          className="glass-card"
+          style={{
+            padding: '14px 18px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'var(--transition-smooth)',
+            borderLeft: '3px solid var(--primary)',
+            borderRadius: 'var(--radius-md)'
+          }}
+          onClick={() => navigate('/dashboard/admin')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/admin')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-glass)' }}>
+              <Lock size={18} color="var(--primary)" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                  એડમિન કંટ્રોલ પેનલ અને અધિકાર સંચાલન
+                </h4>
+                <span className="badge badge-primary" style={{ fontSize: '0.62rem' }}>એડમિન</span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                પરિવારના સભ્યો ઉમેરો, ધંધાના સંચાલકો સોંપો અને સુરક્ષા પરવાનગીઓ ગોઠવો.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 700 }}>
+            <span className="hide-on-mobile">સંચાલન</span>
+            <ArrowUpRight size={15} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

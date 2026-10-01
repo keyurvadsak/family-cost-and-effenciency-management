@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 /* Mobile bottom-sheet modal */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .modal-backdrop {
     align-items: flex-end;
     padding: 0;
@@ -28,27 +28,63 @@
   }
 }
 
-@media (min-width: 641px) {
+@media (min-width: 769px) {
   .modal-card-sheet {
     animation: scaleIn 0.25s ease-out forwards;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   MOBILE (< 640px)
+   MOBILE & TABLET BREAKPOINT (<= 768px)
    ═══════════════════════════════════════════════════════════ */
-@media (max-width: 640px) {
-  html {
+@media (max-width: 768px) {
+  /* Strict Viewport Containment */
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
     font-size: 14px;
   }
 
-  h1 { font-size: 1.6rem !important; }
-  h2 { font-size: 1.3rem !important; }
-  h3 { font-size: 1.1rem !important; }
-  h4 { font-size: 0.95rem !important; }
+  #root, .app-shell {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+  }
+
+  .main-content {
+    padding: 10px 10px 24px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .animate-slide-up {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .glass-card {
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  h1 { font-size: 1.45rem !important; }
+  h2 { font-size: 1.2rem !important; }
+  h3 { font-size: 1.05rem !important; }
+  h4 { font-size: 0.9rem !important; }
 
   .form-group {
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
 
   .form-label {
@@ -56,33 +92,33 @@
   }
 
   .input-field {
-    padding: 12px 14px !important;
-    font-size: 16px !important; /* Prevents iOS zoom */
+    padding: 10px 12px !important;
+    font-size: 16px !important; /* Prevents iOS auto-zoom */
     border-radius: var(--radius-md) !important;
   }
 
   .input-with-icon {
-    padding-left: 42px !important;
+    padding-left: 38px !important;
   }
 
   .btn {
-    padding: 12px 18px !important;
-    font-size: 0.88rem !important;
+    padding: 10px 14px !important;
+    font-size: 0.84rem !important;
     border-radius: var(--radius-md) !important;
-    min-height: 44px;
+    min-height: 40px;
   }
 
   .portal-grid {
-    gap: 14px;
-    margin: 20px auto;
+    gap: 12px;
+    margin: 16px auto;
     grid-template-columns: 1fr;
   }
 
   .portal-choice-card {
-    padding: 24px 20px;
+    padding: 18px 16px;
     flex-direction: row;
     text-align: left;
-    gap: 16px;
+    gap: 14px;
   }
 
   .portal-choice-card::before {
@@ -93,49 +129,462 @@
   }
 
   .selection-avatar-card {
-    min-height: 150px;
-    padding: 20px;
+    min-height: 130px;
+    padding: 16px;
   }
 
   .selection-avatar-badge {
-    width: 52px;
-    height: 52px;
-    font-size: 1.3rem;
-  }
-
-  .glass-card {
-    border-radius: var(--radius-lg) !important;
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
   }
 
   .layout-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 10px;
-  }
-
-  /* Table mobile adjustments */
-  table th {
-    padding: 8px 10px !important;
-    font-size: 0.7rem !important;
-  }
-  table td {
-    padding: 10px !important;
-    font-size: 0.8rem !important;
   }
 
   /* Toast mobile center */
   .toast-container {
-    left: var(--space-4);
-    right: var(--space-4);
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
   }
 
   .toast {
     min-width: auto;
     max-width: 100%;
+    font-size: 0.82rem;
+    padding: 10px 14px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     ACCOUNTANT & DASHBOARD MOBILE OPTIMIZATIONS
+     ═══════════════════════════════════════════════════════════ */
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  /* Dashboard Portals on Mobile */
+  .dashboard-executive {
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard-portals-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard-hub-card {
+    padding: 14px 12px !important;
+    min-height: auto !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dashboard-hub-icon {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .dashboard-hub-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .dashboard-hub-card h3 {
+    font-size: 1rem !important;
+  }
+
+  .dashboard-preview-list {
+    margin: 8px 0 !important;
+    padding: 6px 8px !important;
+    gap: 5px !important;
+  }
+
+  .dashboard-preview-item {
+    font-size: 0.7rem !important;
+    padding: 2px 6px !important;
+  }
+
+  /* KPI Grid on Mobile: 2 Compact Columns */
+  .acc-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .acc-kpi-card {
+    padding: 7px 9px !important;
+    border-radius: var(--radius-sm) !important;
+    min-height: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .acc-kpi-card::before {
+    width: 3px !important;
+  }
+
+  .acc-kpi-header {
+    margin-bottom: 2px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .acc-kpi-title {
+    font-size: 0.63rem !important;
+    letter-spacing: 0.01em !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .acc-kpi-badge {
+    font-size: 0.56rem !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .acc-kpi-value {
+    font-size: 1.05rem !important;
+    margin: 1px 0 !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+  }
+
+  .acc-kpi-subtext {
+    font-size: 0.6rem !important;
+    line-height: 1.2 !important;
+    color: var(--text-muted) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Card 5 (Capital / Working Balance): Full-Width Compact Financial Strip */
+  .acc-kpi-card.kpi-capital,
+  .acc-kpi-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+    padding: 7px 10px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .acc-kpi-capital-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+  .acc-kpi-card.kpi-capital .acc-kpi-header,
+  .acc-kpi-card:last-child:nth-child(odd) .acc-kpi-header {
+    margin-bottom: 0 !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+  }
+
+  .acc-kpi-card.kpi-capital .acc-kpi-value,
+  .acc-kpi-card:last-child:nth-child(odd) .acc-kpi-value {
+    margin: 0 !important;
+    font-size: 1.1rem !important;
+    text-align: right !important;
+    flex-shrink: 0 !important;
+  }
+
+  .acc-kpi-card.kpi-capital .acc-kpi-subtext,
+  .acc-kpi-card:last-child:nth-child(odd) .acc-kpi-subtext {
+    margin-top: 1px !important;
+  }
+
+  /* Entity Banner on Mobile */
+  .entity-banner {
+    padding: 8px 10px !important;
+    margin-top: 6px !important;
+    gap: 8px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .entity-banner .selection-avatar-badge {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 0.95rem !important;
+    border-radius: var(--radius-sm) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .entity-banner h2 {
+    font-size: 1rem !important;
+    margin: 0 !important;
+  }
+
+  .entity-banner p {
+    font-size: 0.7rem !important;
+    margin: 1px 0 0 !important;
+  }
+
+  /* Navigation & Action Buttons on Mobile */
+  .back-navigation-btn {
+    padding: 5px 8px !important;
+    font-size: 0.74rem !important;
+    min-height: 30px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .btn-sm {
+    padding: 5px 8px !important;
+    font-size: 0.74rem !important;
+    min-height: 30px !important;
+  }
+
+  /* Accountant Tabs on Mobile */
+  .accountant-tabs {
+    padding: 2px !important;
+    gap: 3px !important;
+    border-radius: var(--radius-sm) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    box-sizing: border-box !important;
+  }
+
+  .accountant-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .acc-tab {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    padding: 5px 8px !important;
+    font-size: 0.72rem !important;
+    gap: 4px !important;
+    border-radius: var(--radius-xs) !important;
+  }
+
+  .acc-tab svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* Accountant Toolbar on Mobile */
+  .accountant-toolbar {
+    padding: 8px !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+    border-radius: var(--radius-md) !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .accountant-toolbar-left,
+  .accountant-toolbar-right {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    gap: 5px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .accountant-search-box {
+    min-width: 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .accountant-search-input {
+    padding: 5px 8px 5px 30px !important;
+    font-size: 0.78rem !important;
+    height: 32px !important;
+    border-radius: var(--radius-sm) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .accountant-filter-select {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 5px 8px !important;
+    font-size: 0.78rem !important;
+    height: 32px !important;
+    border-radius: var(--radius-sm) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Accountant Tables on Mobile */
+  .accountant-table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    display: block !important;
+    border-radius: var(--radius-sm) !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+  }
+
+  .accountant-table {
+    min-width: 650px; /* Ensures table remains readable inside scroll wrapper */
+  }
+
+  .accountant-table th {
+    padding: 6px 8px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .accountant-table td {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .accountant-table tfoot td {
+    padding: 7px 8px !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* Profit & Loss Statement on Mobile */
+  .pl-statement-card {
+    padding: 10px 8px !important;
+    margin-top: 6px !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pl-statement-title {
+    font-size: 0.95rem !important;
+  }
+
+  .pl-statement-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+    gap: 4px !important;
+  }
+
+  .pl-section-heading {
+    font-size: 0.68rem !important;
+    margin: 8px 0 3px !important;
+  }
+
+  .pl-line-item {
+    padding: 5px 4px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .pl-line-item.subtotal {
+    padding: 6px 4px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .pl-line-item.grand-total {
+    padding: 8px 8px !important;
+    font-size: 0.88rem !important;
+    margin-top: 6px !important;
+  }
+
+  /* Allocation Ledger on Mobile */
+  .allocation-ledger-card {
+    padding: 10px 8px !important;
+    margin-top: 6px !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Financial Ratios Grid on Mobile */
+  .financial-ratios-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .ratio-box {
+    padding: 8px 10px !important;
+    border-radius: var(--radius-sm) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
-@media (max-width: 400px) {
-  .layout-grid {
-    grid-template-columns: 1fr;
+/* ═══════════════════════════════════════════════════════════
+   EXTRA SMALL SCREENS (<= 380px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .acc-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 5px !important;
+  }
+
+  .acc-kpi-card {
+    padding: 6px 7px !important;
+  }
+
+  .acc-kpi-title {
+    font-size: 0.58rem !important;
+  }
+
+  .acc-kpi-badge {
+    font-size: 0.52rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .acc-kpi-value {
+    font-size: 0.98rem !important;
+  }
+
+  .acc-kpi-subtext {
+    font-size: 0.56rem !important;
+  }
+
+  .acc-record-financial-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }

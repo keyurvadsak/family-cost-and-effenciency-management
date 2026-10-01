@@ -1063,9 +1063,12 @@ table tbody tr:last-child td {
   flex: 1;
   max-width: 1200px;
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* App shell */
@@ -1075,6 +1078,17 @@ table tbody tr:last-child td {
   flex-direction: column;
   position: relative;
   width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.animate-slide-up {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Loading screen */
@@ -1414,3 +1428,940 @@ table tbody tr:last-child td {
   justify-content: center;
   transition: transform 0.35s var(--ease-spring);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PROFESSIONAL ACCOUNTANT & LEDGER DESIGN SYSTEM
+   ═══════════════════════════════════════════════════════════ */
+
+/* Accountant Top Toolbar */
+.accountant-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  margin-top: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.accountant-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.accountant-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.accountant-search-box {
+  position: relative;
+  min-width: 220px;
+  max-width: 320px;
+  flex: 1;
+}
+
+.accountant-search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.accountant-search-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-family: var(--font-primary);
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.accountant-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.accountant-filter-select {
+  padding: 9px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-family: var(--font-heading);
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.accountant-filter-select:focus {
+  border-color: var(--primary);
+}
+
+/* Accountant Navigation Tabs */
+.accountant-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.acc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-smooth);
+}
+
+.acc-tab:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.acc-tab.active {
+  color: var(--text-btn-primary);
+  background: var(--primary);
+  font-weight: 700;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+[data-theme="light"] .acc-tab.active {
+  color: #ffffff;
+}
+
+/* High-Density Accountant KPI Summary Grid */
+.acc-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.acc-kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.acc-kpi-card:hover {
+  border-color: var(--border-glass-active);
+  transform: translateY(-2px);
+}
+
+.acc-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--border-glass);
+}
+
+.acc-kpi-card.kpi-income::before { background: var(--success); }
+.acc-kpi-card.kpi-expense::before { background: var(--error); }
+.acc-kpi-card.kpi-profit::before { background: var(--primary); }
+.acc-kpi-card.kpi-capital::before { background: var(--secondary); }
+
+.acc-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.acc-kpi-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.acc-kpi-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.acc-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 2px;
+}
+
+.acc-kpi-subtext {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Collapsed Single-Line KPI Summary on Mobile */
+.acc-kpi-collapsed-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  color: var(--text-main);
+  cursor: pointer;
+  margin: 4px 0 8px;
+  box-shadow: var(--shadow-card);
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.acc-kpi-collapsed-bar:hover {
+  border-color: var(--primary);
+}
+
+/* Professional Accountant Tables */
+.accountant-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  display: block;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-surface);
+}
+
+.accountant-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  font-family: var(--font-primary);
+  text-align: left;
+}
+
+.accountant-table th {
+  background: var(--bg-surface-elevated);
+  color: var(--text-muted);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--border-glass);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.accountant-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+.accountant-table tbody tr:hover td {
+  background: var(--bg-glass-hover);
+  color: var(--text-main);
+}
+
+.accountant-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.accountant-table .col-date {
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.accountant-table .col-voucher {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.accountant-table .num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.accountant-table .text-credit {
+  color: var(--success) !important;
+}
+
+.accountant-table .text-debit {
+  color: var(--error) !important;
+}
+
+.accountant-table .text-net-profit {
+  color: var(--success) !important;
+  font-weight: 700;
+}
+
+.accountant-table .text-net-loss {
+  color: var(--error) !important;
+  font-weight: 700;
+}
+
+/* Classical Accounting Grand Total Row */
+.accountant-table tfoot td {
+  background: var(--bg-surface-elevated);
+  font-weight: 800;
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  padding: 14px;
+  color: var(--text-main);
+  border-top: 2px solid var(--border-subtle) !important;
+  border-bottom: 3px double var(--primary) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Profit & Loss Formal Statement */
+.pl-statement-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  margin-top: 14px;
+}
+
+.pl-statement-header {
+  border-bottom: 2px solid var(--border-glass);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pl-statement-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  color: var(--text-main);
+}
+
+.pl-statement-period {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pl-line-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px dashed var(--border-glass);
+  font-size: 0.88rem;
+}
+
+.pl-line-item.subtotal {
+  background: rgba(255, 255, 255, 0.02);
+  font-weight: 700;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 12px;
+  color: var(--text-main);
+}
+
+.pl-line-item.grand-total {
+  background: var(--primary-muted);
+  font-weight: 800;
+  font-size: 1.05rem;
+  border-top: 2px solid var(--primary);
+  border-bottom: 3px double var(--primary);
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  margin-top: 10px;
+  color: var(--primary);
+}
+
+.pl-line-item.grand-total.loss {
+  background: var(--error-muted);
+  border-top: 2px solid var(--error);
+  border-bottom: 3px double var(--error);
+  color: var(--error);
+}
+
+.pl-section-heading {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--secondary);
+  margin: 18px 0 6px;
+  padding-left: 4px;
+}
+
+/* Category Allocation Ledger (Replaces Pie Chart) */
+.allocation-ledger-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  margin-top: 14px;
+}
+
+.allocation-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 110px 65px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-glass);
+  font-size: 0.85rem;
+}
+
+.allocation-progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+}
+
+.allocation-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.5s var(--ease-spring);
+}
+
+/* Financial Health Indicators */
+.financial-ratios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.ratio-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ratio-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Status Pills */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-paid {
+  background: var(--success-muted);
+  color: var(--success);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.status-pending {
+  background: var(--warning-muted);
+  color: var(--warning);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE LEDGER & TRANSACTION CARDS (Mobile-First Architecture)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Segmented View Toggle (Cards vs Table) */
+.view-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition-fast);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary);
+  color: var(--text-btn-primary);
+}
+
+/* Mobile Record Card for General Ledger */
+.acc-record-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.acc-record-card.profit {
+  border-left: 3.5px solid var(--success);
+}
+
+.acc-record-card.loss {
+  border-left: 3.5px solid var(--error);
+}
+
+.acc-record-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.acc-record-card-date {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.acc-record-card-voucher {
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  font-size: 0.72rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--secondary);
+}
+
+.acc-record-card-particulars {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.acc-record-financial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.acc-financial-cell-title {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: block;
+}
+
+.acc-financial-cell-val {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-top: 2px;
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.acc-record-profit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.acc-record-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-glass);
+  gap: 8px;
+}
+
+.acc-record-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Mobile Summary Totals Card */
+.mobile-ledger-totals {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mobile-ledger-totals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mobile-ledger-totals-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.mobile-ledger-totals-item.highlight {
+  grid-column: 1 / -1;
+  border-color: var(--primary);
+  background: var(--primary-muted);
+}
+
+/* Mobile Category Card for Expenses */
+.mobile-category-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Print Only & Media Print Rules for Official Reports */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .app-shell, .app-main, .portal-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .nav-header, .app-header, .back-navigation-btn, .fab, .btn,
+  .theme-toggle-btn, .accountant-tabs, .modal-backdrop, .accountant-search-box {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+    margin-bottom: 20px;
+  }
+
+  .print-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .print-header h1 {
+    font-size: 18pt;
+    margin: 0;
+    color: #000;
+  }
+
+  .print-header p {
+    font-size: 10pt;
+    margin: 4px 0 0;
+    color: #444;
+  }
+
+  .glass-card, .acc-kpi-card, .pl-statement-card {
+    border: 1px solid #ccc !important;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  .accountant-table {
+    border: 1px solid #000 !important;
+  }
+
+  .accountant-table th {
+    background: #eee !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+
+  .accountant-table td {
+    border: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+
+  .accountant-table tfoot td {
+    border-top: 2px solid #000 !important;
+    border-bottom: 3px double #000 !important;
+    background: #f5f5f5 !important;
+    color: #000 !important;
+  }
+
+  .text-credit, .text-debit, .text-net-profit, .text-net-loss {
+    color: #000 !important;
+    font-weight: 700;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXECUTIVE DASHBOARD PORTAL HUB
+   ═══════════════════════════════════════════════════════════ */
+.dashboard-executive {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-hero-card {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.dashboard-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
+}
+
+.dashboard-kpi-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .dashboard-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-portals-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .dashboard-portals-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-hub-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 260px;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  box-sizing: border-box;
+}
+
+.dashboard-hub-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-glass-active);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.dashboard-hub-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.dashboard-hub-card.business::before {
+  background: linear-gradient(90deg, var(--secondary), #3b82f6);
+}
+
+.dashboard-hub-card.family::before {
+  background: linear-gradient(90deg, var(--primary), #b3862b);
+}
+
+.dashboard-hub-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.dashboard-hub-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-hub-body {
+  flex: 1;
+}
+
+.dashboard-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+}
+
+.dashboard-preview-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+

@@ -385,6 +385,24 @@ def create_or_update_business_record(
     db.refresh(record)
     return record
 
+@app.delete("/api/business-records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_business_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    record = db.query(models.BusinessRecord).filter(models.BusinessRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Business record not found.")
+        
+    biz = db.query(models.Business).filter(models.Business.id == record.business_id).first()
+    if current_user.role != "admin" and (not biz or biz.manager_id != current_user.id):
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this record.")
+        
+    db.delete(record)
+    db.commit()
+    return None
+
 # ----------------- BUSINESS INVESTMENT ENDPOINTS -----------------
 @app.get("/api/businesses/{business_id}/investments", response_model=List[schemas.BusinessInvestmentResponse])
 def get_business_investments(

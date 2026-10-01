@@ -26,9 +26,9 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-/** Convenience: true when viewport is <= 640px */
+/** Convenience: true when viewport is <= 768px (standard mobile & small tablet) */
 export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 640px)');
+  return useMediaQuery('(max-width: 768px)');
 }
 
 /** Convenience: true when viewport is <= 1024px */

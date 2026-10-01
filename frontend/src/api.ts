@@ -183,6 +183,9 @@ export const businessApi = {
     const response = await api.post('/business-records', payload);
     return response.data;
   },
+  deleteRecord: async (id: number): Promise<void> => {
+    await api.delete(`/business-records/${id}`);
+  },
   getInvestments: async (business_id: number): Promise<BusinessInvestment[]> => {
     const response = await api.get(`/businesses/${business_id}/investments`);
     return response.data;

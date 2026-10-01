@@ -89,3 +89,35 @@ npm run dev
 Use the quick click shortcuts on the Login Page, or type manually:
 - **Administrator**: `admin` / `admin123`
 - **Family Member**: `member` / `member123`
+
+---
+
+## Professional Accountant & Ledger Overhaul (Zero-Graph Architecture)
+
+The application has been completely redesigned to eliminate all casual graphs/charts and adopt a high-density, professional Chartered Accountant (CA) ledger workspace:
+
+### 1. Business Accounting Workbench (`BusinessPage.tsx`)
+- **Complete Elimination of Graphs**: Removed all `AreaChart`, `PieChart`, and `recharts` visual elements.
+- **Executive Accountant KPI Header**:
+  - **કુલ વેચાણ ટર્નઓવર (Gross Turnover / Sales Revenue)** with monthly run-rate
+  - **માલ ખરીદી ખર્ચ (COGS / Cost of Goods Sold)** with Gross Profit and Gross Margin %
+  - **સંચાલન ખર્ચ (Operating Expenses / OPEX)** with OPEX ratio
+  - **ચોખ્ખો સંચાલન નફો (Net Operating Profit)** with net margin % and audit status
+  - **ચોખ્ખી કાર્યકારી મૂડી (Working Balance)** = Net Capital + Net Earnings
+- **4 Dedicated Accountant Workspaces (Tabs)**:
+  1. **ખાતાવહી પત્રક (General Ledger Register)**: Standard double-entry ledger with date, voucher number, particulars, Credit (વેચાણ), Debit (ખરીદી), Debit (સંચાલન), custom columns, net balance, payment mode, settlement status, and classic double-ruled grand totals.
+  2. **નફો અને નુકસાન પત્રક (Profit & Loss Statement - P&L)**: Official financial format with Section A (Trading Income), Section B (COGS), Gross Profit, Section C (Operating Expenses), and Net Operating Profit.
+  3. **મૂડી અને રોકાણ ખાતું (Capital & Partner Ledger)**: Detailed partner-by-partner investment & drawings ledger with net capital balances.
+  4. **ઓડિટ અને નાણાકીય ગુણોત્તર (Audit Ratios & Financial Health)**: Net margin %, gross margin %, average monthly run-rate, peak revenue month.
+- **Accountant Toolbar**: Quick search filter, financial period filter (All Time, 30 Days, 6 Months, Current FY, Previous FY), and Print/PDF report generator.
+- **Voucher Entry Modal**: Includes live real-time profit and margin calculation preview before saving.
+
+### 2. Family Expense Audit Register (`ExpensesPage.tsx`)
+- **Zero Graphs**: Removed the pie chart.
+- **શ્રેણીવાર ખર્ચ વિશ્લેષણ પત્રક (Category Allocation Audit)**: Clean tabular audit view showing category, total spent, % budget share with pure CSS progress bars, voucher count, and average expense.
+- **Filter & Search**: Search by description, category, or amount; filter by period (This Month, Last Month, This Year, All Time).
+- **Accounting Grand Totals**: Traditional single-top, double-bottom ruled audit totals.
+
+### 3. Print / Official Report Mode
+- Clicking **"પ્રિન્ટ પત્રક"** or pressing `Ctrl + P` renders an official, clean black & white stamped ledger format, automatically stripping out screen-only navigation, modals, and buttons.
+
