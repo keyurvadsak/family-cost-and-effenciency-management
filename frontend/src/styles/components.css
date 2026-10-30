@@ -370,38 +370,80 @@ textarea.input-field {
 /* ═══════════════════════════════════════════════════════════
    MODAL / BOTTOM SHEET
    ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   MODAL / POPUP DIALOG (ALWAYS VIEWPORT CENTERED)
+   ═══════════════════════════════════════════════════════════ */
 .modal-backdrop {
-  position: fixed;
-  top: 0; bottom: 0; left: 0; right: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  padding: 20px;
-  animation: fadeIn 0.2s ease-out;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  width: 100dvw !important;
+  height: 100dvh !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  overflow-y: auto !important;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-card {
-  max-height: 90vh;
-  overflow-y: auto;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-glass-active) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border-glass) !important;
+  max-height: calc(100dvh - 32px) !important;
+  max-width: 100% !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  margin: auto !important;
+  animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-3);
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: var(--space-3) !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid var(--border-glass) !important;
 }
 
 .modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: var(--space-4);
+  display: flex !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin-top: var(--space-4) !important;
+  padding-top: 12px !important;
+  border-top: 1px solid var(--border-glass) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════

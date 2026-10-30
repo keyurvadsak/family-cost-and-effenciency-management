@@ -700,22 +700,46 @@ export default function ConsolidatedLedgerPage() {
         <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
           <div
             style={{
-              border: '2px dashed var(--border-glass-active)',
+              border: selectedFile ? '2px solid var(--success)' : '2px dashed var(--border-glass-active)',
               borderRadius: 'var(--radius-md)',
               padding: '24px 16px',
               textAlign: 'center',
-              background: 'rgba(255, 255, 255, 0.02)',
+              background: selectedFile ? 'rgba(52, 211, 153, 0.06)' : 'rgba(255, 255, 255, 0.02)',
               cursor: 'pointer',
+              transition: 'all 0.2s ease',
             }}
             onClick={() => document.getElementById('csvFileInput')?.click()}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                setSelectedFile(e.dataTransfer.files[0]);
+                setUploadResult(null);
+              }
+            }}
           >
-            <Upload size={32} color="var(--primary)" style={{ margin: '0 auto 10px auto' }} />
-            <p style={{ fontSize: '0.86rem', fontWeight: 700, margin: '0 0 4px 0' }}>
-              {selectedFile ? selectedFile.name : 'દર મહિનાની CSV ફાઇલ અહીં પસંદ કરો'}
-            </p>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              (GnuCash એક્સપોર્ટ અથવા સ્ટાન્ડર્ડ એકાઉન્ટિંગ CSV)
-            </span>
+            {selectedFile ? (
+              <div>
+                <CheckCircle2 size={36} color="var(--success)" style={{ margin: '0 auto 8px auto' }} />
+                <p style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0 0 4px 0', color: 'var(--text-main)' }}>
+                  {selectedFile.name}
+                </p>
+                <span style={{ fontSize: '0.74rem', color: 'var(--success)', fontWeight: 600 }}>
+                  ફાઇલ પસંદ થઈ ગઈ છે ({(selectedFile.size / 1024).toFixed(1)} KB) — બદલવા માટે ક્લિક કરો
+                </span>
+              </div>
+            ) : (
+              <div>
+                <Upload size={32} color="var(--primary)" style={{ margin: '0 auto 8px auto' }} />
+                <p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text-main)' }}>
+                  દર મહિનાની CSV ફાઇલ અહીં ડ્રેગ કરો અથવા પસંદ કરો
+                </p>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  (GnuCash એક્સપોર્ટ અથવા સ્ટાન્ડર્ડ એકાઉન્ટિંગ CSV)
+                </span>
+              </div>
+            )}
             <input
               id="csvFileInput"
               type="file"
@@ -783,6 +807,13 @@ export default function ConsolidatedLedgerPage() {
               type="submit"
               className="btn btn-primary"
               disabled={!selectedFile || uploadLoading}
+              style={{
+                background: selectedFile ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
+                color: selectedFile ? '#ffffff' : undefined,
+                fontWeight: 700,
+                opacity: (!selectedFile || uploadLoading) ? 0.6 : 1,
+                cursor: (!selectedFile || uploadLoading) ? 'not-allowed' : 'pointer',
+              }}
             >
               {uploadLoading ? 'ચકાસણી અને સેવ થઈ રહ્યું છે...' : 'અપલોડ કરો અને સેવ કરો'}
             </button>

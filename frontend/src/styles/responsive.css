@@ -5,16 +5,18 @@
 /* Mobile bottom-sheet modal */
 @media (max-width: 768px) {
   .modal-backdrop {
-    align-items: flex-end;
-    padding: 0;
+    align-items: flex-end !important;
+    padding: 0 !important;
   }
 
   .modal-card-sheet {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-    max-height: 92vh !important;
-    animation: slideUpSheet 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+    margin: 0 !important;
+    animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   }
 
   .modal-card-sheet::before {
@@ -24,13 +26,24 @@
     height: 4px;
     background: var(--border-subtle);
     border-radius: var(--radius-full);
-    margin: 0 auto 16px auto;
+    margin: 0 auto 14px auto;
   }
 }
 
 @media (min-width: 769px) {
+  .modal-backdrop {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+  }
+
   .modal-card-sheet {
-    animation: scaleIn 0.25s ease-out forwards;
+    margin: auto !important;
+    animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  }
+
+  .modal-card-sheet::before {
+    display: none !important;
   }
 }
 
