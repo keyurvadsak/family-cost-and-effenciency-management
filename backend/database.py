@@ -29,28 +29,12 @@ elif DATABASE_URL.startswith("postgresql+psycopg://"):
 elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-is_render = os.getenv("RENDER", "").lower() in ("true", "1")
 connect_args = {}
 if "sqlite" in DATABASE_URL:
     connect_args = {"check_same_thread": False}
-elif not is_render:
-    connect_args = {"connect_timeout": 3}
 
-try:
-    engine = create_engine(DATABASE_URL, connect_args=connect_args)
-    if not is_render and "sqlite" not in DATABASE_URL:
-        # Quick non-blocking probe for local dev
-        with engine.connect() as probe:
-            pass
-except Exception as e:
-    if not is_render:
-        print(f"Warning: Primary database connection failed ({e}). Falling back to local SQLite finance.db for development.")
-        DATABASE_URL = f"sqlite:///{os.path.join(os.path.dirname(__file__), 'finance.db')}"
-        connect_args = {"check_same_thread": False}
-        engine = create_engine(DATABASE_URL, connect_args=connect_args)
-    else:
-        raise e
-
+# Connect strictly to the live database
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
