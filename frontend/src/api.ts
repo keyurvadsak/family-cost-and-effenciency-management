@@ -204,3 +204,96 @@ export const businessApi = {
     await api.delete(`/business-investments/${investment_id}`);
   }
 };
+
+
+// ═══════════════════════════════════════════════════════════════
+// CONSOLIDATED MASTER JOINT LEDGER (બધા નો મિક્સ હિસાબ)
+// ═══════════════════════════════════════════════════════════════
+
+export interface ConsolidatedSplit {
+  id: number;
+  transaction_id: number;
+  account_name: string;
+  account_type: string;
+  amount: number;
+  memo?: string | null;
+}
+
+export interface ConsolidatedTransaction {
+  id: number;
+  tx_guid: string;
+  date: string;
+  number?: string | null;
+  description: string;
+  notes?: string | null;
+  inflow: number;
+  outflow: number;
+  primary_account: string;
+  category_group: string;
+  is_journal: boolean;
+  financial_year: string;
+  source_batch?: string | null;
+  added_by?: number | null;
+  created_at: string;
+  splits: ConsolidatedSplit[];
+}
+
+export interface ConsolidatedUploadResponse {
+  total_rows_parsed: number;
+  total_transactions_in_file: number;
+  new_transactions_added: number;
+  duplicate_transactions_skipped: number;
+  is_duplicate_file: boolean;
+  message: string;
+  date_min?: string | null;
+  date_max?: string | null;
+}
+
+export interface ConsolidatedSummary {
+  net_cash_balance: number;
+  period_inflow: number;
+  period_outflow: number;
+  net_change: number;
+  total_count: number;
+  available_years: string[];
+  available_months: string[];
+  available_categories: string[];
+}
+
+export interface ConsolidatedFilterParams {
+  financial_year?: string;
+  month?: string;
+  category_group?: string;
+  search?: string;
+  tx_type?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export const consolidatedApi = {
+  upload: async (file: File): Promise<ConsolidatedUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/consolidated/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  getTransactions: async (params?: ConsolidatedFilterParams): Promise<ConsolidatedTransaction[]> => {
+    const response = await api.get('/consolidated/transactions', { params });
+    return response.data;
+  },
+  getSummary: async (params?: ConsolidatedFilterParams): Promise<ConsolidatedSummary> => {
+    const response = await api.get('/consolidated/summary', { params });
+    return response.data;
+  },
+  deleteTransaction: async (id: number): Promise<void> => {
+    await api.delete(`/consolidated/transactions/${id}`);
+  },
+  resetAll: async (): Promise<{ message: string }> => {
+    const response = await api.delete('/consolidated/reset');
+    return response.data;
+  },
+};

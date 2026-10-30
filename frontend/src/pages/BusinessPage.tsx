@@ -518,6 +518,66 @@ export default function BusinessPage() {
         )}
 
         <div className="layout-grid stagger-children" style={{ marginTop: '16px' }}>
+          {/* Master Consolidated Ledger Hub Card (બધા નો મિક્સ હિસાબ) */}
+          <div
+            className="glass-card-interactive"
+            style={{
+              gridColumn: '1 / -1',
+              padding: isMobile ? '14px 16px' : '20px 24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '14px',
+              background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2), rgba(245, 158, 11, 0.15))',
+              border: '1.5px solid rgba(245, 158, 11, 0.45)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              cursor: 'pointer'
+            }}
+            onClick={() => navigate('/dashboard/consolidated')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/consolidated')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px' }}>
+              <div
+                style={{
+                  width: isMobile ? '44px' : '54px',
+                  height: isMobile ? '44px' : '54px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'linear-gradient(135deg, #d97706, #b45309)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)',
+                  flexShrink: 0
+                }}
+              >
+                <BookOpen size={isMobile ? 22 : 28} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: isMobile ? '1.08rem' : '1.3rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                    બધા નો મિક્સ હિસાબ
+                  </h3>
+                  <span className="badge badge-primary" style={{ fontSize: '0.62rem', background: '#d97706' }}>
+                    માસ્ટર કેશબુક
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: isMobile ? '0.75rem' : '0.84rem', margin: '3px 0 0', lineHeight: 1.4 }}>
+                  લૂમ્સ, પ્રિશા ફેબ એમ્બ્રોઈડરી, હીરા વેપાર (કેયુર જેમ્સ), ઉછીના-લોન અને સંયુક્ત પરિવારનો માસિક કેશબુક હિસાબ
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#d97706', fontWeight: 800, fontSize: isMobile ? '0.84rem' : '0.94rem' }}>
+              <span>ખાતાવહી ખોલો</span>
+              <ChevronRight size={18} />
+            </div>
+          </div>
+
           {businesses.map(biz => {
             const bizManager = allUsers.find(u => u.id === biz.manager_id);
             const isManager = biz.manager_id === user?.id;

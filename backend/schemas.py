@@ -131,3 +131,60 @@ class BusinessInvestmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Consolidated Master Ledger schemas (બધા નો મિક્સ હિસાબ)
+class ConsolidatedSplitResponse(BaseModel):
+    id: int
+    transaction_id: int
+    account_name: str
+    account_type: str
+    amount: float
+    memo: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConsolidatedTransactionResponse(BaseModel):
+    id: int
+    tx_guid: str
+    date: datetime.date
+    number: Optional[str] = None
+    description: str
+    notes: Optional[str] = None
+    inflow: float
+    outflow: float
+    primary_account: str
+    category_group: str
+    is_journal: bool
+    financial_year: str
+    source_batch: Optional[str] = None
+    added_by: Optional[int] = None
+    created_at: datetime.datetime
+    splits: List[ConsolidatedSplitResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ConsolidatedUploadResponse(BaseModel):
+    total_rows_parsed: int
+    total_transactions_in_file: int
+    new_transactions_added: int
+    duplicate_transactions_skipped: int
+    is_duplicate_file: bool
+    message: str
+    date_min: Optional[str] = None
+    date_max: Optional[str] = None
+
+
+class ConsolidatedSummaryResponse(BaseModel):
+    net_cash_balance: float
+    period_inflow: float
+    period_outflow: float
+    net_change: float
+    total_count: int
+    available_years: List[str]
+    available_months: List[str]
+    available_categories: List[str]

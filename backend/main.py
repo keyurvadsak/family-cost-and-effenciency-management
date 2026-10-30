@@ -1,9 +1,9 @@
 import datetime
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy import text, func, distinct
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from typing import List, Dict, Any, Optional
@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 import models
 import schemas
 import auth
+import consolidated_service
 from database import engine, Base, get_db
 
 # Lifespan manager to handle database startup seeding
@@ -461,6 +462,159 @@ def delete_business_investment(
     db.delete(inv)
     db.commit()
     return None
+
+
+# ----------------- CONSOLIDATED MASTER LEDGER ENDPOINTS (બધા નો મિક્સ હિસાબ) -----------------
+@app.post("/api/consolidated/upload", response_model=schemas.ConsolidatedUploadResponse)
+async def upload_consolidated_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Upload monthly GnuCash CSV / transaction ledger.
+    Duplicate prevention: checks existing tx_guid before insertion.
+    """
+    content = await file.read()
+    result = consolidated_service.process_consolidated_csv(
+        file_bytes=content,
+        db=db,
+        user_id=current_user.id,
+        filename=file.filename
+    )
+    return result
+
+@app.get("/api/consolidated/transactions", response_model=List[schemas.ConsolidatedTransactionResponse])
+def get_consolidated_transactions(
+    financial_year: Optional[str] = None,
+    month: Optional[str] = None,
+    category_group: Optional[str] = None,
+    search: Optional[str] = None,
+    tx_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 1000,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    query = db.query(models.ConsolidatedTransaction)
+
+    if financial_year and financial_year != "all":
+        query = query.filter(models.ConsolidatedTransaction.financial_year == financial_year)
+
+    if month and month != "all":
+        try:
+            yr, mo = [int(x) for x in month.split("-")]
+            query = query.filter(
+                func.extract("year", models.ConsolidatedTransaction.date) == yr,
+                func.extract("month", models.ConsolidatedTransaction.date) == mo
+            )
+        except Exception:
+            pass
+
+    if category_group and category_group != "all":
+        query = query.filter(models.ConsolidatedTransaction.category_group == category_group)
+
+    if tx_type == "inflow":
+        query = query.filter(models.ConsolidatedTransaction.inflow > 0)
+    elif tx_type == "outflow":
+        query = query.filter(models.ConsolidatedTransaction.outflow > 0)
+    elif tx_type == "journal":
+        query = query.filter(models.ConsolidatedTransaction.is_journal == True)
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            (models.ConsolidatedTransaction.description.ilike(term)) |
+            (models.ConsolidatedTransaction.notes.ilike(term)) |
+            (models.ConsolidatedTransaction.primary_account.ilike(term))
+        )
+
+    return query.order_by(models.ConsolidatedTransaction.date.desc(), models.ConsolidatedTransaction.id.desc()).offset(skip).limit(limit).all()
+
+@app.get("/api/consolidated/summary", response_model=schemas.ConsolidatedSummaryResponse)
+def get_consolidated_summary(
+    financial_year: Optional[str] = None,
+    month: Optional[str] = None,
+    category_group: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    cb_sum = db.query(func.sum(models.ConsolidatedSplit.amount)).filter(
+        models.ConsolidatedSplit.account_name == "Cashbook"
+    ).scalar() or 0.0
+
+    query = db.query(models.ConsolidatedTransaction)
+    if financial_year and financial_year != "all":
+        query = query.filter(models.ConsolidatedTransaction.financial_year == financial_year)
+
+    if month and month != "all":
+        try:
+            yr, mo = [int(x) for x in month.split("-")]
+            query = query.filter(
+                func.extract("year", models.ConsolidatedTransaction.date) == yr,
+                func.extract("month", models.ConsolidatedTransaction.date) == mo
+            )
+        except Exception:
+            pass
+
+    if category_group and category_group != "all":
+        query = query.filter(models.ConsolidatedTransaction.category_group == category_group)
+
+    period_txs = query.all()
+    p_inflow = sum(t.inflow for t in period_txs)
+    p_outflow = sum(t.outflow for t in period_txs)
+    p_net = p_inflow - p_outflow
+
+    all_years = [y[0] for y in db.query(distinct(models.ConsolidatedTransaction.financial_year)).order_by(models.ConsolidatedTransaction.financial_year.desc()).all() if y[0]]
+    all_cats = [c[0] for c in db.query(distinct(models.ConsolidatedTransaction.category_group)).order_by(models.ConsolidatedTransaction.category_group.asc()).all() if c[0]]
+
+    dates = [d[0] for d in db.query(distinct(models.ConsolidatedTransaction.date)).order_by(models.ConsolidatedTransaction.date.desc()).all() if d[0]]
+    month_set = []
+    seen_m = set()
+    for d in dates:
+        m_str = d.strftime("%Y-%m")
+        if m_str not in seen_m:
+            seen_m.add(m_str)
+            month_set.append(m_str)
+
+    return {
+        "net_cash_balance": float(cb_sum),
+        "period_inflow": float(p_inflow),
+        "period_outflow": float(p_outflow),
+        "net_change": float(p_net),
+        "total_count": len(period_txs),
+        "available_years": all_years,
+        "available_months": month_set,
+        "available_categories": all_cats
+    }
+
+@app.delete("/api/consolidated/transactions/{tx_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_consolidated_transaction(
+    tx_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="માત્ર એડમિન જ વ્યવહાર કાઢી શકે છે.")
+    tx = db.query(models.ConsolidatedTransaction).filter(models.ConsolidatedTransaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="વ્યવહાર મળ્યો નથી.")
+    db.delete(tx)
+    db.commit()
+    return None
+
+@app.delete("/api/consolidated/reset", status_code=status.HTTP_200_OK)
+def reset_all_consolidated(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="માત્ર એડમિન જ તમામ હિસાબ સાફ કરી શકે છે.")
+    deleted_splits = db.query(models.ConsolidatedSplit).delete()
+    deleted_txs = db.query(models.ConsolidatedTransaction).delete()
+    db.commit()
+    return {"message": f"તમામ {deleted_txs} વ્યવહારો સફળતાપૂર્વક સાફ કરવામાં આવ્યા."}
+
 
 if __name__ == "__main__":
     import uvicorn

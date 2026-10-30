@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ExpensesPage from './pages/ExpensesPage';
 import BusinessPage from './pages/BusinessPage';
+import ConsolidatedLedgerPage from './pages/ConsolidatedLedgerPage';
 import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <BusinessPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/consolidated"
+                element={
+                  <ProtectedRoute>
+                    <ConsolidatedLedgerPage />
                   </ProtectedRoute>
                 }
               />

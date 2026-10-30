@@ -240,6 +240,10 @@
     justify-content: space-between !important;
   }
 
+  .acc-kpi-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+  }
+
   .acc-kpi-card::before {
     width: 3px !important;
   }
@@ -565,6 +569,10 @@
 
   .acc-kpi-card {
     padding: 6px 7px !important;
+  }
+
+  .acc-kpi-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
   }
 
   .acc-kpi-title {

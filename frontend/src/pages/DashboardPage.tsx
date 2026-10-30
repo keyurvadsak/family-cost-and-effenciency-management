@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Home, Briefcase, ChevronRight,
-  Lock, ArrowUpRight
+  Lock, ArrowUpRight, BookOpen
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { familyApi, businessApi } from '../api';
@@ -175,6 +175,52 @@ export default function DashboardPage() {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '0.82rem', fontWeight: 700 }}>
               <span>ખર્ચ પત્રક ખોલો</span>
+              <ChevronRight size={16} />
+            </div>
+          </div>
+        </div>
+
+        {/* Master Consolidated Joint Ledger Hub */}
+        <div
+          className="dashboard-hub-card"
+          style={{
+            gridColumn: '1 / -1',
+            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.18), rgba(245, 158, 11, 0.12))',
+            border: '1.5px solid rgba(245, 158, 11, 0.4)',
+            cursor: 'pointer'
+          }}
+          onClick={() => navigate('/dashboard/consolidated')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/consolidated')}
+        >
+          <div>
+            <div className="dashboard-hub-header">
+              <div className="dashboard-hub-icon" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', border: 'none', color: '#fff' }}>
+                <BookOpen size={24} />
+              </div>
+              <div className="dashboard-hub-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                    બધા નો મિક્સ હિસાબ (Master Cashbook)
+                  </h3>
+                  <span className="badge badge-primary" style={{ fontSize: '0.62rem', background: '#d97706' }}>
+                    સંકલિત ખાતાવહી
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+                  તમામ વ્યવસાયો (લૂમ્સ, પ્રિશા ફેબ, હીરા વેપાર), ઉછીના-લોન અને પારિવારિક સંયુક્ત કેશબુક.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--border-glass)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              માસિક CSV અપલોડ & ડબલ-એન્ટ્રી ખાતાવહી
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#d97706', fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>ખાતાવહી ખોલો</span>
               <ChevronRight size={16} />
             </div>
           </div>
