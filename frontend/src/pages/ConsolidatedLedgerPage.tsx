@@ -286,7 +286,7 @@ export default function ConsolidatedLedgerPage() {
       </div>
 
       {/* ═══════ HIGH-DENSITY EXECUTIVE KPIS (ZERO GRAPHS) ═══════ */}
-      <div className="acc-kpi-grid mix-kpi-grid" style={{ marginTop: '12px' }}>
+      <div className="acc-kpi-grid" style={{ marginTop: '12px' }}>
         <div className="acc-kpi-card kpi-income">
           <div className="acc-kpi-header">
             <span className="acc-kpi-title">પસંદ કરેલી કુલ આવક</span>
@@ -302,7 +302,7 @@ export default function ConsolidatedLedgerPage() {
 
         <div className="acc-kpi-card kpi-expense">
           <div className="acc-kpi-header">
-            <span className="acc-kpi-title">પસંદ કરેલ કુલ ખર્ચ</span>
+            <span className="acc-kpi-title">પસંદ કરેલ કુલ ખર્ચ / રોકાણ</span>
             <span className="acc-kpi-badge badge-danger">જાવક (-)</span>
           </div>
           <div className="acc-kpi-value text-debit">
@@ -326,16 +326,16 @@ export default function ConsolidatedLedgerPage() {
           </div>
         </div>
 
-        <div className="acc-kpi-card kpi-balance">
+        <div className="acc-kpi-card kpi-capital">
           <div className="acc-kpi-header">
-            <span className="acc-kpi-title">કુલ રોકડ સિલક</span>
+            <span className="acc-kpi-title">કુલ રોકડ સિલક (Master Balance)</span>
             <span className="acc-kpi-badge badge-warning">કેશબુક</span>
           </div>
           <div className="acc-kpi-value" style={{ color: 'var(--warning)' }}>
             ₹{(summary?.net_cash_balance || 0).toLocaleString('en-IN')}
           </div>
           <div className="acc-kpi-subtext">
-            <span>હાથ પર રહેલ કેશબુક સિલક</span>
+            <span>હાથ પર રહેલ કેશબુક બેલેન્સ</span>
           </div>
         </div>
       </div>
@@ -348,31 +348,20 @@ export default function ConsolidatedLedgerPage() {
           padding: isMobile ? '10px 12px' : '14px 18px',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: isMobile ? '100%' : '240px' }}>
-            <Search size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '220px' }}>
+            <Search size={15} color="var(--text-muted)" />
             <input
               type="text"
               className="input-field"
               placeholder="વિગત, નોંધ અથવા ખાતું શોધો..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ padding: '6px 10px', fontSize: '0.82rem', height: '36px', width: '100%' }}
+              style={{ padding: '6px 10px', fontSize: '0.82rem', height: '36px' }}
             />
-            {searchQuery && (
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={() => setSearchQuery('')}
-                style={{ padding: '4px', color: 'var(--text-muted)', flexShrink: 0 }}
-                title="શોધ સાફ કરો"
-              >
-                ✕
-              </button>
-            )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-end', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {/* View Mode Toggle: Simple vs Pro */}
             <div style={{ display: 'inline-flex', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', padding: '2px', border: '1px solid var(--border-glass)' }}>
               <button
@@ -388,7 +377,6 @@ export default function ConsolidatedLedgerPage() {
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   transition: '0.15s ease',
-                  whiteSpace: 'nowrap',
                 }}
               >
                 સરળ કેશબુક
@@ -406,7 +394,6 @@ export default function ConsolidatedLedgerPage() {
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   transition: '0.15s ease',
-                  whiteSpace: 'nowrap',
                 }}
               >
                 ખાતાવહી (CA)
@@ -417,7 +404,7 @@ export default function ConsolidatedLedgerPage() {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => setShowFilters(!showFilters)}
-              style={{ height: '36px', padding: '0 10px', whiteSpace: 'nowrap' }}
+              style={{ height: '36px', padding: '0 10px' }}
             >
               <Filter size={13} />
               <span>ફિલ્ટર્સ</span>
@@ -439,14 +426,15 @@ export default function ConsolidatedLedgerPage() {
             }}
           >
             {/* Financial Year */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
-              <label className="form-label" style={{ fontSize: '0.68rem', marginBottom: '2px', color: 'var(--text-muted)' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
                 નાણાકીય વર્ષ (FY)
               </label>
               <select
-                className="input-field mix-filter-select"
+                className="input-field"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
+                style={{ height: '34px', padding: '4px 8px', fontSize: '0.78rem' }}
               >
                 <option value="all">તમામ વર્ષો</option>
                 {summary?.available_years.map((y) => (
@@ -458,14 +446,15 @@ export default function ConsolidatedLedgerPage() {
             </div>
 
             {/* Month */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
-              <label className="form-label" style={{ fontSize: '0.68rem', marginBottom: '2px', color: 'var(--text-muted)' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
                 મહિનો
               </label>
               <select
-                className="input-field mix-filter-select"
+                className="input-field"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{ height: '34px', padding: '4px 8px', fontSize: '0.78rem' }}
               >
                 <option value="all">તમામ મહિના</option>
                 {summary?.available_months.map((m) => (
@@ -477,14 +466,15 @@ export default function ConsolidatedLedgerPage() {
             </div>
 
             {/* Category Group */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
-              <label className="form-label" style={{ fontSize: '0.68rem', marginBottom: '2px', color: 'var(--text-muted)' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
                 વર્ગીકરણ / ખાતું
               </label>
               <select
-                className="input-field mix-filter-select"
+                className="input-field"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
+                style={{ height: '34px', padding: '4px 8px', fontSize: '0.78rem' }}
               >
                 <option value="all">તમામ ખાતાઓ</option>
                 {summary?.available_categories.map((c) => (
@@ -496,14 +486,15 @@ export default function ConsolidatedLedgerPage() {
             </div>
 
             {/* Transaction Type */}
-            <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
-              <label className="form-label" style={{ fontSize: '0.68rem', marginBottom: '2px', color: 'var(--text-muted)' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
                 પ્રકાર
               </label>
               <select
-                className="input-field mix-filter-select"
+                className="input-field"
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
+                style={{ height: '34px', padding: '4px 8px', fontSize: '0.78rem' }}
               >
                 <option value="all">તમામ વ્યવહારો</option>
                 <option value="inflow">આવક (+ Inflow)</option>
@@ -547,351 +538,151 @@ export default function ConsolidatedLedgerPage() {
           </div>
         ) : ledgerMode === 'simple' ? (
           /* ═══════ SIMPLE CASHBOOK VIEW ═══════ */
-          <div>
-            {/* Desktop Table View */}
-            <div className="hide-on-mobile" style={{ overflowX: 'auto' }}>
-              <table className="acc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '100px' }}>તારીખ</th>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700 }}>વિગત / નોંધ</th>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '140px' }}>વર્ગીકરણ</th>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '120px' }}>આવક (+)</th>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '120px' }}>જાવક (-)</th>
-                    {user?.role === 'admin' && (
-                      <th style={{ padding: '10px 14px', width: '40px' }}></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      style={{
-                        borderBottom: '1px solid var(--border-glass)',
-                        transition: 'background 0.15s ease',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => setExpandedTxId(expandedTxId === tx.id ? null : tx.id)}
-                    >
-                      <td style={{ padding: '10px 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                        <strong>{tx.date}</strong>
-                        {tx.number && (
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            #{tx.number}
-                          </div>
-                        )}
-                      </td>
-
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>
-                          {tx.description}
+          <div style={{ overflowX: 'auto' }}>
+            <table className="acc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
+                  <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '100px' }}>તારીખ</th>
+                  <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700 }}>વિગત / નોંધ</th>
+                  <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '140px' }}>વર્ગીકરણ</th>
+                  <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '120px' }}>આવક (+)</th>
+                  <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '120px' }}>જાવક (-)</th>
+                  {user?.role === 'admin' && (
+                    <th style={{ padding: '10px 14px', width: '40px' }}></th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((tx) => (
+                  <tr
+                    key={tx.id}
+                    style={{
+                      borderBottom: '1px solid var(--border-glass)',
+                      transition: 'background 0.15s ease',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setExpandedTxId(expandedTxId === tx.id ? null : tx.id)}
+                  >
+                    <td style={{ padding: '10px 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      <strong>{tx.date}</strong>
+                      {tx.number && (
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          #{tx.number}
                         </div>
-                        {tx.notes && (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            {tx.notes}
-                          </div>
-                        )}
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          સામેનું ખાતું: <code>{tx.primary_account}</code>
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '10px 14px' }}>
-                        <span
-                          className="badge"
-                          style={{
-                            fontSize: '0.68rem',
-                            background: tx.inflow > 0 ? 'rgba(52, 211, 153, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                            color: tx.inflow > 0 ? 'var(--success)' : 'var(--error)',
-                            border: `1px solid ${tx.inflow > 0 ? 'rgba(52, 211, 153, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
-                          }}
-                        >
-                          {tx.category_group}
-                        </span>
-                      </td>
-
-                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--success)', fontSize: '0.86rem' }}>
-                        {tx.inflow > 0 ? `+₹${tx.inflow.toLocaleString('en-IN')}` : '-'}
-                      </td>
-
-                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--error)', fontSize: '0.86rem' }}>
-                        {tx.outflow > 0 ? `-₹${tx.outflow.toLocaleString('en-IN')}` : '-'}
-                      </td>
-
-                      {user?.role === 'admin' && (
-                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTransaction(tx.id);
-                            }}
-                            style={{ color: 'var(--error)', padding: '4px' }}
-                            title="વ્યવહાર કાઢી નાખો"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
                       )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    </td>
 
-            {/* Mobile Card List View (Clean, No Cutoff, Full Width) */}
-            <div className="show-on-mobile-only mix-mobile-tx-list">
-              {transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className={`mix-mobile-tx-card ${tx.inflow > 0 ? 'tx-inflow' : tx.outflow > 0 ? 'tx-outflow' : 'tx-transfer'}`}
-                  onClick={() => setExpandedTxId(expandedTxId === tx.id ? null : tx.id)}
-                >
-                  {/* Header: Date + Category Badge on left, Big colored Amount on right */}
-                  <div className="mix-mobile-card-header">
-                    <div className="mix-mobile-card-left">
-                      <span className="mix-mobile-date">{tx.date}</span>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>
+                        {tx.description}
+                      </div>
+                      {tx.notes && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {tx.notes}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        સામેનું ખાતું: <code>{tx.primary_account}</code>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '10px 14px' }}>
                       <span
                         className="badge"
                         style={{
-                          fontSize: '0.62rem',
-                          fontWeight: 700,
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          background: tx.inflow > 0 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          fontSize: '0.68rem',
+                          background: tx.inflow > 0 ? 'rgba(52, 211, 153, 0.12)' : 'rgba(239, 68, 68, 0.12)',
                           color: tx.inflow > 0 ? 'var(--success)' : 'var(--error)',
-                          border: `1px solid ${tx.inflow > 0 ? 'rgba(52, 211, 153, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          border: `1px solid ${tx.inflow > 0 ? 'rgba(52, 211, 153, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
                         }}
                       >
                         {tx.category_group}
                       </span>
-                      {tx.number && (
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>#{tx.number}</span>
-                      )}
-                    </div>
+                    </td>
 
-                    <div className="mix-mobile-card-amount">
-                      {tx.inflow > 0 ? (
-                        <span className="text-credit" style={{ fontSize: '0.98rem', fontWeight: 800 }}>
-                          +₹{tx.inflow.toLocaleString('en-IN')}
-                        </span>
-                      ) : tx.outflow > 0 ? (
-                        <span className="text-debit" style={{ fontSize: '0.98rem', fontWeight: 800 }}>
-                          -₹{tx.outflow.toLocaleString('en-IN')}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>₹0</span>
-                      )}
-                    </div>
-                  </div>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--success)', fontSize: '0.86rem' }}>
+                      {tx.inflow > 0 ? `+₹${tx.inflow.toLocaleString('en-IN')}` : '-'}
+                    </td>
 
-                  {/* Description */}
-                  <div className="mix-mobile-card-desc">
-                    {tx.description}
-                  </div>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--error)', fontSize: '0.86rem' }}>
+                      {tx.outflow > 0 ? `-₹${tx.outflow.toLocaleString('en-IN')}` : '-'}
+                    </td>
 
-                  {/* Notes if any */}
-                  {tx.notes && (
-                    <div className="mix-mobile-card-notes">
-                      {tx.notes}
-                    </div>
-                  )}
-
-                  {/* Opposing Account + Action Footer */}
-                  <div className="mix-mobile-card-footer">
-                    <div className="mix-mobile-card-account">
-                      <span>સામેનું:</span>
-                      <code>{tx.primary_account}</code>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--primary)', fontWeight: 600 }}>
-                        {expandedTxId === tx.id ? 'સંતાડો ▲' : `દ્વિ-નોંધ (${tx.splits.length}) ▼`}
-                      </span>
-
-                      {user?.role === 'admin' && (
+                    {user?.role === 'admin' && (
+                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                         <button
                           type="button"
                           className="btn-icon"
-                          style={{ color: 'var(--error)', padding: '3px' }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteTransaction(tx.id);
                           }}
+                          style={{ color: 'var(--error)', padding: '4px' }}
                           title="વ્યવહાર કાઢી નાખો"
                         >
                           <Trash2 size={13} />
                         </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expandable Split Drawer (visible when clicked) */}
-                  {expandedTxId === tx.id && (
-                    <div className="mix-mobile-split-drawer" onClick={(e) => e.stopPropagation()}>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                        ખાતાવહી સ્પ્લિટ્સ (Double Entry Splits):
-                      </div>
-                      {tx.splits.map((s) => (
-                        <div key={s.id} className="mix-mobile-split-row">
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.74rem', color: 'var(--text-main)', wordBreak: 'break-word' }}>
-                              {s.account_name}
-                            </div>
-                            <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>
-                              {s.account_type} {s.memo ? `• ${s.memo}` : ''}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
-                            {s.amount > 0 ? (
-                              <span className="badge badge-success" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
-                                ઉધાર ₹{s.amount.toLocaleString('en-IN')}
-                              </span>
-                            ) : s.amount < 0 ? (
-                              <span className="badge badge-danger" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
-                                જમા ₹{Math.abs(s.amount).toLocaleString('en-IN')}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>-</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           /* ═══════ PRO ACCOUNTANT (DOUBLE ENTRY) VIEW ═══════ */
-          <div>
-            {/* Desktop Pro View (4-column table inside card) */}
-            <div className="hide-on-mobile" style={{ padding: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {transactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    style={{
-                      background: 'var(--bg-surface-elevated)',
-                      border: '1px solid var(--border-glass)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '10px 14px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>{tx.date}</span>
-                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)' }}>{tx.description}</span>
-                        <span className="badge badge-secondary" style={{ fontSize: '0.62rem' }}>{tx.category_group}</span>
-                      </div>
-
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        Tx ID: <code style={{ fontSize: '0.68rem' }}>{tx.tx_guid.substring(0, 12)}...</code>
-                      </div>
-                    </div>
-
-                    {/* Splits Ledger Breakdown */}
-                    <table style={{ width: '100%', fontSize: '0.75rem', marginTop: '6px', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ color: 'var(--text-muted)', borderBottom: '1px dashed var(--border-glass)' }}>
-                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>ખાતાનું નામ (Account)</th>
-                          <th style={{ padding: '4px 6px', textAlign: 'left', width: '90px' }}>પ્રકાર</th>
-                          <th style={{ padding: '4px 6px', textAlign: 'right', width: '110px' }}>ઉધાર (Debit)</th>
-                          <th style={{ padding: '4px 6px', textAlign: 'right', width: '110px' }}>જમા (Credit)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tx.splits.map((s) => (
-                          <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td style={{ padding: '4px 6px', fontWeight: 500 }}>
-                              {s.account_name}
-                              {s.memo && <span style={{ color: 'var(--text-muted)', marginLeft: '6px', fontSize: '0.68rem' }}>({s.memo})</span>}
-                            </td>
-                            <td style={{ padding: '4px 6px', color: 'var(--text-muted)' }}>{s.account_type}</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 600, color: s.amount > 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                              {s.amount > 0 ? `₹${s.amount.toLocaleString('en-IN')}` : '-'}
-                            </td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 600, color: s.amount < 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                              {s.amount < 0 ? `₹${Math.abs(s.amount).toLocaleString('en-IN')}` : '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile Pro View (High-density Split Item rows) */}
-            <div className="show-on-mobile-only pro-mobile-list">
+          <div style={{ padding: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {transactions.map((tx) => (
-                <div key={tx.id} className="pro-mobile-card">
-                  <div className="pro-mobile-card-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-main)' }}>{tx.date}</span>
+                <div
+                  key={tx.id}
+                  style={{
+                    background: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border-glass)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 14px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>{tx.date}</span>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)' }}>{tx.description}</span>
                       <span className="badge badge-secondary" style={{ fontSize: '0.62rem' }}>{tx.category_group}</span>
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                      ID: <code style={{ fontSize: '0.65rem' }}>{tx.tx_guid.substring(0, 10)}...</code>
+
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Tx ID: <code style={{ fontSize: '0.68rem' }}>{tx.tx_guid.substring(0, 12)}...</code>
                     </div>
                   </div>
 
-                  <div className="pro-mobile-card-desc">
-                    {tx.description}
-                  </div>
-                  {tx.notes && (
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '4px' }}>
-                      {tx.notes}
-                    </div>
-                  )}
-
-                  <div className="pro-mobile-splits-list">
-                    {tx.splits.map((s) => (
-                      <div key={s.id} className="pro-mobile-split-item">
-                        <div className="pro-mobile-split-info">
-                          <span className="pro-mobile-split-acc">{s.account_name}</span>
-                          <span className="pro-mobile-split-type">
-                            {s.account_type} {s.memo ? `• ${s.memo}` : ''}
-                          </span>
-                        </div>
-                        <div className="pro-mobile-split-badge">
-                          {s.amount > 0 ? (
-                            <span
-                              className="badge"
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                background: 'rgba(52, 211, 153, 0.12)',
-                                color: 'var(--success)',
-                                border: '1px solid rgba(52, 211, 153, 0.25)',
-                              }}
-                            >
-                              ઉધાર ₹{s.amount.toLocaleString('en-IN')}
-                            </span>
-                          ) : s.amount < 0 ? (
-                            <span
-                              className="badge"
-                              style={{
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                background: 'rgba(239, 68, 68, 0.12)',
-                                color: 'var(--error)',
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
-                              }}
-                            >
-                              જમા ₹{Math.abs(s.amount).toLocaleString('en-IN')}
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>-</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Splits Ledger Breakdown */}
+                  <table style={{ width: '100%', fontSize: '0.75rem', marginTop: '6px', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ color: 'var(--text-muted)', borderBottom: '1px dashed var(--border-glass)' }}>
+                        <th style={{ padding: '4px 6px', textAlign: 'left' }}>ખાતાનું નામ (Account)</th>
+                        <th style={{ padding: '4px 6px', textAlign: 'left', width: '90px' }}>પ્રકાર</th>
+                        <th style={{ padding: '4px 6px', textAlign: 'right', width: '110px' }}>ઉધાર (Debit)</th>
+                        <th style={{ padding: '4px 6px', textAlign: 'right', width: '110px' }}>જમા (Credit)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tx.splits.map((s) => (
+                        <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding: '4px 6px', fontWeight: 500 }}>
+                            {s.account_name}
+                            {s.memo && <span style={{ color: 'var(--text-muted)', marginLeft: '6px', fontSize: '0.68rem' }}>({s.memo})</span>}
+                          </td>
+                          <td style={{ padding: '4px 6px', color: 'var(--text-muted)' }}>{s.account_type}</td>
+                          <td style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 600, color: s.amount > 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                            {s.amount > 0 ? `₹${s.amount.toLocaleString('en-IN')}` : '-'}
+                          </td>
+                          <td style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 600, color: s.amount < 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                            {s.amount < 0 ? `₹${Math.abs(s.amount).toLocaleString('en-IN')}` : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ))}
             </div>
