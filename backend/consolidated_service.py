@@ -242,3 +242,4 @@ def process_consolidated_csv(
         "date_min": d_min,
         "date_max": d_max
     }
+
