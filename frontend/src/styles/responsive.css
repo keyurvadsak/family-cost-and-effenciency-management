@@ -340,6 +340,63 @@
     margin-top: 1px !important;
   }
 
+  /* ═══════ MASTER CASHBOOK 2x2 BALANCED KPI GRID ON MOBILE ═══════ */
+  .mix-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .mix-kpi-grid .acc-kpi-card,
+  .mix-kpi-grid .acc-kpi-card.kpi-capital,
+  .mix-kpi-grid .acc-kpi-card.kpi-balance,
+  .mix-kpi-grid .acc-kpi-card:last-child {
+    grid-column: auto !important;
+    padding: 8px 10px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: space-between !important;
+    min-height: 80px !important;
+  }
+
+  .mix-kpi-grid .acc-kpi-card .acc-kpi-header {
+    margin-bottom: 2px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .mix-kpi-grid .acc-kpi-card .acc-kpi-title {
+    font-size: 0.65rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .mix-kpi-grid .acc-kpi-card .acc-kpi-badge {
+    font-size: 0.58rem !important;
+    padding: 1px 4px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mix-kpi-grid .acc-kpi-card .acc-kpi-value {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    margin: 2px 0 !important;
+    text-align: left !important;
+  }
+
+  .mix-kpi-grid .acc-kpi-card .acc-kpi-subtext {
+    font-size: 0.62rem !important;
+    color: var(--text-muted) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
   /* Entity Banner on Mobile */
   .entity-banner {
     padding: 8px 10px !important;
