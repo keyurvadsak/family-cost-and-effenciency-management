@@ -230,6 +230,7 @@ export interface ConsolidatedTransaction {
   outflow: number;
   primary_account: string;
   category_group: string;
+  business_stream: string;
   is_journal: boolean;
   financial_year: string;
   source_batch?: string | null;
@@ -258,11 +259,14 @@ export interface ConsolidatedSummary {
   available_years: string[];
   available_months: string[];
   available_categories: string[];
+  available_streams: string[];
 }
 
 export interface ConsolidatedFilterParams {
   financial_year?: string;
   month?: string;
+  business_stream?: string;
+  flow_type?: string;
   category_group?: string;
   search?: string;
   tx_type?: string;

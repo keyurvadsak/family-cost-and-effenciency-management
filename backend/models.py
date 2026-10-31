@@ -117,6 +117,7 @@ class ConsolidatedTransaction(Base):
     # Categorization and mapping
     primary_account = Column(String, index=True, nullable=False)  # E.g. "INCOME:LOOMS", "EXPENSES:Medical"
     category_group = Column(String, index=True, nullable=False)  # Human-readable Gujarati category group
+    business_stream = Column(String, index=True, default="અન્ય વ્યવસાય / આવક", nullable=False)  # Business stream e.g. "લૂમ્સ (LOOMS)", "પ્રિશા ફેબ / એમ્બ્રોઈડરી"
     is_journal = Column(Boolean, default=False, nullable=False)  # True if non-cashbook transaction
     financial_year = Column(String, index=True, nullable=False)  # E.g. "2025-26"
 

@@ -488,15 +488,18 @@ async def upload_consolidated_csv(
 def get_consolidated_transactions(
     financial_year: Optional[str] = None,
     month: Optional[str] = None,
+    business_stream: Optional[str] = None,
+    flow_type: Optional[str] = None,
     category_group: Optional[str] = None,
     search: Optional[str] = None,
     tx_type: Optional[str] = None,
     skip: int = 0,
-    limit: int = 1000,
+    limit: int = 15,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    query = db.query(models.ConsolidatedTransaction)
+    from sqlalchemy.orm import selectinload
+    query = db.query(models.ConsolidatedTransaction).options(selectinload(models.ConsolidatedTransaction.splits))
 
     if financial_year and financial_year != "all":
         query = query.filter(models.ConsolidatedTransaction.financial_year == financial_year)
@@ -511,22 +514,26 @@ def get_consolidated_transactions(
         except Exception:
             pass
 
-    if category_group and category_group != "all":
-        query = query.filter(models.ConsolidatedTransaction.category_group == category_group)
+    if business_stream and business_stream != "all":
+        query = query.filter(models.ConsolidatedTransaction.business_stream == business_stream)
 
-    if tx_type == "inflow":
+    if flow_type == "income" or tx_type == "inflow":
         query = query.filter(models.ConsolidatedTransaction.inflow > 0)
-    elif tx_type == "outflow":
+    elif flow_type == "expense" or tx_type == "outflow":
         query = query.filter(models.ConsolidatedTransaction.outflow > 0)
     elif tx_type == "journal":
         query = query.filter(models.ConsolidatedTransaction.is_journal == True)
+
+    if category_group and category_group != "all":
+        query = query.filter(models.ConsolidatedTransaction.category_group == category_group)
 
     if search and search.strip():
         term = f"%{search.strip()}%"
         query = query.filter(
             (models.ConsolidatedTransaction.description.ilike(term)) |
             (models.ConsolidatedTransaction.notes.ilike(term)) |
-            (models.ConsolidatedTransaction.primary_account.ilike(term))
+            (models.ConsolidatedTransaction.primary_account.ilike(term)) |
+            (models.ConsolidatedTransaction.business_stream.ilike(term))
         )
 
     return query.order_by(models.ConsolidatedTransaction.date.desc(), models.ConsolidatedTransaction.id.desc()).offset(skip).limit(limit).all()
@@ -535,7 +542,11 @@ def get_consolidated_transactions(
 def get_consolidated_summary(
     financial_year: Optional[str] = None,
     month: Optional[str] = None,
+    business_stream: Optional[str] = None,
+    flow_type: Optional[str] = None,
     category_group: Optional[str] = None,
+    search: Optional[str] = None,
+    tx_type: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
@@ -557,16 +568,43 @@ def get_consolidated_summary(
         except Exception:
             pass
 
+    if business_stream and business_stream != "all":
+        query = query.filter(models.ConsolidatedTransaction.business_stream == business_stream)
+
+    if flow_type == "income" or tx_type == "inflow":
+        query = query.filter(models.ConsolidatedTransaction.inflow > 0)
+    elif flow_type == "expense" or tx_type == "outflow":
+        query = query.filter(models.ConsolidatedTransaction.outflow > 0)
+    elif tx_type == "journal":
+        query = query.filter(models.ConsolidatedTransaction.is_journal == True)
+
     if category_group and category_group != "all":
         query = query.filter(models.ConsolidatedTransaction.category_group == category_group)
 
-    period_txs = query.all()
-    p_inflow = sum(t.inflow for t in period_txs)
-    p_outflow = sum(t.outflow for t in period_txs)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            (models.ConsolidatedTransaction.description.ilike(term)) |
+            (models.ConsolidatedTransaction.notes.ilike(term)) |
+            (models.ConsolidatedTransaction.primary_account.ilike(term)) |
+            (models.ConsolidatedTransaction.business_stream.ilike(term))
+        )
+
+    # Ultra-fast DB-side aggregation in a single query
+    agg = query.with_entities(
+        func.coalesce(func.sum(models.ConsolidatedTransaction.inflow), 0.0),
+        func.coalesce(func.sum(models.ConsolidatedTransaction.outflow), 0.0),
+        func.count(models.ConsolidatedTransaction.id)
+    ).first()
+
+    p_inflow = float(agg[0]) if agg else 0.0
+    p_outflow = float(agg[1]) if agg else 0.0
+    total_count = int(agg[2]) if agg else 0
     p_net = p_inflow - p_outflow
 
     all_years = [y[0] for y in db.query(distinct(models.ConsolidatedTransaction.financial_year)).order_by(models.ConsolidatedTransaction.financial_year.desc()).all() if y[0]]
     all_cats = [c[0] for c in db.query(distinct(models.ConsolidatedTransaction.category_group)).order_by(models.ConsolidatedTransaction.category_group.asc()).all() if c[0]]
+    all_streams = [s[0] for s in db.query(distinct(models.ConsolidatedTransaction.business_stream)).order_by(models.ConsolidatedTransaction.business_stream.asc()).all() if s[0]]
 
     dates = [d[0] for d in db.query(distinct(models.ConsolidatedTransaction.date)).order_by(models.ConsolidatedTransaction.date.desc()).all() if d[0]]
     month_set = []
@@ -582,10 +620,11 @@ def get_consolidated_summary(
         "period_inflow": float(p_inflow),
         "period_outflow": float(p_outflow),
         "net_change": float(p_net),
-        "total_count": len(period_txs),
+        "total_count": total_count,
         "available_years": all_years,
         "available_months": month_set,
-        "available_categories": all_cats
+        "available_categories": all_cats,
+        "available_streams": all_streams
     }
 
 @app.delete("/api/consolidated/transactions/{tx_id}", status_code=status.HTTP_204_NO_CONTENT)

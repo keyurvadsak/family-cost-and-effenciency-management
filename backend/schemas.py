@@ -157,6 +157,7 @@ class ConsolidatedTransactionResponse(BaseModel):
     outflow: float
     primary_account: str
     category_group: str
+    business_stream: str = "અન્ય વ્યવસાય / આવક"
     is_journal: bool
     financial_year: str
     source_batch: Optional[str] = None
@@ -188,3 +189,4 @@ class ConsolidatedSummaryResponse(BaseModel):
     available_years: List[str]
     available_months: List[str]
     available_categories: List[str]
+    available_streams: List[str] = []

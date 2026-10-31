@@ -37,6 +37,25 @@ CATEGORY_MAPPING: Dict[str, Tuple[str, str]] = {
     'Capital Acc': ('મૂડી ખાતું', 'મૂડી ખાતું (Capital)')
 }
 
+def classify_business_stream(acc_name: str) -> str:
+    cleaned = (acc_name or "").strip()
+    upper = cleaned.upper()
+    if "LOOMS" in upper:
+        return "લૂમ્સ (LOOMS)"
+    elif "EMBRO" in upper or "PRISHA" in upper:
+        return "પ્રિશા ફેબ / એમ્બ્રોઈડરી"
+    elif "DAIMOND" in upper or "DIAMOND" in upper or "KEYUR" in upper:
+        return "કેયુર જેમ્સ (હીરા વેપાર)"
+    elif "M.J" in upper or "J.T" in upper:
+        return "M.J & J.T ટ્રેડિંગ"
+    elif "UCHINA" in upper or "LIABILITIES" in upper or "LOAN" in upper or "DEVANA" in upper or "DADA" in upper or "INTREST" in upper or "INTEREST" in upper:
+        return "લોન & ઉછીના"
+    elif "CAPITAL" in upper or "CAP." in upper or "INVEST" in upper:
+        return "મૂડી & રોકાણ"
+    elif "EXPENSES" in upper:
+        return "પારિવારિક ઘરખર્ચ"
+    return "અન્ય વ્યવસાય / આવક"
+
 def classify_account(acc_name: str) -> Tuple[str, str]:
     cleaned = acc_name.strip()
     if cleaned in CATEGORY_MAPPING:
@@ -120,20 +139,15 @@ def process_consolidated_csv(
             tx_groups[tx_id] = []
         tx_groups[tx_id].append(r)
 
-    # 100% Duplicate Prevention: Fetch all existing tx_guid from database in a single query
-    existing_guids: Set[str] = set(
-        guid for (guid,) in db.query(models.ConsolidatedTransaction.tx_guid).all()
-    )
+    # User requirement: When uploading a new CSV, clear old records and replace with newly uploaded CSV records
+    db.query(models.ConsolidatedSplit).delete()
+    db.query(models.ConsolidatedTransaction).delete()
+    db.commit()
 
     new_tx_models = []
-    skipped_count = 0
     all_dates = []
 
     for tx_id, splits in tx_groups.items():
-        if tx_id in existing_guids:
-            skipped_count += 1
-            continue
-
         first = splits[0]
         try:
             tx_date = parse_date(first.get("Date", ""))
@@ -167,6 +181,15 @@ def process_consolidated_csv(
             primary_acc = first.get("Full Account Name", "").strip()
 
         cat_group, _ = classify_account(primary_acc)
+        biz_stream = classify_business_stream(primary_acc)
+        if biz_stream == "અન્ય વ્યવસાય / આવક" or primary_acc == "Cashbook":
+            for s in splits:
+                s_acc = (s.get("Full Account Name") or "").strip()
+                if s_acc != "Cashbook":
+                    cand = classify_business_stream(s_acc)
+                    if cand != "અન્ય વ્યવસાય / આવક":
+                        biz_stream = cand
+                        break
 
         tx_obj = models.ConsolidatedTransaction(
             tx_guid=tx_id,
@@ -178,6 +201,7 @@ def process_consolidated_csv(
             outflow=outflow,
             primary_account=primary_acc,
             category_group=cat_group,
+            business_stream=biz_stream,
             is_journal=is_journal,
             financial_year=fy,
             source_batch=filename,
@@ -220,14 +244,8 @@ def process_consolidated_csv(
 
     total_in_file = len(tx_groups)
     new_added = len(new_tx_models)
-    is_all_dup = (new_added == 0 and total_in_file > 0)
 
-    if is_all_dup:
-        msg = f"ડુપ્લિકેટ ફાઇલ: આ ફાઇલના તમામ {total_in_file} વ્યવહારો પહેલેથી જ ડેટાબેઝમાં મોજૂદ છે. કોઈ ડુપ્લિકેટ એન્ટ્રી ઉમેરાઈ નથી."
-    elif skipped_count > 0:
-        msg = f"સફળતાપૂર્વક અપલોડ: {new_added} નવા વ્યવહારો ઉમેરાયા, {skipped_count} જૂના વ્યવહારો આપમેળે સ્કીપ થયા (કોઈ ડુપ્લિકેશન નથી)."
-    else:
-        msg = f"સફળતાપૂર્વક અપલોડ: તમામ {new_added} વ્યવહારો ડેટાબેઝમાં સાચવવામાં આવ્યા."
+    msg = f"જૂનો હિસાબ સાફ કરીને નવા {new_added} વ્યવહારો સફળતાપૂર્વક સાચવવામાં આવ્યા."
 
     d_min = min(all_dates).strftime("%d-%m-%Y") if all_dates else None
     d_max = max(all_dates).strftime("%d-%m-%Y") if all_dates else None
@@ -236,8 +254,8 @@ def process_consolidated_csv(
         "total_rows_parsed": len(rows),
         "total_transactions_in_file": total_in_file,
         "new_transactions_added": new_added,
-        "duplicate_transactions_skipped": skipped_count,
-        "is_duplicate_file": is_all_dup,
+        "duplicate_transactions_skipped": 0,
+        "is_duplicate_file": False,
         "message": msg,
         "date_min": d_min,
         "date_max": d_max
