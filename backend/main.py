@@ -516,9 +516,14 @@ def get_consolidated_transactions(
             pass
 
     if primary_account and primary_account != "all":
+        prefix = f"{primary_account}:"
         query = query.filter(
             (models.ConsolidatedTransaction.primary_account == primary_account) |
-            (models.ConsolidatedTransaction.splits.any(models.ConsolidatedSplit.account_name == primary_account))
+            (models.ConsolidatedTransaction.primary_account.startswith(prefix)) |
+            (models.ConsolidatedTransaction.splits.any(
+                (models.ConsolidatedSplit.account_name == primary_account) |
+                (models.ConsolidatedSplit.account_name.startswith(prefix))
+            ))
         )
 
     if business_stream and business_stream != "all":
@@ -577,9 +582,14 @@ def get_consolidated_summary(
             pass
 
     if primary_account and primary_account != "all":
+        prefix = f"{primary_account}:"
         query = query.filter(
             (models.ConsolidatedTransaction.primary_account == primary_account) |
-            (models.ConsolidatedTransaction.splits.any(models.ConsolidatedSplit.account_name == primary_account))
+            (models.ConsolidatedTransaction.primary_account.startswith(prefix)) |
+            (models.ConsolidatedTransaction.splits.any(
+                (models.ConsolidatedSplit.account_name == primary_account) |
+                (models.ConsolidatedSplit.account_name.startswith(prefix))
+            ))
         )
 
     if business_stream and business_stream != "all":
@@ -619,7 +629,9 @@ def get_consolidated_summary(
     all_years = [y[0] for y in db.query(distinct(models.ConsolidatedTransaction.financial_year)).order_by(models.ConsolidatedTransaction.financial_year.desc()).all() if y[0]]
     all_cats = [c[0] for c in db.query(distinct(models.ConsolidatedTransaction.category_group)).order_by(models.ConsolidatedTransaction.category_group.asc()).all() if c[0]]
     all_streams = [s[0] for s in db.query(distinct(models.ConsolidatedTransaction.business_stream)).order_by(models.ConsolidatedTransaction.business_stream.asc()).all() if s[0]]
-    all_accounts = [a[0] for a in db.query(distinct(models.ConsolidatedTransaction.primary_account)).order_by(models.ConsolidatedTransaction.primary_account.asc()).all() if a[0]]
+    prim_accs = set(a[0] for a in db.query(distinct(models.ConsolidatedTransaction.primary_account)).all() if a[0])
+    split_accs = set(s[0] for s in db.query(distinct(models.ConsolidatedSplit.account_name)).all() if s[0])
+    all_accounts = sorted(list(prim_accs | split_accs))
 
     dates = [d[0] for d in db.query(distinct(models.ConsolidatedTransaction.date)).order_by(models.ConsolidatedTransaction.date.desc()).all() if d[0]]
     month_set = []

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Upload, Printer, Search, Filter,
-  BookOpen, CheckCircle2, ChevronDown, ChevronUp, ChevronRight,
-  FileText, RefreshCw, Trash2, Building, ArrowRight
+  BookOpen, ChevronDown, ChevronUp, ChevronRight,
+  FileText, RefreshCw, Trash2, Building, ArrowRight,
+  FolderOpen, Folder, CornerDownRight, Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -19,42 +20,6 @@ import Modal from '../components/ui/Modal';
 import LoadingScreen from '../components/ui/LoadingScreen';
 import EmptyState from '../components/ui/EmptyState';
 
-const ACCOUNT_GUJARATI_NAMES: Record<string, string> = {
-  'INCOME:M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
-  'INCOME:EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
-  'INCOME:LOOMS': 'લૂમ્સ ખાતાની આવક',
-  'ASSETS:DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
-  'INCOME:Other Income': 'અન્ય આવક (ભાડું/પગાર)',
-  'INCOME:Rent': 'ભાડું આવક',
-  'LIABILITIES:UCHINA LIDHELA': 'ઉછીના લીધેલા (UCHINA LIDHELA)',
-  'LIABILITIES:VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
-  'LIABILITIES:BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
-  'LIABILITIES:GoldLoan': 'ગોલ્ડ લોન (Gold Loan)',
-  'LIABILITIES:DADA': 'દાદા ખાતે લોન',
-  'LIABILITIES:DEVANA CM CO.': 'દેવાના CM CO.',
-  'ASSETS:UCHINA APELA': 'ઉછીના આપેલા (UCHINA APELA)',
-  'ASSETS:EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
-  'ASSETS:EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
-  'EXPENSES:BHEGA': 'સંયુક્ત ઘરખર્ચ (BHEGA)',
-  'EXPENSES:BHEGA:BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
-  'EXPENSES:BHEGA:Monthly': 'નિયમિત માસિક ઘરખર્ચ',
-  'EXPENSES:BHEGA:Small': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
-  'EXPENSES:Medical': 'મેડિકલ & દવાઓ',
-  'EXPENSES:School & Education': 'શિક્ષણ & સ્કૂલ ફી',
-  'EXPENSES:Intrest & EMIs': 'વ્યાજ & લોન EMI',
-  'EXPENSES:Car & Bike': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
-  'EXPENSES:TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
-  'EXPENSES:Mobile & Recharge': 'મોબાઈલ રિચાર્જ',
-  'EXPENSES:Insuranse': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
-  'Cap. Old-Money 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
-  'Capital Acc': 'મૂડી ખાતું (Capital Acc)',
-  'Cashbook': 'રોકડ સિલક (Cashbook)',
-  'ASSETS': 'કુલ સંપત્તિ (Assets)',
-  'EXPENSES': 'કુલ ખર્ચાઓ (Expenses)',
-  'INCOME': 'કુલ આવક (Income)',
-  'LIABILITIES': 'કુલ દેવું & લોન (Liabilities)',
-};
-
 export default function ConsolidatedLedgerPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -62,11 +27,11 @@ export default function ConsolidatedLedgerPage() {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // URL state persistence (clickable URL support)
+  // Dynamic URL state persistence (clickable URL support)
   const initialAccount = searchParams.get('account') || 'all';
   const initialView = (searchParams.get('view') as 'tree' | 'simple' | 'pro') || (searchParams.get('account') ? 'simple' : 'tree');
 
-  // View Mode: 'tree' (Accounts Tree Hierarchy) vs 'simple' (Cashbook) vs 'pro' (Double Entry)
+  // View Mode: 'tree' (Accounts Tree Hierarchy) vs 'simple' (Register) vs 'pro' (Double Entry Splits)
   const [viewMode, setViewMode] = useState<'tree' | 'simple' | 'pro'>(initialView);
 
   // Data states
@@ -77,7 +42,7 @@ export default function ConsolidatedLedgerPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Expanded nodes in tree view
+  // Expanded nodes in tree view (Open/Close state)
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     'ASSETS': true,
     'EXPENSES': true,
@@ -86,8 +51,10 @@ export default function ConsolidatedLedgerPage() {
     'LIABILITIES': true,
   });
 
-  // Selected account for highlighting in tree
-  const [selectedTreeAccount, setSelectedTreeAccount] = useState<string>(initialAccount !== 'all' ? initialAccount : 'EXPENSES:Insuranse');
+  // Selected account for highlighting in tree (GnuCash style blue selection)
+  const [selectedTreeAccount, setSelectedTreeAccount] = useState<string>(
+    initialAccount !== 'all' ? initialAccount : 'EXPENSES:Insuranse'
+  );
 
   // Filters: FY, Month, Same nu Khatu (સામેનું ખાતું), Flow Type (આવક/ખર્ચ)
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -109,31 +76,41 @@ export default function ConsolidatedLedgerPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
-  // Color helper for Business Stream badge
+  // Dynamic Color helper for Business Stream badge
   const getStreamBadgeStyle = (stream: string) => {
     if (!stream) return { bg: 'rgba(107, 114, 128, 0.12)', color: 'var(--text-secondary)', border: 'rgba(107, 114, 128, 0.25)' };
-    if (stream.includes('લૂમ્સ') || stream.includes('LOOMS')) {
+    const s = stream.toLowerCase();
+    if (s.includes('લૂમ્સ') || s.includes('looms')) {
       return { bg: 'rgba(6, 182, 212, 0.14)', color: '#0891b2', border: 'rgba(6, 182, 212, 0.35)' };
     }
-    if (stream.includes('પ્રિશા') || stream.includes('એમ્બ્રોઈડરી')) {
+    if (s.includes('પ્રિશા') || s.includes('embro') || s.includes('એમ્બ્રોઈડરી')) {
       return { bg: 'rgba(168, 85, 247, 0.14)', color: '#9333ea', border: 'rgba(168, 85, 247, 0.35)' };
     }
-    if (stream.includes('કેયુર') || stream.includes('હીરા')) {
+    if (s.includes('કેયુર') || s.includes('હીરા') || s.includes('diamond')) {
       return { bg: 'rgba(245, 158, 11, 0.14)', color: '#d97706', border: 'rgba(245, 158, 11, 0.35)' };
     }
-    if (stream.includes('M.J') || stream.includes('J.T')) {
+    if (s.includes('m.j') || s.includes('j.t')) {
       return { bg: 'rgba(59, 130, 246, 0.14)', color: '#2563eb', border: 'rgba(59, 130, 246, 0.35)' };
     }
-    if (stream.includes('ઘરખર્ચ')) {
+    if (s.includes('ઘરખર્ચ') || s.includes('expense')) {
       return { bg: 'rgba(239, 68, 68, 0.14)', color: '#dc2626', border: 'rgba(239, 68, 68, 0.35)' };
     }
-    if (stream.includes('લોન') || stream.includes('ઉછીના')) {
+    if (s.includes('લોન') || s.includes('ઉછીના') || s.includes('liabilit')) {
       return { bg: 'rgba(249, 115, 22, 0.14)', color: '#ea580c', border: 'rgba(249, 115, 22, 0.35)' };
     }
-    if (stream.includes('મૂડી') || stream.includes('રોકાણ')) {
+    if (s.includes('મૂડી') || s.includes('રોકાણ') || s.includes('capital') || s.includes('asset')) {
       return { bg: 'rgba(16, 185, 129, 0.14)', color: '#059669', border: 'rgba(16, 185, 129, 0.35)' };
     }
-    return { bg: 'rgba(107, 114, 128, 0.12)', color: 'var(--text-secondary)', border: 'rgba(107, 114, 128, 0.25)' };
+    // Dynamic color from hash for any other stream
+    let hash = 0;
+    for (let i = 0; i < stream.length; i++) hash = stream.charCodeAt(i) + ((hash << 5) - hash);
+    const hues = [210, 280, 160, 30, 340, 190];
+    const hue = hues[Math.abs(hash) % hues.length];
+    return {
+      bg: `hsla(${hue}, 70%, 50%, 0.14)`,
+      color: `hsl(${hue}, 80%, 40%)`,
+      border: `hsla(${hue}, 70%, 50%, 0.35)`
+    };
   };
 
   // Helper for Account Type Badge Color
@@ -157,13 +134,38 @@ export default function ConsolidatedLedgerPage() {
     }
   };
 
-  // Toggle tree node expansion
-  const toggleNode = (nodeName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedNodes(prev => ({ ...prev, [nodeName]: !prev[nodeName] }));
+  // Toggle tree node expansion (CLOSE AND OPEN ONLY — NO NAVIGATION)
+  const toggleNode = (nodeFullName: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setExpandedNodes(prev => ({
+      ...prev,
+      [nodeFullName]: !prev[nodeFullName]
+    }));
   };
 
-  // Initial fetch: Load summary, accounts tree, and first 15 transactions
+  // Expand all tree nodes
+  const handleExpandAll = () => {
+    const allExpanded: Record<string, boolean> = {};
+    const traverse = (nodes: AccountTreeNode[]) => {
+      for (const n of nodes) {
+        if (n.children && n.children.length > 0) {
+          allExpanded[n.full_name] = true;
+          traverse(n.children);
+        }
+      }
+    };
+    traverse(accountsTree);
+    setExpandedNodes(allExpanded);
+  };
+
+  // Collapse all tree nodes
+  const handleCollapseAll = () => {
+    setExpandedNodes({});
+  };
+
+  // Fetch summary, accounts tree, and transactions
   const fetchData = async () => {
     try {
       setRefreshing(true);
@@ -187,15 +189,15 @@ export default function ConsolidatedLedgerPage() {
       setSummary(sumData);
       setAccountsTree(treeData);
     } catch (err: any) {
-      console.error('Failed to load consolidated ledger', err);
-      showToast('ડેટા લોડ કરવામાં ક્ષતિ આવી.', 'error');
+      console.error('Failed to fetch consolidated ledger data', err);
+      showToast('ડેટા લોડ કરવામાં ક્ષતિ આવી. કૃપા કરીને પુનઃ પ્રયાસ કરો.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Load More: Fetch next 15 records and append
+  // Load More 15 transactions
   const handleLoadMore = async () => {
     if (loadingMore) return;
     try {
@@ -249,13 +251,13 @@ export default function ConsolidatedLedgerPage() {
     }
   }, [searchParams]);
 
-  // Click on account in tree view -> opens register with that account and updates clickable URL
-  const handleAccountClick = (node: AccountTreeNode) => {
-    setSelectedTreeAccount(node.full_name);
-    setSelectedAccount(node.full_name);
+  // Explicit action: Open Register for this account (Clickable URL Navigation)
+  const handleOpenAccountTransactions = (nodeFullName: string, nodeName: string) => {
+    setSelectedTreeAccount(nodeFullName);
+    setSelectedAccount(nodeFullName);
     setViewMode('simple');
-    setSearchParams({ view: 'simple', account: node.full_name });
-    showToast(`ખાતું પસંદ થયું: ${node.name}`, 'info');
+    setSearchParams({ view: 'simple', account: nodeFullName });
+    showToast(`ખાતું પસંદ થયું: ${nodeName}`, 'info');
   };
 
   // Clear account filter
@@ -273,7 +275,7 @@ export default function ConsolidatedLedgerPage() {
     }
   };
 
-  // Upload CSV handler (Full clean sync/replace as requested)
+  // Upload CSV handler (Clean sync/replace)
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
@@ -342,27 +344,46 @@ export default function ConsolidatedLedgerPage() {
     return `${monthNames[m] || m} ${y}`;
   };
 
-  // Available accounts from summary or known accounts
+  // 100% Dynamic available accounts from summary
   const availableAccounts = useMemo(() => {
     if (summary?.available_accounts && summary.available_accounts.length > 0) {
       return summary.available_accounts;
     }
+    // Fallback purely dynamic from transactions or tree
     const fromTxs = transactions.map((t) => t.primary_account).filter(Boolean);
-    const combined = new Set([...Object.keys(ACCOUNT_GUJARATI_NAMES), ...fromTxs]);
-    return Array.from(combined).sort();
-  }, [summary?.available_accounts, transactions]);
+    const fromTree: string[] = [];
+    const collectNames = (nodes: AccountTreeNode[]) => {
+      for (const n of nodes) {
+        fromTree.push(n.full_name);
+        if (n.children) collectNames(n.children);
+      }
+    };
+    collectNames(accountsTree);
+    return Array.from(new Set([...fromTxs, ...fromTree])).sort();
+  }, [summary?.available_accounts, transactions, accountsTree]);
 
   // Recursive Tree Node Renderer for GnuCash UI
   const renderTreeNode = (node: AccountTreeNode, depth = 0) => {
-    const hasChildren = node.children && node.children.length > 0;
-    const isExpanded = expandedNodes[node.full_name] ?? false;
+    const hasChildren = Boolean(node.children && node.children.length > 0);
+    const isExpanded = Boolean(expandedNodes[node.full_name]);
     const isSelected = selectedTreeAccount === node.full_name || selectedAccount === node.full_name;
     const typeStyle = getTypeBadgeStyle(node.type);
+
+    // Row Click Behavior:
+    // If has children -> Toggles CLOSE/OPEN (does NOT navigate away!)
+    // If leaf node -> Selects row (does NOT navigate away unless explicit button clicked)
+    const handleRowClick = () => {
+      setSelectedTreeAccount(node.full_name);
+      if (hasChildren) {
+        toggleNode(node.full_name);
+      }
+    };
 
     return (
       <React.Fragment key={node.full_name}>
         <tr
-          onClick={() => handleAccountClick(node)}
+          onClick={handleRowClick}
+          onDoubleClick={() => handleOpenAccountTransactions(node.full_name, node.name)}
           style={{
             cursor: 'pointer',
             background: isSelected ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
@@ -375,40 +396,58 @@ export default function ConsolidatedLedgerPage() {
           {/* Account Name & Expand Chevron */}
           <td style={{ padding: '8px 12px', paddingLeft: `${depth * 22 + 12}px`, whiteSpace: 'nowrap' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {/* Dropdown Chevron: Clicking it CLOSES AND OPENS the branch */}
               {hasChildren ? (
                 <button
                   type="button"
                   onClick={(e) => toggleNode(node.full_name, e)}
                   style={{
-                    background: 'transparent',
-                    border: 'none',
+                    background: isExpanded ? 'rgba(37, 99, 235, 0.15)' : 'rgba(107, 114, 128, 0.12)',
+                    border: '1px solid var(--border-glass)',
                     padding: '2px',
                     cursor: 'pointer',
-                    color: 'var(--text-muted)',
+                    color: isExpanded ? 'var(--primary)' : 'var(--text-secondary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '3px',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '4px',
+                    transition: 'all 0.15s ease',
                   }}
-                  title={isExpanded ? 'સંકોચો' : 'વિસ્તૃત કરો'}
+                  title={isExpanded ? 'ડ્રોપડાઉન બંધ કરો (Collapse)' : 'ડ્રોપડાઉન ખોલો (Expand)'}
                 >
                   {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </button>
               ) : (
-                <span style={{ width: '18px', display: 'inline-block' }} />
+                <span style={{ width: '20px', display: 'inline-block', textAlign: 'center' }}>
+                  <CornerDownRight size={12} color="var(--text-muted)" />
+                </span>
               )}
 
-              <Building size={15} color={isSelected ? 'var(--primary)' : 'var(--text-secondary)'} style={{ flexShrink: 0 }} />
+              {/* Folder or Building Icon */}
+              {hasChildren ? (
+                isExpanded ? (
+                  <FolderOpen size={16} color="#d97706" style={{ flexShrink: 0 }} />
+                ) : (
+                  <Folder size={16} color="#d97706" style={{ flexShrink: 0 }} />
+                )
+              ) : (
+                <Building size={15} color={isSelected ? 'var(--primary)' : 'var(--text-secondary)'} style={{ flexShrink: 0 }} />
+              )}
 
               <div>
                 <span style={{ fontWeight: hasChildren ? 800 : 600, fontSize: '0.84rem' }}>
                   {node.name}
                 </span>
-                {node.gujarati_name && (
+                {node.gujarati_name && node.gujarati_name !== node.name && (
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: '6px' }}>
                     ({node.gujarati_name})
+                  </span>
+                )}
+                {hasChildren && (
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: '6px', opacity: 0.8 }}>
+                    [{node.children.length}]
                   </span>
                 )}
               </div>
@@ -445,32 +484,34 @@ export default function ConsolidatedLedgerPage() {
             {node.balance < 0 ? `-₹${Math.abs(node.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `₹${node.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
           </td>
 
-          {/* Action: Open Register */}
-          <td style={{ padding: '8px 12px', textAlign: 'center', width: '90px' }}>
+          {/* Explicit Action: Open Register for this account */}
+          <td style={{ padding: '8px 12px', textAlign: 'center', width: '130px' }}>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                handleAccountClick(node);
+                handleOpenAccountTransactions(node.full_name, node.name);
               }}
               style={{
-                padding: '3px 8px',
-                fontSize: '0.68rem',
-                gap: '4px',
-                background: isSelected ? 'var(--primary)' : undefined,
-                color: isSelected ? '#ffffff' : undefined,
-                border: 'none',
+                padding: '4px 10px',
+                fontSize: '0.72rem',
+                gap: '5px',
+                background: isSelected ? 'var(--primary)' : 'rgba(37, 99, 235, 0.08)',
+                color: isSelected ? '#ffffff' : 'var(--primary)',
+                border: '1px solid rgba(37, 99, 235, 0.25)',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
               }}
-              title="આ ખાતાના વ્યવહારો જુઓ"
+              title="માત્ર આ ખાતાના તમામ વ્યવહારો / ખર્ચાઓ જુઓ"
             >
-              <span>ખોલો</span>
-              <ArrowRight size={11} />
+              <span>વ્યવહારો જુઓ</span>
+              <ArrowRight size={12} />
             </button>
           </td>
         </tr>
 
-        {/* Recursive Children */}
+        {/* Recursive Children (Rendered when expanded) */}
         {hasChildren && isExpanded && node.children.map((child) => renderTreeNode(child, depth + 1))}
       </React.Fragment>
     );
@@ -491,44 +532,58 @@ export default function ConsolidatedLedgerPage() {
 
       {/* ═══════ TOP NAVIGATION & ACTIONS ═══════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-        <button className="back-navigation-btn" onClick={() => navigate('/dashboard/business')} style={{ margin: 0 }}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => navigate('/businesses')}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
           <ArrowLeft size={16} />
-          <span>ધંધાકીય પોર્ટલ</span>
+          <span>ધંધાઓ</span>
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => window.print()}
-            title="અહેવાલ પ્રિન્ટ / PDF"
+            title="પ્રિન્ટ અથવા PDF નિકાસ"
           >
-            <Printer size={14} />
-            <span className={isMobile ? 'hide-on-mobile' : ''}>પ્રિન્ટ</span>
+            <Printer size={15} />
+            <span className="hide-mobile">પ્રિન્ટ</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={fetchData}
+            disabled={refreshing}
+            title="ડેટા રીફ્રેશ કરો"
+          >
+            <RefreshCw size={15} className={refreshing ? 'spin' : ''} />
+            <span className="hide-mobile">રીફ્રેશ</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setShowUploadModal(true)}
+            style={{ background: '#d97706', borderColor: '#d97706' }}
+          >
+            <Upload size={15} />
+            <span>માસિક CSV અપલોડ</span>
           </button>
 
           {user?.role === 'admin' && (
             <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                setSelectedFile(null);
-                setUploadResult(null);
-                setShowUploadModal(true);
-              }}
-              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}
-            >
-              <Upload size={14} />
-              <span>માસિક CSV અપલોડ</span>
-            </button>
-          )}
-
-          {user?.role === 'admin' && transactions.length > 0 && (
-            <button
+              type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => setShowResetModal(true)}
-              title="તમામ ડેટા સાફ કરો"
-              style={{ color: 'var(--error)' }}
+              style={{ color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+              title="બધો ડેટા સાફ કરો"
             >
-              <Trash2 size={14} />
+              <Trash2 size={15} />
+              <span className="hide-mobile">રીસેટ</span>
             </button>
           )}
         </div>
@@ -591,55 +646,59 @@ export default function ConsolidatedLedgerPage() {
 
       {/* ═══════ HIGH-DENSITY EXECUTIVE KPIS ═══════ */}
       <div className="acc-kpi-grid mix-kpi-grid" style={{ marginTop: '12px' }}>
-        <div className="acc-kpi-card kpi-income">
-          <div className="acc-kpi-header">
-            <span className="acc-kpi-title">પસંદ કરેલી કુલ આવક</span>
-            <span className="acc-kpi-badge badge-success">આવક (+)</span>
-          </div>
-          <div className="acc-kpi-value text-credit">
-            ₹{(summary?.period_inflow || 0).toLocaleString('en-IN')}
-          </div>
-          <div className="acc-kpi-subtext">
-            <span>રોકડમાં જમા થયેલ રકમ</span>
-          </div>
-        </div>
-
-        <div className="acc-kpi-card kpi-expense">
-          <div className="acc-kpi-header">
-            <span className="acc-kpi-title">પસંદ કરેલ કુલ ખર્ચ</span>
-            <span className="acc-kpi-badge badge-danger">જાવક (-)</span>
-          </div>
-          <div className="acc-kpi-value text-debit">
-            ₹{(summary?.period_outflow || 0).toLocaleString('en-IN')}
-          </div>
-          <div className="acc-kpi-subtext">
-            <span>રોકડમાંથી ચૂકવેલ રકમ</span>
+        {/* KPI 1: Net Cash Balance */}
+        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #10b981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <span className="kpi-label">રોકડ સિલક (Cash Balance)</span>
+              <h3 className="kpi-value" style={{ color: (summary?.net_cash_balance || 0) < 0 ? 'var(--error)' : '#10b981' }}>
+                {(summary?.net_cash_balance || 0) < 0 ? `-₹${Math.abs(summary?.net_cash_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `₹${(summary?.net_cash_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+              </h3>
+              <p className="kpi-meta">હાથ પર રોકડ / કેશબોક્સ</p>
+            </div>
+            <span className="badge badge-success">CASHBOOK</span>
           </div>
         </div>
 
-        <div className="acc-kpi-card kpi-profit">
-          <div className="acc-kpi-header">
-            <span className="acc-kpi-title">ચોખ્ખો રોકડ ફેરફાર</span>
-            <span className="acc-kpi-badge badge-primary">સમયગાળો</span>
-          </div>
-          <div className={`acc-kpi-value ${(summary?.net_change || 0) >= 0 ? 'text-credit' : 'text-debit'}`}>
-            ₹{(summary?.net_change || 0).toLocaleString('en-IN')}
-          </div>
-          <div className="acc-kpi-subtext">
-            <span>{(summary?.net_change || 0) >= 0 ? 'ચોખ્ખી બચત' : 'વધારાનો ઉપાડ'}</span>
+        {/* KPI 2: Period Total Inflow */}
+        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <span className="kpi-label">કુલ રોકડ આવક (Period Inflow)</span>
+              <h3 className="kpi-value" style={{ color: '#3b82f6' }}>
+                ₹{(summary?.period_inflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </h3>
+              <p className="kpi-meta">પસંદ કરેલ ફિલ્ટરમાં કુલ જમા</p>
+            </div>
+            <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>આવક (+)</span>
           </div>
         </div>
 
-        <div className="acc-kpi-card kpi-balance">
-          <div className="acc-kpi-header">
-            <span className="acc-kpi-title">કુલ રોકડ સિલક</span>
-            <span className="acc-kpi-badge badge-warning">કેશબુક</span>
+        {/* KPI 3: Period Total Outflow */}
+        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #ef4444' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <span className="kpi-label">કુલ રોકડ ખર્ચ (Period Outflow)</span>
+              <h3 className="kpi-value" style={{ color: '#ef4444' }}>
+                ₹{(summary?.period_outflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </h3>
+              <p className="kpi-meta">પસંદ કરેલ ફિલ્ટરમાં કુલ ઉધાર</p>
+            </div>
+            <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>ખર્ચ (-)</span>
           </div>
-          <div className="acc-kpi-value" style={{ color: 'var(--warning)' }}>
-            ₹{(summary?.net_cash_balance || 0).toLocaleString('en-IN')}
-          </div>
-          <div className="acc-kpi-subtext">
-            <span>હાથ પર રહેલ કેશબુક સિલક</span>
+        </div>
+
+        {/* KPI 4: Net Flow Change */}
+        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <span className="kpi-label">ચોખ્ખો પ્રવાહ (Net Flow)</span>
+              <h3 className="kpi-value" style={{ color: (summary?.net_change || 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                {(summary?.net_change || 0) < 0 ? `-₹${Math.abs(summary?.net_change || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `+₹${(summary?.net_change || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+              </h3>
+              <p className="kpi-meta">આવક - ખર્ચ તફાવત</p>
+            </div>
+            <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>ચોખ્ખી અસર</span>
           </div>
         </div>
       </div>
@@ -760,35 +819,56 @@ export default function ConsolidatedLedgerPage() {
           ═══════════════════════════════════════════════════════════ */}
       {viewMode === 'tree' ? (
         <div className="glass-card" style={{ marginTop: '12px', padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-glass)', background: 'var(--bg-surface-elevated)' }}>
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Building size={16} color="var(--primary)" />
-                <span>ખાતાઓનું વૃક્ષ (Chart of Accounts Tree)</span>
+          <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-glass)', background: 'var(--bg-surface-elevated)', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Building size={16} color="var(--primary)" />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0 }}>
+                ખાતાઓનું વૃક્ષ (Chart of Accounts Tree)
               </h3>
-              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                કોઈપણ ખાતા પર ક્લિક કરીને તેના તમામ વ્યવહારો ખોલી શકાય છે (Click to open register).
-              </p>
+              <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
+                {accountsTree.length} મુખ્ય વિભાગો
+              </span>
             </div>
 
-            <button
-              className="btn-icon"
-              onClick={fetchData}
-              title="રિફ્રેશ કરો"
-              disabled={refreshing}
-            >
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            </button>
+            {/* Quick Expand / Collapse All Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleExpandAll}
+                style={{ fontSize: '0.72rem', padding: '3px 10px', height: '28px' }}
+                title="તમામ પેટા-ખાતાઓ ખોલો"
+              >
+                <span>➕ બધા ખોલો</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleCollapseAll}
+                style={{ fontSize: '0.72rem', padding: '3px 10px', height: '28px' }}
+                title="તમામ પેટા-ખાતાઓ બંધ કરો"
+              >
+                <span>➖ બધા બંધ કરો</span>
+              </button>
+            </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table className="acc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div className="table-responsive">
+            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-glass)' }}>
-                  <th style={{ padding: '10px 14px', fontSize: '0.74rem', fontWeight: 700 }}>ખાતાનું નામ (Account Name)</th>
-                  <th style={{ padding: '10px 14px', fontSize: '0.74rem', fontWeight: 700, width: '120px' }}>પ્રકાર (Type)</th>
-                  <th style={{ padding: '10px 14px', fontSize: '0.74rem', fontWeight: 700, textAlign: 'right', width: '160px' }}>કુલ રકમ (Total)</th>
-                  <th style={{ padding: '10px 14px', fontSize: '0.74rem', fontWeight: 700, textAlign: 'center', width: '90px' }}>વ્યવહારો</th>
+                <tr style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border-glass)' }}>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    ખાતાનું નામ (Account Name)
+                  </th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '120px' }}>
+                    પ્રકાર (Type)
+                  </th>
+                  <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '160px' }}>
+                    કુલ રકમ (Total Balance)
+                  </th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '130px' }}>
+                    ક્રિયા / વ્યવહારો
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -799,17 +879,58 @@ export default function ConsolidatedLedgerPage() {
         </div>
       ) : (
         /* ═══════════════════════════════════════════════════════════
-            VIEW 2 & 3: REGISTER & DOUBLE ENTRY (WITH FILTERS)
+            VIEW 2 & 3: REGISTER (સરળ કેશબુક) / CA SPLITS
             ═══════════════════════════════════════════════════════════ */
         <>
-          {/* ═══════ POWERFUL MULTI-FILTER BAR ═══════ */}
-          <div
-            className="glass-card"
-            style={{
-              marginTop: '12px',
-              padding: isMobile ? '10px 12px' : '14px 18px',
-            }}
-          >
+          {/* Breadcrumb banner if filtered by an account */}
+          {selectedAccount !== 'all' && (
+            <div
+              className="glass-card"
+              style={{
+                marginTop: '12px',
+                padding: '10px 14px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(37, 99, 235, 0.08)',
+                border: '1px solid rgba(37, 99, 235, 0.25)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setViewMode('tree');
+                    setSearchParams({ view: 'tree' });
+                  }}
+                  style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+                >
+                  <ArrowLeft size={13} />
+                  <span>એકાઉન્ટ્સ વૃક્ષ પર પાછા જાઓ</span>
+                </button>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 600 }}>
+                  ખાતું: <strong style={{ color: 'var(--primary)' }}>{selectedAccount}</strong>
+                </span>
+                <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
+                  {summary?.total_count || transactions.length} વ્યવહારો મળ્યા
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleClearAccountFilter}
+                style={{ fontSize: '0.72rem', padding: '3px 10px', height: '26px' }}
+              >
+                ✕ તમામ ખાતાઓ
+              </button>
+            </div>
+          )}
+
+          {/* ═══════ SEARCH & COLLAPSIBLE FILTERS ═══════ */}
+          <div className="glass-card" style={{ marginTop: '12px', padding: '12px 16px' }}>
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: isMobile ? '100%' : '240px' }}>
                 <Search size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
@@ -898,7 +1019,7 @@ export default function ConsolidatedLedgerPage() {
                   </select>
                 </div>
 
-                {/* 3. SAME NU KHATU (સામેનું ખાતું ફિલ્ટર) */}
+                {/* 3. SAME NU KHATU (સામેનું ખાતું ફિલ્ટર) - 100% Dynamic */}
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px', fontWeight: 700, color: 'var(--primary)' }}>
                     📋 સામેનું ખાતું (Account)
@@ -908,19 +1029,15 @@ export default function ConsolidatedLedgerPage() {
                     value={selectedAccount}
                     onChange={(e) => {
                       setSelectedAccount(e.target.value);
-                      setSearchParams({ view: viewMode, ...(e.target.value !== 'all' ? { account: e.target.value } : {}) });
                     }}
                     style={{ fontWeight: selectedAccount !== 'all' ? 700 : 500 }}
                   >
                     <option value="all">તમામ સામેના ખાતાઓ</option>
-                    {availableAccounts.map((acc) => {
-                      const guj = ACCOUNT_GUJARATI_NAMES[acc];
-                      return (
-                        <option key={acc} value={acc}>
-                          {guj ? `${acc} (${guj})` : acc}
-                        </option>
-                      );
-                    })}
+                    {availableAccounts.map((acc) => (
+                      <option key={acc} value={acc}>
+                        {acc}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -951,11 +1068,11 @@ export default function ConsolidatedLedgerPage() {
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0 }}>
                   {viewMode === 'simple' ? 'સરળ રોકડ ખાતાવહી (Cashbook Entries)' : 'દ્વિ-નોંધી ખાતાવહી (Double Entry Splits)'}
                 </h3>
-                <span className="badge badge-secondary" style={{ fontSize: '0.68rem' }}>
+                <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
                   દર્શાવેલ: {transactions.length} / {summary?.total_count || 0}
                 </span>
                 {selectedAccount !== 'all' && (
-                  <span className="badge badge-primary" style={{ fontSize: '0.68rem' }}>
+                  <span className="badge" style={{ fontSize: '0.65rem', background: '#d97706', color: '#fff' }}>
                     ખાતું: {selectedAccount}
                   </span>
                 )}
@@ -965,238 +1082,92 @@ export default function ConsolidatedLedgerPage() {
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setViewMode('tree');
-                    setSearchParams({ view: 'tree' });
-                  }}
-                  style={{ fontSize: '0.72rem', height: '28px', gap: '4px' }}
-                >
-                  <Building size={13} />
-                  <span>વૃક્ષ જુઓ</span>
-                </button>
-
-                <button
-                  className="btn-icon"
                   onClick={fetchData}
-                  title="રિફ્રેશ કરો"
                   disabled={refreshing}
+                  title="ડેટા રીફ્રેશ કરો"
                 >
-                  <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                  <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
                 </button>
               </div>
             </div>
 
             {transactions.length === 0 ? (
-              <div style={{ padding: '32px 16px' }}>
-                <EmptyState
-                  icon={BookOpen}
-                  message="પસંદ કરેલા ફિલ્ટર્સ મુજબ કોઈ વ્યવહાર મળ્યો નથી. CSV ફાઇલ અપલોડ કરો અથવા ફિલ્ટર્સ બદલો."
-                />
-              </div>
+              <EmptyState
+                icon={BookOpen}
+                message="કોઈ વ્યવહાર મળ્યા નથી. પસંદ કરેલ ફિલ્ટરમાં કોઈ ડેટા નથી અથવા હજુ સુધી કોઈ CSV ફાઇલ અપલોડ થયેલ નથી."
+              />
             ) : viewMode === 'simple' ? (
-              /* ═══════ SIMPLE CASHBOOK VIEW ═══════ */
-              isMobile ? (
-                /* MOBILE CASHBOOK CARDS */
-                <div className="mix-mobile-tx-list">
-                  {transactions.map((tx) => {
-                    const streamStyle = getStreamBadgeStyle(tx.business_stream);
-                    const isExpanded = expandedTxId === tx.id;
-                    const cardTypeClass = tx.inflow > 0 ? 'tx-inflow' : tx.outflow > 0 ? 'tx-outflow' : 'tx-transfer';
-
-                    return (
-                      <div
-                        key={tx.id}
-                        className={`mix-mobile-tx-card ${cardTypeClass}`}
-                        onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
-                      >
-                        <div className="mix-mobile-card-header">
-                          <div className="mix-mobile-card-left">
-                            <span className="mix-mobile-date">{tx.date}</span>
-                            {tx.number && (
-                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                                #{tx.number}
-                              </span>
-                            )}
-                            <span
-                              className="badge"
-                              style={{
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                background: streamStyle.bg,
-                                color: streamStyle.color,
-                                border: `1px solid ${streamStyle.border}`,
-                              }}
-                            >
-                              {tx.business_stream}
-                            </span>
-                          </div>
-
-                          <div className="mix-mobile-card-amount">
-                            {tx.inflow > 0 ? (
-                              <span style={{ color: 'var(--success)', fontWeight: 800, fontSize: '0.92rem' }}>
-                                +₹{tx.inflow.toLocaleString('en-IN')}
-                              </span>
-                            ) : tx.outflow > 0 ? (
-                              <span style={{ color: 'var(--error)', fontWeight: 800, fontSize: '0.92rem' }}>
-                                -₹{tx.outflow.toLocaleString('en-IN')}
-                              </span>
-                            ) : (
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>-</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="mix-mobile-card-desc">
-                          {tx.description}
-                        </div>
-
-                        {tx.notes && (
-                          <div className="mix-mobile-card-notes">
-                            {tx.notes}
-                          </div>
-                        )}
-
-                        <div className="mix-mobile-card-footer">
-                          <div className="mix-mobile-card-account">
-                            <span>સામેનું ખાતું:</span>
-                            <code>{tx.primary_account}</code>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                              {ACCOUNT_GUJARATI_NAMES[tx.primary_account] || tx.category_group}
-                            </span>
-                            {user?.role === 'admin' && (
-                              <button
-                                type="button"
-                                className="btn-icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteTransaction(tx.id);
-                                }}
-                                style={{ color: 'var(--error)', padding: '2px' }}
-                                title="વ્યવહાર કાઢી નાખો"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Expandable Split Details */}
-                        {isExpanded && tx.splits && tx.splits.length > 0 && (
-                          <div className="mix-mobile-split-drawer">
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                              દ્વિ-નોંધી એન્ટ્રી વિગત (Splits):
-                            </div>
-                            {tx.splits.map((s) => (
-                              <div key={s.id} className="mix-mobile-split-row">
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-main)' }}>
-                                  {s.account_name} {s.memo ? `(${s.memo})` : ''}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                    color: s.amount > 0 ? 'var(--success)' : s.amount < 0 ? 'var(--error)' : 'var(--text-muted)',
-                                  }}
-                                >
-                                  {s.amount > 0 ? `+₹${s.amount.toLocaleString('en-IN')}` : s.amount < 0 ? `-₹${Math.abs(s.amount).toLocaleString('en-IN')}` : '-'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* DESKTOP CASHBOOK TABLE */
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="acc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
-                        <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '95px' }}>તારીખ</th>
-                        <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '150px' }}>બિઝનેસ પ્રવાહ</th>
-                        <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700 }}>વિગત / નોંધ</th>
-                        <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '220px' }}>સામેનું ખાતું</th>
-                        <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '130px' }}>આવક / રકમ (+)</th>
-                        <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '130px' }}>જાવક (-)</th>
-                        {user?.role === 'admin' && (
-                          <th style={{ padding: '10px 14px', width: '40px' }}></th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transactions.map((tx) => {
-                        const streamStyle = getStreamBadgeStyle(tx.business_stream);
-
-                        return (
+              /* ═══════ REGISTER VIEW: SIMPLE CASHBOOK ═══════ */
+              <div className="table-responsive">
+                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border-glass)' }}>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>તારીખ</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>બિઝનેસ પ્રવાહ</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>વિગત / નોંધ</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>સામેનું ખાતું</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>આવક (+)</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>જાવક (-)</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'center', width: '50px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => {
+                      const streamStyle = getStreamBadgeStyle(tx.business_stream);
+                      const isExpanded = expandedTxId === tx.id;
+                      return (
+                        <React.Fragment key={tx.id}>
                           <tr
-                            key={tx.id}
                             style={{
                               borderBottom: '1px solid var(--border-glass)',
                               transition: 'background 0.15s ease',
-                              cursor: 'pointer',
+                              cursor: (tx.splits?.length > 2) ? 'pointer' : 'default',
                             }}
-                            onClick={() => setExpandedTxId(expandedTxId === tx.id ? null : tx.id)}
+                            onClick={() => (tx.splits?.length > 2) && setExpandedTxId(isExpanded ? null : tx.id)}
                           >
-                            <td style={{ padding: '10px 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                              <strong>{tx.date}</strong>
-                              {tx.number && (
-                                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                                  #{tx.number}
-                                </div>
-                              )}
+                            <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '0.82rem' }}>
+                              {tx.date}
                             </td>
-
-                            <td style={{ padding: '10px 14px' }}>
+                            <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                               <span
                                 className="badge"
                                 style={{
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
                                   background: streamStyle.bg,
                                   color: streamStyle.color,
                                   border: `1px solid ${streamStyle.border}`,
-                                  whiteSpace: 'nowrap',
                                 }}
                               >
-                                {tx.business_stream}
+                                {tx.business_stream || 'સામાન્ય'}
                               </span>
                             </td>
-
                             <td style={{ padding: '10px 14px' }}>
-                              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>
-                                {tx.description}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.84rem' }}>{tx.description}</span>
+                                {(tx.splits?.length > 2) && (
+                                  <span className="badge" style={{ fontSize: '0.62rem', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb' }}>
+                                    {tx.splits?.length} સ્પ્લિટ્સ
+                                  </span>
+                                )}
                               </div>
-                              {tx.notes && (
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                  {tx.notes}
-                                </div>
+                              {tx.notes && tx.notes !== tx.description && (
+                                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{tx.notes}</p>
                               )}
                             </td>
-
-                            <td style={{ padding: '10px 14px' }}>
-                              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                                <code>{tx.primary_account}</code>
-                              </div>
-                              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                {ACCOUNT_GUJARATI_NAMES[tx.primary_account] || tx.category_group}
+                            <td style={{ padding: '10px 14px', fontSize: '0.8rem' }}>
+                              <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.76rem', color: 'var(--text-main)' }}>
+                                {tx.primary_account}
                               </div>
                             </td>
-
-                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--success)', fontSize: '0.86rem' }}>
-                              {tx.inflow > 0 ? `+₹${tx.inflow.toLocaleString('en-IN')}` : '-'}
+                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#10b981', whiteSpace: 'nowrap' }}>
+                              {tx.inflow > 0 ? `+₹${tx.inflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
                             </td>
-
-                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--error)', fontSize: '0.86rem' }}>
-                              {tx.outflow > 0 ? `-₹${tx.outflow.toLocaleString('en-IN')}` : '-'}
+                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#ef4444', whiteSpace: 'nowrap' }}>
+                              {tx.outflow > 0 ? `-₹${tx.outflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
                             </td>
-
-                            {user?.role === 'admin' && (
-                              <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                            <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                              {user?.role === 'admin' && (
                                 <button
                                   type="button"
                                   className="btn-icon"
@@ -1209,240 +1180,270 @@ export default function ConsolidatedLedgerPage() {
                                 >
                                   <Trash2 size={13} />
                                 </button>
-                              </td>
-                            )}
+                              )}
+                            </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )
+
+                          {/* Expanded multi-split drilldown */}
+                          {isExpanded && tx.splits && (
+                            <tr style={{ background: 'var(--bg-surface-elevated)' }}>
+                              <td colSpan={7} style={{ padding: '10px 18px' }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '6px', color: 'var(--primary)' }}>
+                                  આ વ્યવહારના તમામ ખાતાઓ (Splits Breakdown):
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
+                                  {tx.splits.map((s) => (
+                                    <div
+                                      key={s.id}
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        background: 'var(--bg-surface)',
+                                        border: '1px solid var(--border-glass)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.74rem' }}>{s.account_name}</div>
+                                        {s.memo && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{s.memo}</div>}
+                                      </div>
+                                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: s.amount >= 0 ? '#10b981' : '#ef4444' }}>
+                                        {s.amount >= 0 ? `+₹${s.amount.toLocaleString('en-IN')}` : `-₹${Math.abs(s.amount).toLocaleString('en-IN')}`}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              /* ═══════ PRO ACCOUNTANT (DOUBLE ENTRY) VIEW ═══════ */
-              <div style={{ padding: '12px' }}>
-                <div className="pro-mobile-list">
-                  {transactions.map((tx) => {
-                    const streamStyle = getStreamBadgeStyle(tx.business_stream);
-
-                    return (
-                      <div key={tx.id} className="pro-mobile-card">
-                        <div className="pro-mobile-card-header">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>{tx.date}</span>
-                            <span
-                              className="badge"
-                              style={{
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                background: streamStyle.bg,
-                                color: streamStyle.color,
-                                border: `1px solid ${streamStyle.border}`,
-                              }}
-                            >
-                              {tx.business_stream}
-                            </span>
-                            <span className="badge badge-secondary" style={{ fontSize: '0.62rem' }}>
-                              {ACCOUNT_GUJARATI_NAMES[tx.primary_account] || tx.category_group}
-                            </span>
+              /* ═══════ CA PRO VIEW: DOUBLE ENTRY SPLITS ═══════ */
+              <div className="table-responsive">
+                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border-glass)' }}>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>તારીખ</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>વિગત / વ્યવહાર ID</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>ખાતાવહી સ્પ્લિટ્સ (Double Entry Splits)</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '130px' }}>ઉધાર (Debit)</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '130px' }}>જમા (Credit)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => (
+                      <tr key={tx.id} style={{ borderBottom: '1px solid var(--border-glass)', verticalAlign: 'top' }}>
+                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '0.82rem' }}>
+                          {tx.date}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.84rem' }}>{tx.description}</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                            ID: {tx.tx_guid || tx.id}
                           </div>
-
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Tx ID: <code style={{ fontSize: '0.68rem' }}>{tx.tx_guid.substring(0, 10)}...</code>
-                          </div>
-                        </div>
-
-                        <div className="pro-mobile-card-desc">
-                          {tx.description}
-                        </div>
-
-                        {tx.notes && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {tx.notes}
-                          </div>
-                        )}
-
-                        <div className="pro-mobile-splits-list">
-                          {tx.splits.map((s) => (
-                            <div key={s.id} className="pro-mobile-split-item">
-                              <div className="pro-mobile-split-info">
-                                <span className="pro-mobile-split-acc">{s.account_name}</span>
-                                <span className="pro-mobile-split-type">
-                                  {s.account_type} {s.memo ? `• ${s.memo}` : ''}
-                                </span>
-                              </div>
-                              <div className="pro-mobile-split-badge">
-                                {s.amount > 0 ? (
-                                  <span
-                                    className="badge"
-                                    style={{
-                                      fontSize: '0.7rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(52, 211, 153, 0.12)',
-                                      color: 'var(--success)',
-                                      border: '1px solid rgba(52, 211, 153, 0.25)',
-                                    }}
-                                  >
-                                    ઉધાર ₹{s.amount.toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '6px 14px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {tx.splits && tx.splits.length > 0 ? (
+                              tx.splits.map((s) => (
+                                <div
+                                  key={s.id}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '4px 8px',
+                                    borderRadius: '3px',
+                                    background: 'var(--bg-surface-elevated)',
+                                    fontSize: '0.75rem',
+                                  }}
+                                >
+                                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.account_name}</span>
+                                  <span style={{ fontWeight: 700, color: s.amount >= 0 ? '#10b981' : '#ef4444' }}>
+                                    {s.amount >= 0 ? `+₹${s.amount.toLocaleString('en-IN')}` : `-₹${Math.abs(s.amount).toLocaleString('en-IN')}`}
                                   </span>
-                                ) : s.amount < 0 ? (
-                                  <span
-                                    className="badge"
-                                    style={{
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(239, 68, 68, 0.12)',
-                                      color: 'var(--error)',
-                                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                                    }}
-                                  >
-                                    જમા ₹{Math.abs(s.amount).toLocaleString('en-IN')}
-                                  </span>
-                                ) : (
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>-</span>
-                                )}
+                                </div>
+                              ))
+                            ) : (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {tx.primary_account}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#10b981' }}>
+                          {tx.inflow > 0 ? `₹${tx.inflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#ef4444' }}>
+                          {tx.outflow > 0 ? `₹${tx.outflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
-            {/* ═══════ LOAD MORE (વધુ લોડ કરો) BUTTON ═══════ */}
-            {transactions.length < (summary?.total_count || 0) && (
-              <div className="load-more-container">
+            {/* ═══════ LOAD MORE BUTTON (15 RECORDS PAGINATION) ═══════ */}
+            {summary && transactions.length < summary.total_count && (
+              <div style={{ padding: '14px', textAlign: 'center', background: 'var(--bg-surface-elevated)', borderTop: '1px solid var(--border-glass)' }}>
                 <button
                   type="button"
-                  className="load-more-btn"
+                  className="btn btn-secondary"
                   onClick={handleLoadMore}
                   disabled={loadingMore}
+                  style={{
+                    padding: '8px 24px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    gap: '8px',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
                 >
-                  <RefreshCw size={14} className={loadingMore ? 'animate-spin' : ''} />
-                  <span>
-                    {loadingMore
-                      ? 'વધુ લોડ થઈ રહ્યું છે...'
-                      : `વધુ ૧૫ વ્યવહારો જુઓ (${transactions.length} / ${summary?.total_count || 0})`}
-                  </span>
+                  {loadingMore ? (
+                    <>
+                      <RefreshCw size={14} className="spin" />
+                      <span>વધુ વ્યવહારો લોડ થઈ રહ્યા છે...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>વધુ વ્યવહારો જુઓ (આગળના 15)</span>
+                      <ArrowRight size={14} />
+                    </>
+                  )}
                 </button>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  કુલ {summary.total_count} માંથી {transactions.length} વ્યવહારો દર્શાવેલ છે
+                </div>
               </div>
             )}
           </div>
         </>
       )}
 
-      {/* ═══════ CSV UPLOAD MODAL (WIPE OLD & INSERT NEW RECORDS) ═══════ */}
+      {/* ═══════ CENTER-ALIGNED RESPONSIVE UPLOAD MODAL ═══════ */}
       <Modal
         show={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
+        onClose={() => {
+          if (!uploadLoading) {
+            setShowUploadModal(false);
+            setSelectedFile(null);
+            setUploadResult(null);
+          }
+        }}
         title="માસિક CSV / GnuCash ફાઇલ અપલોડ કરો"
-        maxWidth="520px"
+        maxWidth="540px"
       >
-        <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+        <form onSubmit={handleUploadSubmit}>
           <div
             style={{
-              border: selectedFile ? '2px solid var(--success)' : '2px dashed var(--border-glass-active)',
-              borderRadius: 'var(--radius-md)',
               padding: '24px 16px',
+              border: '2px dashed #d97706',
+              borderRadius: 'var(--radius-md)',
               textAlign: 'center',
-              background: selectedFile ? 'rgba(52, 211, 153, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+              background: 'rgba(217, 119, 6, 0.04)',
               cursor: 'pointer',
+              position: 'relative',
               transition: 'all 0.2s ease',
             }}
-            onClick={() => document.getElementById('csvFileInput')?.click()}
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                setSelectedFile(e.dataTransfer.files[0]);
-                setUploadResult(null);
-              }
-            }}
           >
-            {selectedFile ? (
-              <div>
-                <CheckCircle2 size={36} color="var(--success)" style={{ margin: '0 auto 8px auto' }} />
-                <p style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0 0 4px 0', color: 'var(--text-main)' }}>
-                  {selectedFile.name}
-                </p>
-                <span style={{ fontSize: '0.74rem', color: 'var(--success)', fontWeight: 600 }}>
-                  ફાઇલ પસંદ થઈ ગઈ છે ({(selectedFile.size / 1024).toFixed(1)} KB) — બદલવા માટે ક્લિક કરો
-                </span>
-              </div>
-            ) : (
-              <div>
-                <Upload size={32} color="var(--primary)" style={{ margin: '0 auto 8px auto' }} />
-                <p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text-main)' }}>
-                  દર મહિનાની CSV ફાઇલ અહીં ડ્રેગ કરો અથવા પસંદ કરો
-                </p>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  (GnuCash એક્સપોર્ટ અથવા સ્ટાન્ડર્ડ એકાઉન્ટિંગ CSV)
-                </span>
-              </div>
-            )}
             <input
-              id="csvFileInput"
               type="file"
-              accept=".csv,text/csv"
-              style={{ display: 'none' }}
+              accept=".csv,.txt"
               onChange={handleFileChange}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer',
+              }}
             />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(217, 119, 6, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#d97706',
+                }}
+              >
+                <Upload size={22} />
+              </div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                {selectedFile ? selectedFile.name : 'દર મહિનાની CSV ફાઇલ અહીં પસંદ કરો'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {selectedFile ? `કદ: ${(selectedFile.size / 1024).toFixed(1)} KB` : '(GnuCash એક્સપોર્ટ અથવા સ્ટાન્ડર્ડ એકાઉન્ટિંગ CSV)'}
+              </div>
+            </div>
           </div>
 
-          {/* Sync & replace notice */}
+          {/* Clean Sync Info */}
           <div
             style={{
+              marginTop: '12px',
               padding: '10px 12px',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(59, 130, 246, 0.08)',
               border: '1px solid rgba(59, 130, 246, 0.2)',
               fontSize: '0.75rem',
-              lineHeight: 1.4,
               color: 'var(--text-secondary)',
+              lineHeight: 1.45,
             }}
           >
-            <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '2px' }}>
-              🔄 પૂર્ણ રિપ્લેસમેન્ટ & સિંક:
-            </strong>
-            નવી CSV ફાઇલ અપલોડ કરવાથી જૂનો હિસાબ આપમેળે સાફ થશે અને આ ફાઇલના તમામ નવા વ્યવહારો તાજા ડેટા તરીકે ડેટાબેઝમાં સાચવવામાં આવશે.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#2563eb', marginBottom: '2px' }}>
+              <Check size={14} />
+              <span>૧૦૦% ક્લીન સિંક & ડુપ્લિકેટ પ્રોટેક્શન:</span>
+            </div>
+            નવી ફાઇલ અપલોડ કરવાથી જૂનો હિસાબ રિપ્લેસ થઈને નવી ફાઇલના તમામ વ્યવહારો અને ખાતાઓ ડાયનેમિકલી ઉમેરાશે.
           </div>
 
-          {/* Upload Result Feedback */}
+          {/* Upload Result Alert */}
           {uploadResult && (
             <div
               style={{
-                padding: '12px',
+                marginTop: '12px',
+                padding: '10px 12px',
                 borderRadius: 'var(--radius-sm)',
-                background: 'rgba(52, 211, 153, 0.12)',
-                border: '1px solid rgba(52, 211, 153, 0.35)',
+                background: uploadResult.new_transactions_added > 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                border: `1px solid ${uploadResult.new_transactions_added > 0 ? '#10b981' : '#f59e0b'}`,
                 fontSize: '0.78rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, marginBottom: '4px', color: 'var(--success)' }}>
-                <CheckCircle2 size={15} />
-                <span>{uploadResult.message}</span>
+              <div style={{ fontWeight: 700, color: uploadResult.new_transactions_added > 0 ? '#10b981' : '#d97706' }}>
+                {uploadResult.message}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '6px', color: 'var(--text-main)', fontSize: '0.72rem' }}>
-                <div>કુલ વ્યવહારો: <strong>{uploadResult.total_transactions_in_file}</strong></div>
-                <div>ઉમેરાયેલ: <strong>{uploadResult.new_transactions_added}</strong></div>
-                {uploadResult.date_min && (
-                  <div style={{ gridColumn: 'span 2' }}>
-                    તારીખ ગાળો: <strong>{uploadResult.date_min} થી {uploadResult.date_max}</strong>
-                  </div>
-                )}
+              <div style={{ marginTop: '4px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                ઉમેરાયેલ વ્યવહારો: {uploadResult.new_transactions_added} | પિરિયડ:{' '}
+                {uploadResult.date_min || '-'} થી {uploadResult.date_max || '-'}
               </div>
             </div>
           )}
 
-          <div className="modal-footer" style={{ marginTop: '8px' }}>
+          <div className="modal-footer" style={{ marginTop: '16px' }}>
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => setShowUploadModal(false)}
+              onClick={() => {
+                setShowUploadModal(false);
+                setSelectedFile(null);
+                setUploadResult(null);
+              }}
+              disabled={uploadLoading}
             >
               બંધ કરો
             </button>
@@ -1450,26 +1451,30 @@ export default function ConsolidatedLedgerPage() {
               type="submit"
               className="btn btn-primary"
               disabled={!selectedFile || uploadLoading}
-              style={{
-                background: selectedFile ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
-                color: selectedFile ? '#ffffff' : undefined,
-                fontWeight: 700,
-                opacity: (!selectedFile || uploadLoading) ? 0.6 : 1,
-                cursor: (!selectedFile || uploadLoading) ? 'not-allowed' : 'pointer',
-              }}
+              style={{ background: '#d97706', borderColor: '#d97706', gap: '6px' }}
             >
-              {uploadLoading ? 'ચકાસણી અને સેવ થઈ રહ્યું છે...' : 'અપલોડ કરો અને સેવ કરો'}
+              {uploadLoading ? (
+                <>
+                  <RefreshCw size={14} className="spin" />
+                  <span>અપલોડ થઈ રહ્યું છે...</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={14} />
+                  <span>અપલોડ કરો અને સેવ કરો</span>
+                </>
+              )}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* ═══════ RESET CONFIRMATION MODAL ═══════ */}
+      {/* ═══════ RESET ALL CONFIRMATION MODAL ═══════ */}
       <Modal
         show={showResetModal}
-        onClose={() => setShowResetModal(false)}
-        title="તમામ ડેટા સાફ કરો (Reset Database)"
-        maxWidth="440px"
+        onClose={() => !resetLoading && setShowResetModal(false)}
+        title="તમામ ડેટા સાફ કરો (Reset Master Ledger)"
+        maxWidth="460px"
       >
         <div style={{ padding: '8px 0', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           <p style={{ color: 'var(--error)', fontWeight: 700 }}>

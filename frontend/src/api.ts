@@ -283,6 +283,7 @@ export interface AccountTreeNode {
   gujarati_name?: string;
   balance: number;
   tx_count: number;
+  has_children?: boolean;
   children: AccountTreeNode[];
 }
 

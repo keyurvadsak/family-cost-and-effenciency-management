@@ -276,236 +276,148 @@ def process_consolidated_csv(
     }
 
 
-ACCOUNT_GUJARATI_LABELS: Dict[str, str] = {
-    'INCOME:M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
-    'INCOME:EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
-    'INCOME:LOOMS': 'લૂમ્સ ખાતાની આવક',
-    'ASSETS:DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
-    'INCOME:Other Income': 'અન્ય આવક (ભાડું/પગાર)',
-    'INCOME:Rent': 'ભાડું આવક',
-    'LIABILITIES:UCHINA LIDHELA': 'ઉછીના લીધેલા',
-    'LIABILITIES:VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
-    'LIABILITIES:BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
-    'LIABILITIES:GoldLoan': 'ગોલ્ડ લોન',
-    'LIABILITIES:DADA': 'દાદા ખાતે લોન',
-    'LIABILITIES:DEVANA CM CO.': 'દેવાના CM CO.',
-    'ASSETS:UCHINA APELA': 'ઉછીના આપેલા',
-    'ASSETS:EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
-    'ASSETS:EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
-    'EXPENSES:BHEGA': 'સંયુક્ત ઘરખર્ચ',
-    'EXPENSES:BHEGA:BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
-    'EXPENSES:BHEGA:Monthly': 'નિયમિત માસિક ઘરખર્ચ',
-    'EXPENSES:BHEGA:Small': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
-    'EXPENSES:Medical': 'મેડિકલ & દવાઓ',
-    'EXPENSES:School & Education': 'શિક્ષણ & સ્કૂલ ફી',
-    'EXPENSES:Intrest & EMIs': 'વ્યાજ & લોન EMI',
-    'EXPENSES:Car & Bike': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
-    'EXPENSES:TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
-    'EXPENSES:Mobile & Recharge': 'મોબાઈલ રિચાર્જ',
-    'EXPENSES:Insuranse': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
-    'Cap. Old-Money 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
-    'Capital Acc': 'મૂડી ખાતું (Capital Acc)',
-    'Cashbook': 'રોકડ સિલક (Cashbook)',
-    'ASSETS': 'કુલ સંપત્તિ (Assets)',
-    'EXPENSES': 'કુલ ખર્ચાઓ (Expenses)',
-    'INCOME': 'કુલ આવક (Income)',
-    'LIABILITIES': 'કુલ દેવું & લોન (Liabilities)',
+def infer_account_type(root_name: str, path: str):
+    root_upper = root_name.upper()
+    if 'ASSET' in root_upper:
+        return 'Asset', 1
+    elif 'EXPENSE' in root_upper:
+        return 'Expense', 1
+    elif 'INCOME' in root_upper or 'REVENUE' in root_upper:
+        return 'Income', -1
+    elif 'LIABILIT' in root_upper:
+        return 'Liability', -1
+    elif 'CAPITAL' in root_upper or 'EQUITY' in root_upper:
+        return 'Equity', -1
+    elif 'BANK' in root_upper or 'OLD-MONEY' in root_upper:
+        return 'Bank', 1
+    elif 'CASH' in root_upper:
+        return 'Cash', 1
+    return 'Asset', 1
+
+DYNAMIC_GUJARATI_TERMS = {
+    'ASSETS': 'કુલ સંપત્તિ',
+    'EXPENSES': 'કુલ ખર્ચાઓ',
+    'INCOME': 'કુલ આવક',
+    'LIABILITIES': 'કુલ દેવું & લોન',
+    'CAPITAL ACC': 'મૂડી ખાતું',
+    'CAP. OLD-MONEY 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
+    'CASHBOOK': 'રોકડ સિલક',
+    'BHEGA': 'સંયુક્ત ઘરખર્ચ',
+    'BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
+    'MONTHLY': 'નિયમિત માસિક ઘરખર્ચ',
+    'SMALL': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
+    'MEDICAL': 'મેડિકલ & દવાઓ',
+    'SCHOOL & EDUCATION': 'શિક્ષણ & સ્કૂલ ફી',
+    'INTREST & EMIS': 'વ્યાજ & લોન EMI',
+    'CAR & BIKE': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
+    'TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
+    'MOBILE & RECHARGE': 'મોબાઈલ રિચાર્જ',
+    'INSURANSE': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
+    'DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
+    'LOOMS': 'લૂમ્સ ખાતાની આવક',
+    'OTHER INCOME': 'અન્ય આવક (ભાડું/પગાર)',
+    'RENT': 'ભાડું આવક',
+    'UCHINA LIDHELA': 'ઉછીના લીધેલા',
+    'UCHINA APELA': 'ઉછીના આપેલા',
+    'VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
+    'BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
+    'GOLDLOAN': 'ગોલ્ડ લોન',
+    'DADA': 'દાદા ખાતે લોન',
+    'DEVANA CM CO.': 'દેવાના CM CO.',
+    'EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
+    'M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
+    'EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
+    'EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
 }
 
 def get_accounts_tree_data(db: Session) -> List[Dict[str, Any]]:
+    """
+    Dynamic Hierarchical Tree Builder for Chart of Accounts.
+    Reads all accounts directly from database splits without any hardcoded lists.
+    Parses colon-separated names ('Parent:Child:Grandchild') into an arbitrary-depth tree.
+    Recursively sums child totals and tx counts.
+    """
     rows = db.query(
         models.ConsolidatedSplit.account_name,
-        func.sum(models.ConsolidatedSplit.amount).label("total"),
-        func.count(models.ConsolidatedSplit.id).label("tx_count")
+        func.sum(models.ConsolidatedSplit.amount).label('total'),
+        func.count(models.ConsolidatedSplit.id).label('tx_count')
     ).group_by(models.ConsolidatedSplit.account_name).all()
 
-    account_map = {r[0]: {"total": float(r[1] or 0.0), "count": int(r[2])} for r in rows}
-    if "INCOME:Rent" not in account_map:
-        account_map["INCOME:Rent"] = {"total": 0.0, "count": 0}
+    root_nodes: Dict[str, Dict[str, Any]] = {}
 
-    root_nodes = []
+    for acc_name, total, count in rows:
+        if not acc_name:
+            continue
+        parts = [p.strip() for p in acc_name.split(':') if p.strip()]
+        if not parts:
+            continue
 
-    # 1. ASSETS
-    assets_items = [
-        ("DAIMOND KG", "ASSETS:DAIMOND KG"),
-        ("EMBRO-AKASH/MAYANK-INVEST PF", "ASSETS:EMBRO-AKASH/MAYANK-INVEST PF"),
-        ("EMBRO-HARDIK/RAVI-INVEST XX", "ASSETS:EMBRO-HARDIK/RAVI-INVEST XX"),
-        ("UCHINA APELA", "ASSETS:UCHINA APELA"),
-    ]
-    assets_tot = sum(account_map.get(p, {}).get("total", 0.0) for _, p in assets_items)
-    root_nodes.append({
-        "name": "ASSETS",
-        "full_name": "ASSETS",
-        "type": "Asset",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("ASSETS", "કુલ સંપત્તિ"),
-        "balance": assets_tot,
-        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in assets_items),
-        "children": [
-            {
-                "name": n,
-                "full_name": p,
-                "type": "Asset",
-                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
-                "balance": account_map.get(p, {}).get("total", 0.0),
-                "tx_count": account_map.get(p, {}).get("count", 0),
-                "children": []
-            }
-            for n, p in assets_items
-        ]
-    })
+        curr_dict = root_nodes
+        curr_path: List[str] = []
+        for i, part in enumerate(parts):
+            curr_path.append(part)
+            full_path = ':'.join(curr_path)
+            if part not in curr_dict:
+                curr_dict[part] = {
+                    'name': part,
+                    'full_name': full_path,
+                    'raw_total': 0.0,
+                    'tx_count': 0,
+                    'children': {}
+                }
+            if i == len(parts) - 1:
+                curr_dict[part]['raw_total'] += float(total or 0.0)
+                curr_dict[part]['tx_count'] += int(count or 0)
+            curr_dict = curr_dict[part]['children']
 
-    # 2. Cap. Old-Money 24-25
-    root_nodes.append({
-        "name": "Cap. Old-Money 24-25",
-        "full_name": "Cap. Old-Money 24-25",
-        "type": "Bank",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("Cap. Old-Money 24-25", "જૂની મૂડી ૨૦૨૪-૨૫"),
-        "balance": abs(account_map.get("Cap. Old-Money 24-25", {}).get("total", 0.0)),
-        "tx_count": account_map.get("Cap. Old-Money 24-25", {}).get("count", 0),
-        "children": []
-    })
+    def finalize_node(node_dict: Dict[str, Any], root_type: Optional[str] = None, sign: int = 1) -> Dict[str, Any]:
+        name = node_dict['name']
+        full_name = node_dict['full_name']
+        if root_type is None:
+            ac_type, s = infer_account_type(name, full_name)
+        else:
+            ac_type = root_type
+            s = sign
 
-    # 3. Capital Acc
-    root_nodes.append({
-        "name": "Capital Acc",
-        "full_name": "Capital Acc",
-        "type": "Equity",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("Capital Acc", "મૂડી ખાતું"),
-        "balance": abs(account_map.get("Capital Acc", {}).get("total", 0.0)),
-        "tx_count": account_map.get("Capital Acc", {}).get("count", 0),
-        "children": []
-    })
+        children_list = []
+        child_total = 0.0
+        child_count = 0
+        for _, child_node in sorted(node_dict['children'].items(), key=lambda x: x[0].upper()):
+            fin_child = finalize_node(child_node, ac_type, s)
+            children_list.append(fin_child)
+            child_total += fin_child['balance']
+            child_count += fin_child['tx_count']
 
-    # 4. Cashbook
-    root_nodes.append({
-        "name": "Cashbook",
-        "full_name": "Cashbook",
-        "type": "Cash",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("Cashbook", "રોકડ સિલક"),
-        "balance": account_map.get("Cashbook", {}).get("total", 0.0),
-        "tx_count": account_map.get("Cashbook", {}).get("count", 0),
-        "children": []
-    })
+        direct_balance = node_dict['raw_total'] * s
+        total_balance = (child_total + direct_balance) if children_list else direct_balance
+        if abs(total_balance) < 1e-6:
+            total_balance = 0.0
 
-    # 5. EXPENSES
-    bhega_items = [
-        ("BIG", "EXPENSES:BHEGA:BIG"),
-        ("Monthly", "EXPENSES:BHEGA:Monthly"),
-        ("Small", "EXPENSES:BHEGA:Small")
-    ]
-    bhega_tot = sum(account_map.get(p, {}).get("total", 0.0) for _, p in bhega_items)
+        guj = DYNAMIC_GUJARATI_TERMS.get(full_name.upper()) or DYNAMIC_GUJARATI_TERMS.get(name.upper())
 
-    exp_other = [
-        ("Car & Bike", "EXPENSES:Car & Bike"),
-        ("Insuranse", "EXPENSES:Insuranse"),
-        ("Intrest & EMIs", "EXPENSES:Intrest & EMIs"),
-        ("Medical", "EXPENSES:Medical"),
-        ("Mobile & Recharge", "EXPENSES:Mobile & Recharge"),
-        ("School & Education", "EXPENSES:School & Education"),
-        ("TRAVEL", "EXPENSES:TRAVEL"),
-    ]
-    exp_other_tot = sum(account_map.get(p, {}).get("total", 0.0) for _, p in exp_other)
-    root_nodes.append({
-        "name": "EXPENSES",
-        "full_name": "EXPENSES",
-        "type": "Expense",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("EXPENSES", "કુલ ખર્ચાઓ"),
-        "balance": bhega_tot + exp_other_tot,
-        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in bhega_items) + sum(account_map.get(p, {}).get("count", 0) for _, p in exp_other),
-        "children": [
-            {
-                "name": "BHEGA",
-                "full_name": "EXPENSES:BHEGA",
-                "type": "Expense",
-                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("EXPENSES:BHEGA", "સંયુક્ત ઘરખર્ચ"),
-                "balance": bhega_tot,
-                "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in bhega_items),
-                "children": [
-                    {
-                        "name": n,
-                        "full_name": p,
-                        "type": "Expense",
-                        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
-                        "balance": account_map.get(p, {}).get("total", 0.0),
-                        "tx_count": account_map.get(p, {}).get("count", 0),
-                        "children": []
-                    }
-                    for n, p in bhega_items
-                ]
-            }
-        ] + [
-            {
-                "name": n,
-                "full_name": p,
-                "type": "Expense",
-                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
-                "balance": account_map.get(p, {}).get("total", 0.0),
-                "tx_count": account_map.get(p, {}).get("count", 0),
-                "children": []
-            }
-            for n, p in exp_other
-        ]
-    })
+        return {
+            'name': name,
+            'full_name': full_name,
+            'type': ac_type,
+            'gujarati_name': guj,
+            'balance': round(total_balance, 2),
+            'tx_count': node_dict['tx_count'] + child_count,
+            'has_children': len(children_list) > 0,
+            'children': children_list
+        }
 
-    # 6. INCOME
-    income_items = [
-        ("EMBRO-PRISHA FAB", "INCOME:EMBRO-PRISHA FAB"),
-        ("LOOMS", "INCOME:LOOMS"),
-        ("M.J & J.T", "INCOME:M.J & J.T"),
-        ("Other Income", "INCOME:Other Income"),
-        ("Rent", "INCOME:Rent"),
-    ]
-    inc_tot = sum(abs(account_map.get(p, {}).get("total", 0.0)) for _, p in income_items)
-    root_nodes.append({
-        "name": "INCOME",
-        "full_name": "INCOME",
-        "type": "Income",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("INCOME", "કુલ આવક"),
-        "balance": inc_tot,
-        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in income_items),
-        "children": [
-            {
-                "name": n,
-                "full_name": p,
-                "type": "Income",
-                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
-                "balance": abs(account_map.get(p, {}).get("total", 0.0)),
-                "tx_count": account_map.get(p, {}).get("count", 0),
-                "children": []
-            }
-            for n, p in income_items
-        ]
-    })
+    order_map = {
+        'ASSETS': 1,
+        'CAP. OLD-MONEY 24-25': 2,
+        'CAPITAL ACC': 3,
+        'CASHBOOK': 4,
+        'EXPENSES': 5,
+        'INCOME': 6,
+        'LIABILITIES': 7
+    }
+    sorted_roots = sorted(
+        root_nodes.values(),
+        key=lambda r: (order_map.get(r['name'].upper(), 99), r['name'].upper())
+    )
 
-    # 7. LIABILITIES
-    liab_items = [
-        ("BHARATBHAI GARAGE", "LIABILITIES:BHARATBHAI GARAGE"),
-        ("DADA", "LIABILITIES:DADA"),
-        ("DEVANA CM CO.", "LIABILITIES:DEVANA CM CO."),
-        ("GoldLoan", "LIABILITIES:GoldLoan"),
-        ("UCHINA LIDHELA", "LIABILITIES:UCHINA LIDHELA"),
-        ("VALLBHBHAI N.", "LIABILITIES:VALLBHBHAI N."),
-    ]
-    liab_tot = sum(abs(account_map.get(p, {}).get("total", 0.0)) for _, p in liab_items)
-    root_nodes.append({
-        "name": "LIABILITIES",
-        "full_name": "LIABILITIES",
-        "type": "Liability",
-        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("LIABILITIES", "કુલ દેવું & લોન"),
-        "balance": liab_tot,
-        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in liab_items),
-        "children": [
-            {
-                "name": n,
-                "full_name": p,
-                "type": "Liability",
-                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
-                "balance": abs(account_map.get(p, {}).get("total", 0.0)),
-                "tx_count": account_map.get(p, {}).get("count", 0),
-                "children": []
-            }
-            for n, p in liab_items
-        ]
-    })
-
-    return root_nodes
+    return [finalize_node(r) for r in sorted_roots]
