@@ -488,6 +488,7 @@ async def upload_consolidated_csv(
 def get_consolidated_transactions(
     financial_year: Optional[str] = None,
     month: Optional[str] = None,
+    primary_account: Optional[str] = None,
     business_stream: Optional[str] = None,
     flow_type: Optional[str] = None,
     category_group: Optional[str] = None,
@@ -513,6 +514,9 @@ def get_consolidated_transactions(
             )
         except Exception:
             pass
+
+    if primary_account and primary_account != "all":
+        query = query.filter(models.ConsolidatedTransaction.primary_account == primary_account)
 
     if business_stream and business_stream != "all":
         query = query.filter(models.ConsolidatedTransaction.business_stream == business_stream)
@@ -542,6 +546,7 @@ def get_consolidated_transactions(
 def get_consolidated_summary(
     financial_year: Optional[str] = None,
     month: Optional[str] = None,
+    primary_account: Optional[str] = None,
     business_stream: Optional[str] = None,
     flow_type: Optional[str] = None,
     category_group: Optional[str] = None,
@@ -567,6 +572,9 @@ def get_consolidated_summary(
             )
         except Exception:
             pass
+
+    if primary_account and primary_account != "all":
+        query = query.filter(models.ConsolidatedTransaction.primary_account == primary_account)
 
     if business_stream and business_stream != "all":
         query = query.filter(models.ConsolidatedTransaction.business_stream == business_stream)
@@ -605,6 +613,7 @@ def get_consolidated_summary(
     all_years = [y[0] for y in db.query(distinct(models.ConsolidatedTransaction.financial_year)).order_by(models.ConsolidatedTransaction.financial_year.desc()).all() if y[0]]
     all_cats = [c[0] for c in db.query(distinct(models.ConsolidatedTransaction.category_group)).order_by(models.ConsolidatedTransaction.category_group.asc()).all() if c[0]]
     all_streams = [s[0] for s in db.query(distinct(models.ConsolidatedTransaction.business_stream)).order_by(models.ConsolidatedTransaction.business_stream.asc()).all() if s[0]]
+    all_accounts = [a[0] for a in db.query(distinct(models.ConsolidatedTransaction.primary_account)).order_by(models.ConsolidatedTransaction.primary_account.asc()).all() if a[0]]
 
     dates = [d[0] for d in db.query(distinct(models.ConsolidatedTransaction.date)).order_by(models.ConsolidatedTransaction.date.desc()).all() if d[0]]
     month_set = []
@@ -624,7 +633,8 @@ def get_consolidated_summary(
         "available_years": all_years,
         "available_months": month_set,
         "available_categories": all_cats,
-        "available_streams": all_streams
+        "available_streams": all_streams,
+        "available_accounts": all_accounts
     }
 
 @app.delete("/api/consolidated/transactions/{tx_id}", status_code=status.HTTP_204_NO_CONTENT)

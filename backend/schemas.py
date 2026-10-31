@@ -190,3 +190,4 @@ class ConsolidatedSummaryResponse(BaseModel):
     available_months: List[str]
     available_categories: List[str]
     available_streams: List[str] = []
+    available_accounts: List[str] = []

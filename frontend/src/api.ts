@@ -260,11 +260,13 @@ export interface ConsolidatedSummary {
   available_months: string[];
   available_categories: string[];
   available_streams: string[];
+  available_accounts: string[];
 }
 
 export interface ConsolidatedFilterParams {
   financial_year?: string;
   month?: string;
+  primary_account?: string;
   business_stream?: string;
   flow_type?: string;
   category_group?: string;

@@ -18,16 +18,34 @@ import Modal from '../components/ui/Modal';
 import LoadingScreen from '../components/ui/LoadingScreen';
 import EmptyState from '../components/ui/EmptyState';
 
-const BUSINESS_STREAMS_LIST = [
-  'લૂમ્સ (LOOMS)',
-  'પ્રિશા ફેબ / એમ્બ્રોઈડરી',
-  'કેયુર જેમ્સ (હીરા વેપાર)',
-  'M.J & J.T ટ્રેડિંગ',
-  'પારિવારિક ઘરખર્ચ',
-  'લોન & ઉછીના',
-  'મૂડી & રોકાણ',
-  'અન્ય વ્યવસાય / આવક'
-];
+const ACCOUNT_GUJARATI_NAMES: Record<string, string> = {
+  'INCOME:M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
+  'INCOME:EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
+  'INCOME:LOOMS': 'લૂમ્સ ખાતાની આવક',
+  'ASSETS:DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
+  'INCOME:Other Income': 'અન્ય આવક (ભાડું/પગાર)',
+  'LIABILITIES:UCHINA LIDHELA': 'ઉછીના લીધેલા (UCHINA LIDHELA)',
+  'LIABILITIES:VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
+  'LIABILITIES:BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
+  'LIABILITIES:GoldLoan': 'ગોલ્ડ લોન (Gold Loan)',
+  'LIABILITIES:DADA': 'દાદા ખાતે લોન',
+  'LIABILITIES:DEVANA CM CO.': 'દેવાના CM CO.',
+  'ASSETS:UCHINA APELA': 'ઉછીના આપેલા (UCHINA APELA)',
+  'ASSETS:EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
+  'ASSETS:EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
+  'EXPENSES:BHEGA:BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
+  'EXPENSES:BHEGA:Monthly': 'નિયમિત માસિક ઘરખર્ચ',
+  'EXPENSES:BHEGA:Small': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
+  'EXPENSES:Medical': 'મેડિકલ & હોસ્પિટલ',
+  'EXPENSES:School & Education': 'શિક્ષણ & સ્કૂલ ફી',
+  'EXPENSES:Intrest & EMIs': 'વ્યાજ & લોન EMI',
+  'EXPENSES:Car & Bike': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
+  'EXPENSES:TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
+  'EXPENSES:Mobile & Recharge': 'મોબાઈલ રિચાર્જ',
+  'EXPENSES:Insuranse': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
+  'Cap. Old-Money 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
+  'Capital Acc': 'મૂડી ખાતું (Capital Acc)',
+};
 
 export default function ConsolidatedLedgerPage() {
   const { user } = useAuth();
@@ -42,10 +60,10 @@ export default function ConsolidatedLedgerPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Filters (User removed 'પ્રકાર', added 'બિઝનેસ' and 'આવક / ખર્ચ')
+  // Filters: FY, Month, Same nu Khatu (સામેનું ખાતું), Flow Type (આવક/ખર્ચ)
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [selectedStream, setSelectedStream] = useState<string>('all');
+  const [selectedAccount, setSelectedAccount] = useState<string>('all'); // સામેનું ખાતું
   const [selectedFlow, setSelectedFlow] = useState<string>('all'); // 'all' | 'income' | 'expense'
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState<boolean>(!isMobile);
@@ -98,7 +116,7 @@ export default function ConsolidatedLedgerPage() {
       const filterParams = {
         financial_year: selectedYear,
         month: selectedMonth,
-        business_stream: selectedStream,
+        primary_account: selectedAccount,
         flow_type: selectedFlow,
         search: searchQuery.trim() || undefined,
         skip: 0,
@@ -129,7 +147,7 @@ export default function ConsolidatedLedgerPage() {
       const filterParams = {
         financial_year: selectedYear,
         month: selectedMonth,
-        business_stream: selectedStream,
+        primary_account: selectedAccount,
         flow_type: selectedFlow,
         search: searchQuery.trim() || undefined,
         skip: transactions.length,
@@ -152,7 +170,7 @@ export default function ConsolidatedLedgerPage() {
   // Refetch when filters change
   useEffect(() => {
     fetchData();
-  }, [selectedYear, selectedMonth, selectedStream, selectedFlow]);
+  }, [selectedYear, selectedMonth, selectedAccount, selectedFlow]);
 
   // Debounced search
   useEffect(() => {
@@ -240,10 +258,8 @@ export default function ConsolidatedLedgerPage() {
     return `${monthNames[m] || m} ${y}`;
   };
 
-  // Available business streams from summary or default
-  const availableStreams = (summary?.available_streams && summary.available_streams.length > 0)
-    ? summary.available_streams
-    : BUSINESS_STREAMS_LIST;
+  // Available accounts from summary
+  const availableAccounts = summary?.available_accounts || [];
 
   if (loading) return <LoadingScreen />;
 
@@ -254,7 +270,7 @@ export default function ConsolidatedLedgerPage() {
         <h1>વડસક પરિવાર — બધા નો મિક્સ હિસાબ (Master Cashbook)</h1>
         <p>સંયુક્ત ધંધાકીય અને પારિવારિક ખાતાવહી અહેવાલ</p>
         <p style={{ fontSize: '9pt', color: '#666' }}>
-          તારીખ: {new Date().toLocaleDateString('gu-IN')} | નાણાકીય વર્ષ: {selectedYear === 'all' ? 'તમામ' : selectedYear} | મહિનો: {formatMonthGujarati(selectedMonth)} | બિઝનેસ: {selectedStream === 'all' ? 'તમામ' : selectedStream}
+          તારીખ: {new Date().toLocaleDateString('gu-IN')} | નાણાકીય વર્ષ: {selectedYear === 'all' ? 'તમામ' : selectedYear} | મહિનો: {formatMonthGujarati(selectedMonth)} | સામેનું ખાતું: {selectedAccount === 'all' ? 'તમામ' : selectedAccount}
         </p>
       </div>
 
@@ -413,7 +429,7 @@ export default function ConsolidatedLedgerPage() {
         </div>
       </div>
 
-      {/* ═══════ POWERFUL MULTI-FILTER BAR (BUSINESS & INCOME/EXPENSE FILTERS) ═══════ */}
+      {/* ═══════ POWERFUL MULTI-FILTER BAR (SAME NU KHATU & INCOME/EXPENSE FILTERS) ═══════ */}
       <div
         className="glass-card"
         style={{
@@ -427,7 +443,7 @@ export default function ConsolidatedLedgerPage() {
             <input
               type="text"
               className="input-field"
-              placeholder="વિગત, નોંધ અથવા બિઝનેસ શોધો..."
+              placeholder="વિગત, નોંધ અથવા સામેનું ખાતું શોધો..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ padding: '6px 10px', fontSize: '0.82rem', height: '36px', width: '100%' }}
@@ -499,7 +515,7 @@ export default function ConsolidatedLedgerPage() {
           </div>
         </div>
 
-        {/* Collapsible Filters Row: Financial Year, Month, Business Stream, Flow Type */}
+        {/* Collapsible Filters Row: Financial Year, Month, Same nu Khatu (સામેનું ખાતું), Flow Type */}
         {showFilters && (
           <div
             style={{
@@ -549,22 +565,26 @@ export default function ConsolidatedLedgerPage() {
               </select>
             </div>
 
-            {/* 3. Business Stream (બિઝનેસ વાઇઝ ફિલ્ટર) */}
+            {/* 3. SAME NU KHATU (સામેનું ખાતું ફિલ્ટર) */}
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
-                🏢 બિઝનેસ / વ્યવસાય
+              <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px', fontWeight: 700, color: 'var(--primary)' }}>
+                📋 સામેનું ખાતું (Account)
               </label>
               <select
                 className="input-field mix-filter-select"
-                value={selectedStream}
-                onChange={(e) => setSelectedStream(e.target.value)}
+                value={selectedAccount}
+                onChange={(e) => setSelectedAccount(e.target.value)}
+                style={{ fontWeight: selectedAccount !== 'all' ? 700 : 500 }}
               >
-                <option value="all">તમામ બિઝનેસ / પ્રવાહ</option>
-                {availableStreams.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
+                <option value="all">તમામ સામેના ખાતાઓ</option>
+                {availableAccounts.map((acc) => {
+                  const guj = ACCOUNT_GUJARATI_NAMES[acc];
+                  return (
+                    <option key={acc} value={acc}>
+                      {guj ? `${acc} (${guj})` : acc}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -598,6 +618,11 @@ export default function ConsolidatedLedgerPage() {
             <span className="badge badge-secondary" style={{ fontSize: '0.68rem' }}>
               દર્શાવેલ: {transactions.length} / {summary?.total_count || 0}
             </span>
+            {selectedAccount !== 'all' && (
+              <span className="badge badge-primary" style={{ fontSize: '0.68rem' }}>
+                ખાતું: {selectedAccount}
+              </span>
+            )}
           </div>
 
           <button
@@ -682,13 +707,13 @@ export default function ConsolidatedLedgerPage() {
 
                     <div className="mix-mobile-card-footer">
                       <div className="mix-mobile-card-account">
-                        <span>ખાતું:</span>
+                        <span>સામેનું ખાતું:</span>
                         <code>{tx.primary_account}</code>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                          {tx.category_group}
+                          {ACCOUNT_GUJARATI_NAMES[tx.primary_account] || tx.category_group}
                         </span>
                         {user?.role === 'admin' && (
                           <button
@@ -742,9 +767,9 @@ export default function ConsolidatedLedgerPage() {
                 <thead>
                   <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
                     <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '95px' }}>તારીખ</th>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '160px' }}>બિઝનેસ પ્રવાહ</th>
+                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '150px' }}>બિઝનેસ પ્રવાહ</th>
                     <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700 }}>વિગત / નોંધ</th>
-                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '180px' }}>સામેનું ખાતું</th>
+                    <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, width: '220px' }}>સામેનું ખાતું</th>
                     <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '120px' }}>આવક (+)</th>
                     <th style={{ padding: '10px 14px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right', width: '120px' }}>જાવક (-)</th>
                     {user?.role === 'admin' && (
@@ -803,11 +828,11 @@ export default function ConsolidatedLedgerPage() {
                         </td>
 
                         <td style={{ padding: '10px 14px' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
                             <code>{tx.primary_account}</code>
                           </div>
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            {tx.category_group}
+                            {ACCOUNT_GUJARATI_NAMES[tx.primary_account] || tx.category_group}
                           </div>
                         </td>
 
@@ -867,7 +892,7 @@ export default function ConsolidatedLedgerPage() {
                           {tx.business_stream}
                         </span>
                         <span className="badge badge-secondary" style={{ fontSize: '0.62rem' }}>
-                          {tx.category_group}
+                          {ACCOUNT_GUJARATI_NAMES[tx.primary_account] || tx.category_group}
                         </span>
                       </div>
 
