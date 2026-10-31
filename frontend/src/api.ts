@@ -276,7 +276,21 @@ export interface ConsolidatedFilterParams {
   limit?: number;
 }
 
+export interface AccountTreeNode {
+  name: string;
+  full_name: string;
+  type: string;
+  gujarati_name?: string;
+  balance: number;
+  tx_count: number;
+  children: AccountTreeNode[];
+}
+
 export const consolidatedApi = {
+  getAccountsTree: async (): Promise<AccountTreeNode[]> => {
+    const response = await api.get('/consolidated/accounts-tree');
+    return response.data;
+  },
   upload: async (file: File): Promise<ConsolidatedUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);

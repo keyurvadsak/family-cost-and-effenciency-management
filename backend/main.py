@@ -516,7 +516,10 @@ def get_consolidated_transactions(
             pass
 
     if primary_account and primary_account != "all":
-        query = query.filter(models.ConsolidatedTransaction.primary_account == primary_account)
+        query = query.filter(
+            (models.ConsolidatedTransaction.primary_account == primary_account) |
+            (models.ConsolidatedTransaction.splits.any(models.ConsolidatedSplit.account_name == primary_account))
+        )
 
     if business_stream and business_stream != "all":
         query = query.filter(models.ConsolidatedTransaction.business_stream == business_stream)
@@ -574,7 +577,10 @@ def get_consolidated_summary(
             pass
 
     if primary_account and primary_account != "all":
-        query = query.filter(models.ConsolidatedTransaction.primary_account == primary_account)
+        query = query.filter(
+            (models.ConsolidatedTransaction.primary_account == primary_account) |
+            (models.ConsolidatedTransaction.splits.any(models.ConsolidatedSplit.account_name == primary_account))
+        )
 
     if business_stream and business_stream != "all":
         query = query.filter(models.ConsolidatedTransaction.business_stream == business_stream)
@@ -636,6 +642,13 @@ def get_consolidated_summary(
         "available_streams": all_streams,
         "available_accounts": all_accounts
     }
+
+@app.get("/api/consolidated/accounts-tree")
+def get_consolidated_accounts_tree(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return consolidated_service.get_accounts_tree_data(db)
 
 @app.delete("/api/consolidated/transactions/{tx_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_consolidated_transaction(

@@ -177,8 +177,22 @@ def process_consolidated_csv(
             primary_acc = other_split.get("Full Account Name", "").strip() if other_split else "Cashbook"
         else:
             is_journal = True
-            # For journal transaction, take the first debit or first account
-            primary_acc = first.get("Full Account Name", "").strip()
+            # For journal transactions, calculate the positive/negative split amount
+            pos_split = next((s for s in splits if parse_float_amount(s.get("Amount Num.")) > 0), None)
+            neg_split = next((s for s in splits if parse_float_amount(s.get("Amount Num.")) < 0), None)
+
+            if pos_split:
+                val = abs(parse_float_amount(pos_split.get("Amount Num.")))
+                primary_acc = pos_split.get("Full Account Name", "").strip()
+            elif neg_split:
+                val = abs(parse_float_amount(neg_split.get("Amount Num.")))
+                primary_acc = neg_split.get("Full Account Name", "").strip()
+            else:
+                val = abs(parse_float_amount(first.get("Amount Num.")))
+                primary_acc = first.get("Full Account Name", "").strip()
+
+            inflow = val
+            outflow = 0.0
 
         cat_group, _ = classify_account(primary_acc)
         biz_stream = classify_business_stream(primary_acc)
@@ -261,3 +275,237 @@ def process_consolidated_csv(
         "date_max": d_max
     }
 
+
+ACCOUNT_GUJARATI_LABELS: Dict[str, str] = {
+    'INCOME:M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
+    'INCOME:EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
+    'INCOME:LOOMS': 'લૂમ્સ ખાતાની આવક',
+    'ASSETS:DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
+    'INCOME:Other Income': 'અન્ય આવક (ભાડું/પગાર)',
+    'INCOME:Rent': 'ભાડું આવક',
+    'LIABILITIES:UCHINA LIDHELA': 'ઉછીના લીધેલા',
+    'LIABILITIES:VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
+    'LIABILITIES:BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
+    'LIABILITIES:GoldLoan': 'ગોલ્ડ લોન',
+    'LIABILITIES:DADA': 'દાદા ખાતે લોન',
+    'LIABILITIES:DEVANA CM CO.': 'દેવાના CM CO.',
+    'ASSETS:UCHINA APELA': 'ઉછીના આપેલા',
+    'ASSETS:EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
+    'ASSETS:EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
+    'EXPENSES:BHEGA': 'સંયુક્ત ઘરખર્ચ',
+    'EXPENSES:BHEGA:BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
+    'EXPENSES:BHEGA:Monthly': 'નિયમિત માસિક ઘરખર્ચ',
+    'EXPENSES:BHEGA:Small': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
+    'EXPENSES:Medical': 'મેડિકલ & દવાઓ',
+    'EXPENSES:School & Education': 'શિક્ષણ & સ્કૂલ ફી',
+    'EXPENSES:Intrest & EMIs': 'વ્યાજ & લોન EMI',
+    'EXPENSES:Car & Bike': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
+    'EXPENSES:TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
+    'EXPENSES:Mobile & Recharge': 'મોબાઈલ રિચાર્જ',
+    'EXPENSES:Insuranse': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
+    'Cap. Old-Money 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
+    'Capital Acc': 'મૂડી ખાતું (Capital Acc)',
+    'Cashbook': 'રોકડ સિલક (Cashbook)',
+    'ASSETS': 'કુલ સંપત્તિ (Assets)',
+    'EXPENSES': 'કુલ ખર્ચાઓ (Expenses)',
+    'INCOME': 'કુલ આવક (Income)',
+    'LIABILITIES': 'કુલ દેવું & લોન (Liabilities)',
+}
+
+def get_accounts_tree_data(db: Session) -> List[Dict[str, Any]]:
+    rows = db.query(
+        models.ConsolidatedSplit.account_name,
+        func.sum(models.ConsolidatedSplit.amount).label("total"),
+        func.count(models.ConsolidatedSplit.id).label("tx_count")
+    ).group_by(models.ConsolidatedSplit.account_name).all()
+
+    account_map = {r[0]: {"total": float(r[1] or 0.0), "count": int(r[2])} for r in rows}
+    if "INCOME:Rent" not in account_map:
+        account_map["INCOME:Rent"] = {"total": 0.0, "count": 0}
+
+    root_nodes = []
+
+    # 1. ASSETS
+    assets_items = [
+        ("DAIMOND KG", "ASSETS:DAIMOND KG"),
+        ("EMBRO-AKASH/MAYANK-INVEST PF", "ASSETS:EMBRO-AKASH/MAYANK-INVEST PF"),
+        ("EMBRO-HARDIK/RAVI-INVEST XX", "ASSETS:EMBRO-HARDIK/RAVI-INVEST XX"),
+        ("UCHINA APELA", "ASSETS:UCHINA APELA"),
+    ]
+    assets_tot = sum(account_map.get(p, {}).get("total", 0.0) for _, p in assets_items)
+    root_nodes.append({
+        "name": "ASSETS",
+        "full_name": "ASSETS",
+        "type": "Asset",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("ASSETS", "કુલ સંપત્તિ"),
+        "balance": assets_tot,
+        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in assets_items),
+        "children": [
+            {
+                "name": n,
+                "full_name": p,
+                "type": "Asset",
+                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
+                "balance": account_map.get(p, {}).get("total", 0.0),
+                "tx_count": account_map.get(p, {}).get("count", 0),
+                "children": []
+            }
+            for n, p in assets_items
+        ]
+    })
+
+    # 2. Cap. Old-Money 24-25
+    root_nodes.append({
+        "name": "Cap. Old-Money 24-25",
+        "full_name": "Cap. Old-Money 24-25",
+        "type": "Bank",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("Cap. Old-Money 24-25", "જૂની મૂડી ૨૦૨૪-૨૫"),
+        "balance": abs(account_map.get("Cap. Old-Money 24-25", {}).get("total", 0.0)),
+        "tx_count": account_map.get("Cap. Old-Money 24-25", {}).get("count", 0),
+        "children": []
+    })
+
+    # 3. Capital Acc
+    root_nodes.append({
+        "name": "Capital Acc",
+        "full_name": "Capital Acc",
+        "type": "Equity",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("Capital Acc", "મૂડી ખાતું"),
+        "balance": abs(account_map.get("Capital Acc", {}).get("total", 0.0)),
+        "tx_count": account_map.get("Capital Acc", {}).get("count", 0),
+        "children": []
+    })
+
+    # 4. Cashbook
+    root_nodes.append({
+        "name": "Cashbook",
+        "full_name": "Cashbook",
+        "type": "Cash",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("Cashbook", "રોકડ સિલક"),
+        "balance": account_map.get("Cashbook", {}).get("total", 0.0),
+        "tx_count": account_map.get("Cashbook", {}).get("count", 0),
+        "children": []
+    })
+
+    # 5. EXPENSES
+    bhega_items = [
+        ("BIG", "EXPENSES:BHEGA:BIG"),
+        ("Monthly", "EXPENSES:BHEGA:Monthly"),
+        ("Small", "EXPENSES:BHEGA:Small")
+    ]
+    bhega_tot = sum(account_map.get(p, {}).get("total", 0.0) for _, p in bhega_items)
+
+    exp_other = [
+        ("Car & Bike", "EXPENSES:Car & Bike"),
+        ("Insuranse", "EXPENSES:Insuranse"),
+        ("Intrest & EMIs", "EXPENSES:Intrest & EMIs"),
+        ("Medical", "EXPENSES:Medical"),
+        ("Mobile & Recharge", "EXPENSES:Mobile & Recharge"),
+        ("School & Education", "EXPENSES:School & Education"),
+        ("TRAVEL", "EXPENSES:TRAVEL"),
+    ]
+    exp_other_tot = sum(account_map.get(p, {}).get("total", 0.0) for _, p in exp_other)
+    root_nodes.append({
+        "name": "EXPENSES",
+        "full_name": "EXPENSES",
+        "type": "Expense",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("EXPENSES", "કુલ ખર્ચાઓ"),
+        "balance": bhega_tot + exp_other_tot,
+        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in bhega_items) + sum(account_map.get(p, {}).get("count", 0) for _, p in exp_other),
+        "children": [
+            {
+                "name": "BHEGA",
+                "full_name": "EXPENSES:BHEGA",
+                "type": "Expense",
+                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("EXPENSES:BHEGA", "સંયુક્ત ઘરખર્ચ"),
+                "balance": bhega_tot,
+                "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in bhega_items),
+                "children": [
+                    {
+                        "name": n,
+                        "full_name": p,
+                        "type": "Expense",
+                        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
+                        "balance": account_map.get(p, {}).get("total", 0.0),
+                        "tx_count": account_map.get(p, {}).get("count", 0),
+                        "children": []
+                    }
+                    for n, p in bhega_items
+                ]
+            }
+        ] + [
+            {
+                "name": n,
+                "full_name": p,
+                "type": "Expense",
+                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
+                "balance": account_map.get(p, {}).get("total", 0.0),
+                "tx_count": account_map.get(p, {}).get("count", 0),
+                "children": []
+            }
+            for n, p in exp_other
+        ]
+    })
+
+    # 6. INCOME
+    income_items = [
+        ("EMBRO-PRISHA FAB", "INCOME:EMBRO-PRISHA FAB"),
+        ("LOOMS", "INCOME:LOOMS"),
+        ("M.J & J.T", "INCOME:M.J & J.T"),
+        ("Other Income", "INCOME:Other Income"),
+        ("Rent", "INCOME:Rent"),
+    ]
+    inc_tot = sum(abs(account_map.get(p, {}).get("total", 0.0)) for _, p in income_items)
+    root_nodes.append({
+        "name": "INCOME",
+        "full_name": "INCOME",
+        "type": "Income",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("INCOME", "કુલ આવક"),
+        "balance": inc_tot,
+        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in income_items),
+        "children": [
+            {
+                "name": n,
+                "full_name": p,
+                "type": "Income",
+                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
+                "balance": abs(account_map.get(p, {}).get("total", 0.0)),
+                "tx_count": account_map.get(p, {}).get("count", 0),
+                "children": []
+            }
+            for n, p in income_items
+        ]
+    })
+
+    # 7. LIABILITIES
+    liab_items = [
+        ("BHARATBHAI GARAGE", "LIABILITIES:BHARATBHAI GARAGE"),
+        ("DADA", "LIABILITIES:DADA"),
+        ("DEVANA CM CO.", "LIABILITIES:DEVANA CM CO."),
+        ("GoldLoan", "LIABILITIES:GoldLoan"),
+        ("UCHINA LIDHELA", "LIABILITIES:UCHINA LIDHELA"),
+        ("VALLBHBHAI N.", "LIABILITIES:VALLBHBHAI N."),
+    ]
+    liab_tot = sum(abs(account_map.get(p, {}).get("total", 0.0)) for _, p in liab_items)
+    root_nodes.append({
+        "name": "LIABILITIES",
+        "full_name": "LIABILITIES",
+        "type": "Liability",
+        "gujarati_name": ACCOUNT_GUJARATI_LABELS.get("LIABILITIES", "કુલ દેવું & લોન"),
+        "balance": liab_tot,
+        "tx_count": sum(account_map.get(p, {}).get("count", 0) for _, p in liab_items),
+        "children": [
+            {
+                "name": n,
+                "full_name": p,
+                "type": "Liability",
+                "gujarati_name": ACCOUNT_GUJARATI_LABELS.get(p, n),
+                "balance": abs(account_map.get(p, {}).get("total", 0.0)),
+                "tx_count": account_map.get(p, {}).get("count", 0),
+                "children": []
+            }
+            for n, p in liab_items
+        ]
+    })
+
+    return root_nodes
