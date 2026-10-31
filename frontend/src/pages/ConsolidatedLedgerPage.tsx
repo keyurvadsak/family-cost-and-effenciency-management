@@ -624,7 +624,7 @@ export default function ConsolidatedLedgerPage() {
               <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
                 બધા નો મિક્સ હિસાબ
               </h2>
-              <span className="badge badge-primary" style={{ fontSize: '0.62rem', background: '#d97706' }}>
+              <span className="badge" style={{ fontSize: '0.68rem', background: '#d97706', color: '#ffffff', fontWeight: 700, padding: '2px 8px' }}>
                 માસ્ટર કેશબુક
               </span>
             </div>
@@ -646,59 +646,65 @@ export default function ConsolidatedLedgerPage() {
 
       {/* ═══════ HIGH-DENSITY EXECUTIVE KPIS ═══════ */}
       <div className="acc-kpi-grid mix-kpi-grid" style={{ marginTop: '12px' }}>
-        {/* KPI 1: Net Cash Balance */}
-        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #10b981' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span className="kpi-label">રોકડ સિલક (Cash Balance)</span>
-              <h3 className="kpi-value" style={{ color: (summary?.net_cash_balance || 0) < 0 ? 'var(--error)' : '#10b981' }}>
-                {(summary?.net_cash_balance || 0) < 0 ? `-₹${Math.abs(summary?.net_cash_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `₹${(summary?.net_cash_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-              </h3>
-              <p className="kpi-meta">હાથ પર રોકડ / કેશબોક્સ</p>
-            </div>
-            <span className="badge badge-success">CASHBOOK</span>
+        {/* KPI 1: Cash Balance */}
+        <div className="acc-kpi-card kpi-balance">
+          <div className="acc-kpi-header">
+            <span className="acc-kpi-title">રોકડ સિલક</span>
+            <span className="acc-kpi-badge badge-warning">CASHBOOK</span>
+          </div>
+          <div className={`acc-kpi-value ${(summary?.net_cash_balance || 0) < 0 ? 'text-debit' : 'text-credit'}`}>
+            {(summary?.net_cash_balance || 0) < 0
+              ? `-₹${Math.abs(summary?.net_cash_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+              : `₹${(summary?.net_cash_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          </div>
+          <div className="acc-kpi-subtext">
+            <span>હાથ પર રોકડ / કેશબોક્સ</span>
           </div>
         </div>
 
-        {/* KPI 2: Period Total Inflow */}
-        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span className="kpi-label">કુલ રોકડ આવક (Period Inflow)</span>
-              <h3 className="kpi-value" style={{ color: '#3b82f6' }}>
-                ₹{(summary?.period_inflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p className="kpi-meta">પસંદ કરેલ ફિલ્ટરમાં કુલ જમા</p>
-            </div>
-            <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>આવક (+)</span>
+        {/* KPI 2: Period Inflow */}
+        <div className="acc-kpi-card kpi-income">
+          <div className="acc-kpi-header">
+            <span className="acc-kpi-title">કુલ રોકડ આવક</span>
+            <span className="acc-kpi-badge badge-success">જમા (+)</span>
+          </div>
+          <div className="acc-kpi-value text-credit">
+            ₹{(summary?.period_inflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </div>
+          <div className="acc-kpi-subtext">
+            <span>પસંદ કરેલ સમયગાળામાં આવક</span>
           </div>
         </div>
 
-        {/* KPI 3: Period Total Outflow */}
-        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span className="kpi-label">કુલ રોકડ ખર્ચ (Period Outflow)</span>
-              <h3 className="kpi-value" style={{ color: '#ef4444' }}>
-                ₹{(summary?.period_outflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h3>
-              <p className="kpi-meta">પસંદ કરેલ ફિલ્ટરમાં કુલ ઉધાર</p>
-            </div>
-            <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>ખર્ચ (-)</span>
+        {/* KPI 3: Period Outflow */}
+        <div className="acc-kpi-card kpi-expense">
+          <div className="acc-kpi-header">
+            <span className="acc-kpi-title">કુલ રોકડ ખર્ચ</span>
+            <span className="acc-kpi-badge badge-danger">ઉધાર (-)</span>
+          </div>
+          <div className="acc-kpi-value text-debit">
+            ₹{(summary?.period_outflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </div>
+          <div className="acc-kpi-subtext">
+            <span>પસંદ કરેલ સમયગાળામાં ખર્ચ</span>
           </div>
         </div>
 
-        {/* KPI 4: Net Flow Change */}
-        <div className="glass-card kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span className="kpi-label">ચોખ્ખો પ્રવાહ (Net Flow)</span>
-              <h3 className="kpi-value" style={{ color: (summary?.net_change || 0) >= 0 ? '#10b981' : '#ef4444' }}>
-                {(summary?.net_change || 0) < 0 ? `-₹${Math.abs(summary?.net_change || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `+₹${(summary?.net_change || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-              </h3>
-              <p className="kpi-meta">આવક - ખર્ચ તફાવત</p>
-            </div>
-            <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>ચોખ્ખી અસર</span>
+        {/* KPI 4: Net Flow */}
+        <div className="acc-kpi-card kpi-profit">
+          <div className="acc-kpi-header">
+            <span className="acc-kpi-title">ચોખ્ખો પ્રવાહ</span>
+            <span className={`acc-kpi-badge ${(summary?.net_change || 0) >= 0 ? 'badge-success' : 'badge-danger'}`}>
+              {(summary?.net_change || 0) >= 0 ? 'સરપ્લસ' : 'ડેફિસિટ'}
+            </span>
+          </div>
+          <div className={`acc-kpi-value ${(summary?.net_change || 0) >= 0 ? 'text-net-profit' : 'text-net-loss'}`}>
+            {(summary?.net_change || 0) < 0
+              ? `-₹${Math.abs(summary?.net_change || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+              : `+₹${(summary?.net_change || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          </div>
+          <div className="acc-kpi-subtext">
+            <span>આવક - ખર્ચ તફાવત</span>
           </div>
         </div>
       </div>
@@ -740,7 +746,7 @@ export default function ConsolidatedLedgerPage() {
             }}
           >
             <Building size={14} />
-            <span>🏛️ એકાઉન્ટ્સ વૃક્ષ (Chart of Accounts)</span>
+            <span>એકાઉન્ટ્સ વૃક્ષ (Chart of Accounts)</span>
           </button>
 
           <button
@@ -765,7 +771,7 @@ export default function ConsolidatedLedgerPage() {
             }}
           >
             <FileText size={14} />
-            <span>📋 સરળ કેશબુક (Register)</span>
+            <span>સરળ કેશબુક (Register)</span>
           </button>
 
           <button
@@ -790,28 +796,11 @@ export default function ConsolidatedLedgerPage() {
             }}
           >
             <BookOpen size={14} />
-            <span>⚖️ ખાતાવહી (CA Splits)</span>
+            <span>ખાતાવહી (CA Splits)</span>
           </button>
         </div>
 
-        {/* Selected Account Indicator Banner */}
-        {selectedAccount !== 'all' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>પસંદ કરેલ ખાતું:</span>
-            <span className="badge badge-primary" style={{ fontSize: '0.74rem', padding: '4px 10px' }}>
-              {selectedAccount}
-            </span>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleClearAccountFilter}
-              style={{ fontSize: '0.7rem', padding: '2px 8px', height: '26px' }}
-              title="તમામ ખાતાઓ જુઓ"
-            >
-              ✕ સાફ કરો
-            </button>
-          </div>
-        )}
+
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
