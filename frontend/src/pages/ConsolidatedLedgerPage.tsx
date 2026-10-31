@@ -258,8 +258,15 @@ export default function ConsolidatedLedgerPage() {
     return `${monthNames[m] || m} ${y}`;
   };
 
-  // Available accounts from summary
-  const availableAccounts = summary?.available_accounts || [];
+  // Available accounts from summary, loaded transactions, or standard accounts
+  const availableAccounts = React.useMemo(() => {
+    if (summary?.available_accounts && summary.available_accounts.length > 0) {
+      return summary.available_accounts;
+    }
+    const fromTxs = transactions.map((t) => t.primary_account).filter(Boolean);
+    const combined = new Set([...Object.keys(ACCOUNT_GUJARATI_NAMES), ...fromTxs]);
+    return Array.from(combined).sort();
+  }, [summary?.available_accounts, transactions]);
 
   if (loading) return <LoadingScreen />;
 
