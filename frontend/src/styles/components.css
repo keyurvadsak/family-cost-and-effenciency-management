@@ -2693,3 +2693,101 @@ table tbody tr:last-child td {
   cursor: not-allowed;
 }
 
+
+
+/* ═══════ GNUCASH MULTICOLUMN FINANCIAL STATEMENTS ═══════ */
+.gnucash-statement-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.gnucash-statement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .gnucash-statement-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.gnucash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gnucash-sec-header {
+  background: #fbf6df;
+  color: #4a4128;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 8px 12px;
+  border-top: 1px solid #ebdcb2;
+  border-bottom: 1px solid #ebdcb2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+[data-theme="dark"] .gnucash-sec-header {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.gnucash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+.gnucash-table td {
+  padding: 5px 8px;
+}
+
+.gnucash-acc-link {
+  color: #b91c1c;
+  text-decoration: underline;
+  cursor: pointer;
+  font-style: italic;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.gnucash-acc-link:hover {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .gnucash-acc-link {
+  color: #f87171;
+}
+
+.gnucash-total-bar {
+  background: #fbf6df;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #1f2937;
+  padding: 8px 12px;
+  border-top: 1px solid #ebdcb2;
+  border-bottom: 3px double #b45309;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+[data-theme="dark"] .gnucash-total-bar {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f3f4f6;
+  border-color: rgba(245, 158, 11, 0.4);
+  border-bottom-color: #f59e0b;
+}

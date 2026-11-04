@@ -662,6 +662,31 @@ def get_consolidated_accounts_tree(
 ):
     return consolidated_service.get_accounts_tree_data(db)
 
+@app.get("/api/consolidated/balance-sheet")
+def get_consolidated_balance_sheet(
+    as_of_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return consolidated_service.get_balance_sheet_data(db, as_of_date_str=as_of_date)
+
+@app.get("/api/consolidated/income-statement")
+def get_consolidated_income_statement(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return consolidated_service.get_income_statement_data(db, start_date_str=start_date, end_date_str=end_date)
+
+@app.get("/api/consolidated/account-statement")
+def get_consolidated_account_statement(
+    account: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return consolidated_service.get_account_statement_data(db, account_name=account)
+
 @app.delete("/api/consolidated/transactions/{tx_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_consolidated_transaction(
     tx_id: int,

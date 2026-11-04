@@ -421,3 +421,282 @@ def get_accounts_tree_data(db: Session) -> List[Dict[str, Any]]:
     )
 
     return [finalize_node(r) for r in sorted_roots]
+def get_balance_sheet_data(db: Session, as_of_date_str: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Multicolumn Balance Sheet calculation matching GnuCash.
+    Assets = Liabilities + Equity
+    """
+    if as_of_date_str:
+        try:
+            as_of = datetime.strptime(as_of_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            as_of = date(2026, 12, 31)
+    else:
+        as_of = date(2026, 12, 31)
+
+    splits = db.query(
+        models.ConsolidatedSplit.account_name,
+        func.sum(models.ConsolidatedSplit.amount)
+    ).join(models.ConsolidatedTransaction).filter(
+        models.ConsolidatedTransaction.date <= as_of
+    ).group_by(models.ConsolidatedSplit.account_name).all()
+
+    s_map = {n: float(a or 0) for n, a in splits}
+
+    # ASSETS root
+    asset_rows = []
+    tot_asset_root = 0.0
+    for name, amt in s_map.items():
+        if name.startswith("ASSETS:"):
+            sub = name.split(":", 1)[1]
+            val = abs(amt)
+            tot_asset_root += val
+            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
+            asset_rows.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+
+    asset_rows.sort(key=lambda x: x["name"])
+    if not any(x["name"] == "DAIMOND- C & M Co." for x in asset_rows):
+        asset_rows.insert(0, {
+            "name": "DAIMOND- C & M Co.",
+            "full_name": "ASSETS:DAIMOND- C & M Co.",
+            "balance": 0.0,
+            "gujarati_name": "ડાયમંડ C & M Co."
+        })
+
+    old_money = float(s_map.get("Cap. Old-Money 24-25", 0.0))
+    cashbook = float(s_map.get("Cashbook", 0.0))
+    total_asset = tot_asset_root + old_money + cashbook
+
+    # LIABILITIES root
+    liab_rows = []
+    tot_liab_root = 0.0
+    for name, amt in s_map.items():
+        if name.startswith("LIABILITIES:"):
+            sub = name.split(":", 1)[1]
+            val = abs(amt)
+            tot_liab_root += val
+            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
+            liab_rows.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+
+    liab_rows.sort(key=lambda x: x["name"])
+    total_liab = tot_liab_root
+
+    # EQUITY
+    cap_acc = abs(float(s_map.get("Capital Acc", 0.0)))
+    unrealized_gains = 0.0
+    retained_earnings = round(total_asset - total_liab - cap_acc, 2)
+    total_equity = round(cap_acc + unrealized_gains + retained_earnings, 2)
+
+    return {
+        "as_of_date": as_of.strftime("%Y-%m-%d"),
+        "as_of_date_formatted": as_of.strftime("%d-%m-%Y"),
+        "assets": {
+            "root_name": "ASSETS",
+            "root_total": round(tot_asset_root, 2),
+            "children": asset_rows,
+            "standalone": [
+                {
+                    "name": "Cap. Old-Money 24-25",
+                    "full_name": "Cap. Old-Money 24-25",
+                    "balance": round(old_money, 2),
+                    "gujarati_name": DYNAMIC_GUJARATI_TERMS.get("CAP. OLD-MONEY 24-25", "જૂની મૂડી ૨૦૨૪-૨૫")
+                },
+                {
+                    "name": "Cashbook",
+                    "full_name": "Cashbook",
+                    "balance": round(cashbook, 2),
+                    "gujarati_name": DYNAMIC_GUJARATI_TERMS.get("CASHBOOK", "રોકડ સિલક (Cashbook)")
+                }
+            ],
+            "total_asset": round(total_asset, 2)
+        },
+        "liabilities": {
+            "root_name": "LIABILITIES",
+            "root_total": round(tot_liab_root, 2),
+            "children": liab_rows,
+            "total_liability": round(total_liab, 2)
+        },
+        "equity": {
+            "capital_acc": round(cap_acc, 2),
+            "capital_acc_name": "Capital Acc",
+            "capital_acc_full": "Capital Acc",
+            "unrealized_gains": round(unrealized_gains, 2),
+            "retained_earnings": round(retained_earnings, 2),
+            "total_equity": round(total_equity, 2)
+        },
+        "total_liability_and_equity": round(total_liab + total_equity, 2)
+    }
+
+
+def get_income_statement_data(
+    db: Session,
+    start_date_str: Optional[str] = None,
+    end_date_str: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Multicolumn Income Statement calculation matching GnuCash.
+    Net Income = Total Income - Total Expense
+    """
+    if start_date_str:
+        try:
+            start_d = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            start_d = date(2025, 11, 1)
+    else:
+        start_d = date(2025, 11, 1)
+
+    if end_date_str:
+        try:
+            end_d = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            end_d = date(2026, 12, 31)
+    else:
+        end_d = date(2026, 12, 31)
+
+    inc_splits = db.query(
+        models.ConsolidatedSplit.account_name,
+        func.sum(models.ConsolidatedSplit.amount)
+    ).join(models.ConsolidatedTransaction).filter(
+        models.ConsolidatedTransaction.date >= start_d,
+        models.ConsolidatedTransaction.date <= end_d
+    ).group_by(models.ConsolidatedSplit.account_name).all()
+
+    inc_map = {name: float(amt or 0) for name, amt in inc_splits}
+
+    # INCOME items
+    inc_items = []
+    tot_inc = 0.0
+    for name, amt in inc_map.items():
+        if name.startswith("INCOME:"):
+            sub = name.split(":", 1)[1]
+            val = abs(amt)
+            tot_inc += val
+            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
+            inc_items.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+
+    inc_items.sort(key=lambda x: x["name"])
+    if not any(x["name"] == "Rent" for x in inc_items):
+        inc_items.append({
+            "name": "Rent",
+            "full_name": "INCOME:Rent",
+            "balance": 0.0,
+            "gujarati_name": "ભાડું આવક"
+        })
+
+    # EXPENSES items
+    exp_items = []
+    tot_exp = 0.0
+    bhega_children = []
+    bhega_tot = 0.0
+
+    for name, amt in inc_map.items():
+        if name.startswith("EXPENSES:BHEGA:"):
+            sub = name.split(":", 2)[2]
+            val = abs(amt)
+            bhega_tot += val
+            tot_exp += val
+            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
+            bhega_children.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+        elif name.startswith("EXPENSES:"):
+            sub = name.split(":", 1)[1]
+            if sub != "BHEGA":
+                val = abs(amt)
+                tot_exp += val
+                guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
+                exp_items.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+
+    bhega_children.sort(key=lambda x: x["name"])
+    exp_items.sort(key=lambda x: x["name"])
+
+    net_income = round(tot_inc - tot_exp, 2)
+
+    return {
+        "start_date": start_d.strftime("%Y-%m-%d"),
+        "end_date": end_d.strftime("%Y-%m-%d"),
+        "start_date_formatted": start_d.strftime("%d-%m-%Y"),
+        "end_date_formatted": end_d.strftime("%d-%m-%Y"),
+        "income": {
+            "root_name": "INCOME",
+            "root_total": round(tot_inc, 2),
+            "children": inc_items,
+            "total_income": round(tot_inc, 2)
+        },
+        "expense": {
+            "root_name": "EXPENSES",
+            "root_total": round(tot_exp, 2),
+            "bhega": {
+                "name": "BHEGA",
+                "full_name": "EXPENSES:BHEGA",
+                "balance": round(bhega_tot, 2),
+                "gujarati_name": "સંયુક્ત ઘરખર્ચ",
+                "children": bhega_children
+            },
+            "children": exp_items,
+            "total_expense": round(tot_exp, 2)
+        },
+        "net_income": net_income
+    }
+
+
+def get_account_statement_data(db: Session, account_name: str) -> Dict[str, Any]:
+    """
+    Returns full ledger statement for a single account:
+    All matching transactions, splits, inflows, outflows, and net balance.
+    """
+    prefix = f"{account_name}:"
+    query = db.query(models.ConsolidatedTransaction).filter(
+        (models.ConsolidatedTransaction.primary_account == account_name) |
+        (models.ConsolidatedTransaction.primary_account.startswith(prefix)) |
+        (models.ConsolidatedTransaction.splits.any(
+            (models.ConsolidatedSplit.account_name == account_name) |
+            (models.ConsolidatedSplit.account_name.startswith(prefix))
+        ))
+    ).order_by(models.ConsolidatedTransaction.date.desc(), models.ConsolidatedTransaction.id.desc())
+
+    txs = query.all()
+
+    total_in = 0.0
+    total_out = 0.0
+    tx_list = []
+
+    for t in txs:
+        # Check specific split for this account if exists
+        matched_split = next((s for s in t.splits if s.account_name == account_name or s.account_name.startswith(prefix)), None)
+        split_amt = matched_split.amount if matched_split else (t.inflow if t.inflow > 0 else -t.outflow)
+
+        in_val = t.inflow
+        out_val = t.outflow
+        total_in += in_val
+        total_out += out_val
+
+        tx_list.append({
+            "id": t.id,
+            "date": t.date.strftime("%Y-%m-%d"),
+            "description": t.description,
+            "notes": t.notes,
+            "primary_account": t.primary_account,
+            "business_stream": t.business_stream,
+            "inflow": in_val,
+            "outflow": out_val,
+            "split_amount": split_amt,
+            "splits": [
+                {
+                    "account_name": s.account_name,
+                    "amount": s.amount,
+                    "memo": s.memo
+                }
+                for s in t.splits
+            ]
+        })
+
+    guj = DYNAMIC_GUJARATI_TERMS.get(account_name.upper())
+
+    return {
+        "account_name": account_name,
+        "gujarati_name": guj,
+        "total_inflow": round(total_in, 2),
+        "total_outflow": round(total_out, 2),
+        "net_balance": round(total_in - total_out, 2),
+        "transaction_count": len(tx_list),
+        "transactions": tx_list
+    }

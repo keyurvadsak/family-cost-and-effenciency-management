@@ -287,9 +287,117 @@ export interface AccountTreeNode {
   children: AccountTreeNode[];
 }
 
+export interface BalanceSheetItem {
+  name: string;
+  full_name: string;
+  balance: number;
+  gujarati_name?: string;
+}
+
+export interface BalanceSheetData {
+  as_of_date: string;
+  as_of_date_formatted: string;
+  assets: {
+    root_name: string;
+    root_total: number;
+    children: BalanceSheetItem[];
+    standalone: BalanceSheetItem[];
+    total_asset: number;
+  };
+  liabilities: {
+    root_name: string;
+    root_total: number;
+    children: BalanceSheetItem[];
+    total_liability: number;
+  };
+  equity: {
+    capital_acc: number;
+    capital_acc_name: string;
+    capital_acc_full: string;
+    unrealized_gains: number;
+    retained_earnings: number;
+    total_equity: number;
+  };
+  total_liability_and_equity: number;
+}
+
+export interface IncomeStatementItem {
+  name: string;
+  full_name: string;
+  balance: number;
+  gujarati_name?: string;
+  children?: IncomeStatementItem[];
+}
+
+export interface IncomeStatementData {
+  start_date: string;
+  end_date: string;
+  start_date_formatted: string;
+  end_date_formatted: string;
+  income: {
+    root_name: string;
+    root_total: number;
+    children: IncomeStatementItem[];
+    total_income: number;
+  };
+  expense: {
+    root_name: string;
+    root_total: number;
+    bhega: {
+      name: string;
+      full_name: string;
+      balance: number;
+      gujarati_name?: string;
+      children: IncomeStatementItem[];
+    };
+    children: IncomeStatementItem[];
+    total_expense: number;
+  };
+  net_income: number;
+}
+
+export interface AccountStatementTx {
+  id: number;
+  date: string;
+  description: string;
+  notes?: string | null;
+  primary_account: string;
+  business_stream: string;
+  inflow: number;
+  outflow: number;
+  split_amount: number;
+  splits: Array<{
+    account_name: string;
+    amount: number;
+    memo?: string | null;
+  }>;
+}
+
+export interface AccountStatementData {
+  account_name: string;
+  gujarati_name?: string;
+  total_inflow: number;
+  total_outflow: number;
+  net_balance: number;
+  transaction_count: number;
+  transactions: AccountStatementTx[];
+}
+
 export const consolidatedApi = {
   getAccountsTree: async (): Promise<AccountTreeNode[]> => {
     const response = await api.get('/consolidated/accounts-tree');
+    return response.data;
+  },
+  getBalanceSheet: async (asOfDate?: string): Promise<BalanceSheetData> => {
+    const response = await api.get('/consolidated/balance-sheet', { params: { as_of_date: asOfDate } });
+    return response.data;
+  },
+  getIncomeStatement: async (startDate?: string, endDate?: string): Promise<IncomeStatementData> => {
+    const response = await api.get('/consolidated/income-statement', { params: { start_date: startDate, end_date: endDate } });
+    return response.data;
+  },
+  getAccountStatement: async (account: string): Promise<AccountStatementData> => {
+    const response = await api.get('/consolidated/account-statement', { params: { account } });
     return response.data;
   },
   upload: async (file: File): Promise<ConsolidatedUploadResponse> => {

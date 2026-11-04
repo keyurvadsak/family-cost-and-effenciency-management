@@ -1,24 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Upload, Printer, Search, Filter,
-  BookOpen, ChevronDown, ChevronUp, ChevronRight,
-  FileText, RefreshCw, Trash2, Building, ArrowRight,
-  FolderOpen, Folder, CornerDownRight, Check
+  ArrowLeft, Upload, Printer,
+  BookOpen, ChevronDown, ChevronRight,
+  RefreshCw, Trash2, Building, ArrowRight,
+  FolderOpen, Folder, CornerDownRight, Check,
+  Calendar, TrendingUp, Scale
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useIsMobile } from '../hooks/useMediaQuery';
 import { consolidatedApi } from '../api';
 import type {
-  ConsolidatedTransaction,
   ConsolidatedSummary,
   ConsolidatedUploadResponse,
-  AccountTreeNode
+  AccountTreeNode,
+  BalanceSheetData,
+  IncomeStatementData,
+  AccountStatementData
 } from '../api';
 import Modal from '../components/ui/Modal';
 import LoadingScreen from '../components/ui/LoadingScreen';
-import EmptyState from '../components/ui/EmptyState';
 
 export default function ConsolidatedLedgerPage() {
   const { user } = useAuth();
@@ -27,44 +29,38 @@ export default function ConsolidatedLedgerPage() {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Dynamic URL state persistence (clickable URL support)
-  const initialAccount = searchParams.get('account') || 'all';
-  const initialView = (searchParams.get('view') as 'tree' | 'simple' | 'pro') || (searchParams.get('account') ? 'simple' : 'tree');
+  // URL state persistence (clickable URL support)
+  const initialView = (searchParams.get('view') as 'tree' | 'balance_sheet' | 'income_statement') || 'tree';
+  const initialAccount = searchParams.get('account') || '';
 
-  // View Mode: 'tree' (Accounts Tree Hierarchy) vs 'simple' (Register) vs 'pro' (Double Entry Splits)
-  const [viewMode, setViewMode] = useState<'tree' | 'simple' | 'pro'>(initialView);
+  // 3 Primary Views as requested by user:
+  // 1. 'tree' (Chart of Accounts Tree)
+  // 2. 'balance_sheet' (GnuCash Multicolumn Balance Sheet)
+  // 3. 'income_statement' (GnuCash Multicolumn Income Statement)
+  const [viewMode, setViewMode] = useState<'tree' | 'balance_sheet' | 'income_statement'>(initialView);
 
   // Data states
-  const [transactions, setTransactions] = useState<ConsolidatedTransaction[]>([]);
   const [summary, setSummary] = useState<ConsolidatedSummary | null>(null);
   const [accountsTree, setAccountsTree] = useState<AccountTreeNode[]>([]);
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheetData | null>(null);
+  const [incomeStatement, setIncomeStatement] = useState<IncomeStatementData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Expanded nodes in tree view (Open/Close state)
-  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
-    'ASSETS': true,
-    'EXPENSES': true,
-    'EXPENSES:BHEGA': true,
-    'INCOME': true,
-    'LIABILITIES': true,
-  });
+  // Income Statement date filters (Default matching GnuCash screenshot: 2025-11-01 to 2026-12-31)
+  const [isStartDate, setIsStartDate] = useState('2025-11-01');
+  const [isEndDate, setIsEndDate] = useState('2026-12-31');
 
-  // Selected account for highlighting in tree (GnuCash style blue selection)
-  const [selectedTreeAccount, setSelectedTreeAccount] = useState<string>(
-    initialAccount !== 'all' ? initialAccount : 'EXPENSES:Insuranse'
-  );
+  // Balance sheet as-of date (Default matching GnuCash screenshot: 2026-12-31)
+  const [bsAsOfDate, setBsAsOfDate] = useState('2026-12-31');
 
-  // Filters: FY, Month, Same nu Khatu (સામેનું ખાતું), Flow Type (આવક/ખર્ચ)
-  const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [selectedAccount, setSelectedAccount] = useState<string>(initialAccount);
-  const [selectedFlow, setSelectedFlow] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [showFilters, setShowFilters] = useState<boolean>(!isMobile);
+  // Expanded nodes in tree view
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
-  const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
+  // Selected account modal / drawer ("one click to show that link")
+  const [selectedAccountModal, setSelectedAccountModal] = useState<string | null>(initialAccount || null);
+  const [accountStatement, setAccountStatement] = useState<AccountStatementData | null>(null);
+  const [accountStatementLoading, setAccountStatementLoading] = useState(false);
 
   // Upload Modal State
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -75,43 +71,6 @@ export default function ConsolidatedLedgerPage() {
   // Reset Confirmation Modal
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-
-  // Dynamic Color helper for Business Stream badge
-  const getStreamBadgeStyle = (stream: string) => {
-    if (!stream) return { bg: 'rgba(107, 114, 128, 0.12)', color: 'var(--text-secondary)', border: 'rgba(107, 114, 128, 0.25)' };
-    const s = stream.toLowerCase();
-    if (s.includes('લૂમ્સ') || s.includes('looms')) {
-      return { bg: 'rgba(6, 182, 212, 0.14)', color: '#0891b2', border: 'rgba(6, 182, 212, 0.35)' };
-    }
-    if (s.includes('પ્રિશા') || s.includes('embro') || s.includes('એમ્બ્રોઈડરી')) {
-      return { bg: 'rgba(168, 85, 247, 0.14)', color: '#9333ea', border: 'rgba(168, 85, 247, 0.35)' };
-    }
-    if (s.includes('કેયુર') || s.includes('હીરા') || s.includes('diamond')) {
-      return { bg: 'rgba(245, 158, 11, 0.14)', color: '#d97706', border: 'rgba(245, 158, 11, 0.35)' };
-    }
-    if (s.includes('m.j') || s.includes('j.t')) {
-      return { bg: 'rgba(59, 130, 246, 0.14)', color: '#2563eb', border: 'rgba(59, 130, 246, 0.35)' };
-    }
-    if (s.includes('ઘરખર્ચ') || s.includes('expense')) {
-      return { bg: 'rgba(239, 68, 68, 0.14)', color: '#dc2626', border: 'rgba(239, 68, 68, 0.35)' };
-    }
-    if (s.includes('લોન') || s.includes('ઉછીના') || s.includes('liabilit')) {
-      return { bg: 'rgba(249, 115, 22, 0.14)', color: '#ea580c', border: 'rgba(249, 115, 22, 0.35)' };
-    }
-    if (s.includes('મૂડી') || s.includes('રોકાણ') || s.includes('capital') || s.includes('asset')) {
-      return { bg: 'rgba(16, 185, 129, 0.14)', color: '#059669', border: 'rgba(16, 185, 129, 0.35)' };
-    }
-    // Dynamic color from hash for any other stream
-    let hash = 0;
-    for (let i = 0; i < stream.length; i++) hash = stream.charCodeAt(i) + ((hash << 5) - hash);
-    const hues = [210, 280, 160, 30, 340, 190];
-    const hue = hues[Math.abs(hash) % hues.length];
-    return {
-      bg: `hsla(${hue}, 70%, 50%, 0.14)`,
-      color: `hsl(${hue}, 80%, 40%)`,
-      border: `hsla(${hue}, 70%, 50%, 0.35)`
-    };
-  };
 
   // Helper for Account Type Badge Color
   const getTypeBadgeStyle = (type: string) => {
@@ -134,11 +93,9 @@ export default function ConsolidatedLedgerPage() {
     }
   };
 
-  // Toggle tree node expansion (CLOSE AND OPEN ONLY — NO NAVIGATION)
+  // Toggle tree node expansion (CLOSE AND OPEN ONLY)
   const toggleNode = (nodeFullName: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+    if (e) e.stopPropagation();
     setExpandedNodes(prev => ({
       ...prev,
       [nodeFullName]: !prev[nodeFullName]
@@ -165,106 +122,90 @@ export default function ConsolidatedLedgerPage() {
     setExpandedNodes({});
   };
 
-  // Fetch summary, accounts tree, and transactions
+  // Initial and full data fetch
   const fetchData = async () => {
     try {
       setRefreshing(true);
-      const filterParams = {
-        financial_year: selectedYear,
-        month: selectedMonth,
-        primary_account: selectedAccount,
-        flow_type: selectedFlow,
-        search: searchQuery.trim() || undefined,
-        skip: 0,
-        limit: 15,
-      };
-
-      const [txList, sumData, treeData] = await Promise.all([
-        consolidatedApi.getTransactions(filterParams),
-        consolidatedApi.getSummary(filterParams),
+      const [sumData, treeData, bsData, isData] = await Promise.all([
+        consolidatedApi.getSummary(),
         consolidatedApi.getAccountsTree(),
+        consolidatedApi.getBalanceSheet(bsAsOfDate),
+        consolidatedApi.getIncomeStatement(isStartDate, isEndDate),
       ]);
 
-      setTransactions(txList);
       setSummary(sumData);
       setAccountsTree(treeData);
+      setBalanceSheet(bsData);
+      setIncomeStatement(isData);
+
+      // Auto-expand top level roots dynamically
+      const initialExp: Record<string, boolean> = {};
+      treeData.forEach(r => {
+        if (r.children && r.children.length > 0) {
+          initialExp[r.full_name] = true;
+          r.children.forEach(c => {
+            if (c.children && c.children.length > 0) {
+              initialExp[c.full_name] = true;
+            }
+          });
+        }
+      });
+      setExpandedNodes(prev => ({ ...initialExp, ...prev }));
     } catch (err: any) {
-      console.error('Failed to fetch consolidated ledger data', err);
-      showToast('ડેટા લોડ કરવામાં ક્ષતિ આવી. કૃપા કરીને પુનઃ પ્રયાસ કરો.', 'error');
+      console.error('Failed to load consolidated data', err);
+      showToast('ડેટા લોડ કરવામાં ક્ષતિ આવી.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Load More 15 transactions
-  const handleLoadMore = async () => {
-    if (loadingMore) return;
-    try {
-      setLoadingMore(true);
-      const filterParams = {
-        financial_year: selectedYear,
-        month: selectedMonth,
-        primary_account: selectedAccount,
-        flow_type: selectedFlow,
-        search: searchQuery.trim() || undefined,
-        skip: transactions.length,
-        limit: 15,
-      };
-      const moreList = await consolidatedApi.getTransactions(filterParams);
-      if (moreList.length > 0) {
-        setTransactions(prev => [...prev, ...moreList]);
-      } else {
-        showToast('હવે કોઈ વધારાના વ્યવહારો નથી.', 'info');
-      }
-    } catch (err: any) {
-      console.error('Failed to load more records', err);
-      showToast('વધુ વ્યવહારો લોડ કરવામાં ક્ષતિ આવી.', 'error');
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  // Refetch when filters change
   useEffect(() => {
     fetchData();
-  }, [selectedYear, selectedMonth, selectedAccount, selectedFlow]);
+  }, [bsAsOfDate, isStartDate, isEndDate]);
 
-  // Debounced search
+  // Sync URL search params
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchData();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Sync URL search params with state (browser back/forward, direct clickable URLs)
-  useEffect(() => {
-    const urlAccount = searchParams.get('account') || 'all';
-    const urlView = (searchParams.get('view') as 'tree' | 'simple' | 'pro') || (urlAccount !== 'all' ? 'simple' : 'tree');
-    if (urlAccount !== selectedAccount) {
-      setSelectedAccount(urlAccount);
-      setSelectedTreeAccount(urlAccount !== 'all' ? urlAccount : '');
-    }
+    const urlView = (searchParams.get('view') as 'tree' | 'balance_sheet' | 'income_statement') || 'tree';
     if (urlView !== viewMode) {
       setViewMode(urlView);
     }
+    const urlAcc = searchParams.get('account');
+    if (urlAcc && urlAcc !== selectedAccountModal) {
+      handleOpenAccountModal(urlAcc);
+    }
   }, [searchParams]);
 
-  // Explicit action: Open Register for this account (Clickable URL Navigation)
-  const handleOpenAccountTransactions = (nodeFullName: string, nodeName: string) => {
-    setSelectedTreeAccount(nodeFullName);
-    setSelectedAccount(nodeFullName);
-    setViewMode('simple');
-    setSearchParams({ view: 'simple', account: nodeFullName });
-    showToast(`ખાતું પસંદ થયું: ${nodeName}`, 'info');
+  // One-click handler to open an account's statement and update URL
+  const handleOpenAccountModal = async (accountFullName: string, _gujaratiName?: string) => {
+    setSelectedAccountModal(accountFullName);
+    setAccountStatementLoading(true);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('account', accountFullName);
+      return next;
+    });
+
+    try {
+      const data = await consolidatedApi.getAccountStatement(accountFullName);
+      setAccountStatement(data);
+    } catch (err) {
+      console.error('Failed to fetch account statement', err);
+      showToast('આ ખાતાના વ્યવહારો લોડ કરવામાં ક્ષતિ આવી.', 'error');
+    } finally {
+      setAccountStatementLoading(false);
+    }
   };
 
-  // Clear account filter
-  const handleClearAccountFilter = () => {
-    setSelectedAccount('all');
-    setSelectedTreeAccount('');
-    setSearchParams({ view: viewMode });
+  // Close account statement modal
+  const handleCloseAccountModal = () => {
+    setSelectedAccountModal(null);
+    setAccountStatement(null);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('account');
+      return next;
+    });
   };
 
   // Handle CSV file selection
@@ -275,7 +216,7 @@ export default function ConsolidatedLedgerPage() {
     }
   };
 
-  // Upload CSV handler (Clean sync/replace)
+  // Upload CSV handler
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
@@ -287,13 +228,7 @@ export default function ConsolidatedLedgerPage() {
     try {
       const res = await consolidatedApi.upload(selectedFile);
       setUploadResult(res);
-
-      if (res.new_transactions_added > 0) {
-        showToast(res.message, 'success');
-      } else {
-        showToast(res.message, 'info');
-      }
-
+      showToast(res.message, res.new_transactions_added > 0 ? 'success' : 'info');
       fetchData();
     } catch (err: any) {
       console.error('Upload failed', err);
@@ -301,18 +236,6 @@ export default function ConsolidatedLedgerPage() {
       showToast(detail, 'error');
     } finally {
       setUploadLoading(false);
-    }
-  };
-
-  // Delete transaction handler
-  const handleDeleteTransaction = async (id: number) => {
-    if (!window.confirm('શું તમે ખરેખર આ વ્યવહાર કાઢી નાખવા માંગો છો?')) return;
-    try {
-      await consolidatedApi.deleteTransaction(id);
-      showToast('વ્યવહાર કાઢી નાખવામાં આવ્યો.', 'success');
-      fetchData();
-    } catch (err: any) {
-      showToast('કાઢી નાખવામાં નિષ્ફળતા મળી.', 'error');
     }
   };
 
@@ -331,72 +254,26 @@ export default function ConsolidatedLedgerPage() {
     }
   };
 
-  // Month formatter helper
-  const formatMonthGujarati = (mStr: string) => {
-    if (!mStr || mStr === 'all') return 'તમામ મહિના';
-    const [y, m] = mStr.split('-');
-    const monthNames: Record<string, string> = {
-      '01': 'જાન્યુઆરી', '02': 'ફેબ્રુઆરી', '03': 'માર્ચ',
-      '04': 'એપ્રિલ', '05': 'મે', '06': 'જૂન',
-      '07': 'જુલાઈ', '08': 'ઓગસ્ટ', '09': 'સપ્ટેમ્બર',
-      '10': 'ઓક્ટોબર', '11': 'નવેમ્બર', '12': 'ડિસેમ્બર'
-    };
-    return `${monthNames[m] || m} ${y}`;
-  };
-
-  // 100% Dynamic available accounts from summary
-  const availableAccounts = useMemo(() => {
-    if (summary?.available_accounts && summary.available_accounts.length > 0) {
-      return summary.available_accounts;
-    }
-    // Fallback purely dynamic from transactions or tree
-    const fromTxs = transactions.map((t) => t.primary_account).filter(Boolean);
-    const fromTree: string[] = [];
-    const collectNames = (nodes: AccountTreeNode[]) => {
-      for (const n of nodes) {
-        fromTree.push(n.full_name);
-        if (n.children) collectNames(n.children);
-      }
-    };
-    collectNames(accountsTree);
-    return Array.from(new Set([...fromTxs, ...fromTree])).sort();
-  }, [summary?.available_accounts, transactions, accountsTree]);
-
-  // Recursive Tree Node Renderer for GnuCash UI
+  // Recursive Tree Node Renderer for View 1 (Chart of Accounts)
   const renderTreeNode = (node: AccountTreeNode, depth = 0) => {
     const hasChildren = Boolean(node.children && node.children.length > 0);
     const isExpanded = Boolean(expandedNodes[node.full_name]);
-    const isSelected = selectedTreeAccount === node.full_name || selectedAccount === node.full_name;
     const typeStyle = getTypeBadgeStyle(node.type);
-
-    // Row Click Behavior:
-    // If has children -> Toggles CLOSE/OPEN (does NOT navigate away!)
-    // If leaf node -> Selects row (does NOT navigate away unless explicit button clicked)
-    const handleRowClick = () => {
-      setSelectedTreeAccount(node.full_name);
-      if (hasChildren) {
-        toggleNode(node.full_name);
-      }
-    };
 
     return (
       <React.Fragment key={node.full_name}>
         <tr
-          onClick={handleRowClick}
-          onDoubleClick={() => handleOpenAccountTransactions(node.full_name, node.name)}
+          onClick={() => hasChildren && toggleNode(node.full_name)}
           style={{
-            cursor: 'pointer',
-            background: isSelected ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
+            cursor: hasChildren ? 'pointer' : 'default',
             borderBottom: '1px solid var(--border-glass)',
             transition: 'background 0.15s ease',
-            color: isSelected ? 'var(--primary)' : 'inherit',
           }}
-          className={`gnucash-tree-row ${isSelected ? 'row-selected' : ''}`}
+          className="gnucash-tree-row"
         >
-          {/* Account Name & Expand Chevron */}
+          {/* Account Name with chevron and click link */}
           <td style={{ padding: '8px 12px', paddingLeft: `${depth * 22 + 12}px`, whiteSpace: 'nowrap' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              {/* Dropdown Chevron: Clicking it CLOSES AND OPENS the branch */}
               {hasChildren ? (
                 <button
                   type="button"
@@ -413,9 +290,8 @@ export default function ConsolidatedLedgerPage() {
                     width: '20px',
                     height: '20px',
                     borderRadius: '4px',
-                    transition: 'all 0.15s ease',
                   }}
-                  title={isExpanded ? 'ડ્રોપડાઉન બંધ કરો (Collapse)' : 'ડ્રોપડાઉન ખોલો (Expand)'}
+                  title={isExpanded ? 'સંકોચો' : 'વિસ્તૃત કરો'}
                 >
                   {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </button>
@@ -425,23 +301,26 @@ export default function ConsolidatedLedgerPage() {
                 </span>
               )}
 
-              {/* Folder or Building Icon */}
               {hasChildren ? (
-                isExpanded ? (
-                  <FolderOpen size={16} color="#d97706" style={{ flexShrink: 0 }} />
-                ) : (
-                  <Folder size={16} color="#d97706" style={{ flexShrink: 0 }} />
-                )
+                isExpanded ? <FolderOpen size={16} color="#d97706" /> : <Folder size={16} color="#d97706" />
               ) : (
-                <Building size={15} color={isSelected ? 'var(--primary)' : 'var(--text-secondary)'} style={{ flexShrink: 0 }} />
+                <Building size={15} color="var(--text-secondary)" />
               )}
 
               <div>
-                <span style={{ fontWeight: hasChildren ? 800 : 600, fontSize: '0.84rem' }}>
+                <span
+                  className="gnucash-acc-link"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenAccountModal(node.full_name, node.gujarati_name);
+                  }}
+                  style={{ fontWeight: hasChildren ? 800 : 600, fontSize: '0.84rem' }}
+                  title="ક્લિક કરીને આ ખાતાના તમામ વ્યવહારો જુઓ"
+                >
                   {node.name}
                 </span>
                 {node.gujarati_name && node.gujarati_name !== node.name && (
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: '6px' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
                     ({node.gujarati_name})
                   </span>
                 )}
@@ -484,26 +363,26 @@ export default function ConsolidatedLedgerPage() {
             {node.balance < 0 ? `-₹${Math.abs(node.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `₹${node.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
           </td>
 
-          {/* Explicit Action: Open Register for this account */}
+          {/* One-click Action to open Statement */}
           <td style={{ padding: '8px 12px', textAlign: 'center', width: '130px' }}>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                handleOpenAccountTransactions(node.full_name, node.name);
+                handleOpenAccountModal(node.full_name, node.gujarati_name);
               }}
               style={{
                 padding: '4px 10px',
                 fontSize: '0.72rem',
                 gap: '5px',
-                background: isSelected ? 'var(--primary)' : 'rgba(37, 99, 235, 0.08)',
-                color: isSelected ? '#ffffff' : 'var(--primary)',
+                background: 'rgba(37, 99, 235, 0.08)',
+                color: 'var(--primary)',
                 border: '1px solid rgba(37, 99, 235, 0.25)',
                 fontWeight: 600,
                 borderRadius: 'var(--radius-sm)',
               }}
-              title="માત્ર આ ખાતાના તમામ વ્યવહારો / ખર્ચાઓ જુઓ"
+              title="માત્ર આ ખાતાના તમામ વ્યવહારો જુઓ"
             >
               <span>વ્યવહારો જુઓ</span>
               <ArrowRight size={12} />
@@ -511,7 +390,6 @@ export default function ConsolidatedLedgerPage() {
           </td>
         </tr>
 
-        {/* Recursive Children (Rendered when expanded) */}
         {hasChildren && isExpanded && node.children.map((child) => renderTreeNode(child, depth + 1))}
       </React.Fragment>
     );
@@ -521,15 +399,6 @@ export default function ConsolidatedLedgerPage() {
 
   return (
     <div className="animate-slide-up">
-      {/* ═══════ PRINT HEADER ═══════ */}
-      <div className="print-only print-header">
-        <h1>વડસક પરિવાર — બધા નો મિક્સ હિસાબ (Master Cashbook)</h1>
-        <p>સંયુક્ત ધંધાકીય અને પારિવારિક ખાતાવહી અહેવાલ</p>
-        <p style={{ fontSize: '9pt', color: '#666' }}>
-          તારીખ: {new Date().toLocaleDateString('gu-IN')} | નાણાકીય વર્ષ: {selectedYear === 'all' ? 'તમામ' : selectedYear} | મહિનો: {formatMonthGujarati(selectedMonth)} | સામેનું ખાતું: {selectedAccount === 'all' ? 'તમામ' : selectedAccount}
-        </p>
-      </div>
-
       {/* ═══════ TOP NAVIGATION & ACTIONS ═══════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
         <button
@@ -709,7 +578,7 @@ export default function ConsolidatedLedgerPage() {
         </div>
       </div>
 
-      {/* ═══════ MULTI-VIEW TOGGLE TABS (TREE vs REGISTER vs CA) ═══════ */}
+      {/* ═══════ THE 3 SPECIALIZED TABS (CHART OF ACCOUNTS / BALANCE SHEET / INCOME STATEMENT) ═══════ */}
       <div
         className="glass-card"
         style={{
@@ -722,8 +591,8 @@ export default function ConsolidatedLedgerPage() {
           gap: '10px',
         }}
       >
-        {/* Navigation Tabs */}
         <div style={{ display: 'inline-flex', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', padding: '3px', border: '1px solid var(--border-glass)' }}>
+          {/* Tab 1: Chart of Accounts */}
           <button
             type="button"
             onClick={() => {
@@ -731,8 +600,8 @@ export default function ConsolidatedLedgerPage() {
               setSearchParams({ view: 'tree' });
             }}
             style={{
-              padding: '6px 14px',
-              fontSize: '0.8rem',
+              padding: '7px 16px',
+              fontSize: '0.82rem',
               fontWeight: viewMode === 'tree' ? 800 : 500,
               background: viewMode === 'tree' ? 'var(--primary)' : 'transparent',
               color: viewMode === 'tree' ? '#ffffff' : 'var(--text-secondary)',
@@ -745,22 +614,23 @@ export default function ConsolidatedLedgerPage() {
               transition: '0.15s ease',
             }}
           >
-            <Building size={14} />
+            <Building size={15} />
             <span>એકાઉન્ટ્સ વૃક્ષ (Chart of Accounts)</span>
           </button>
 
+          {/* Tab 2: Balance Sheet */}
           <button
             type="button"
             onClick={() => {
-              setViewMode('simple');
-              setSearchParams({ view: 'simple', ...(selectedAccount !== 'all' ? { account: selectedAccount } : {}) });
+              setViewMode('balance_sheet');
+              setSearchParams({ view: 'balance_sheet' });
             }}
             style={{
-              padding: '6px 14px',
-              fontSize: '0.8rem',
-              fontWeight: viewMode === 'simple' ? 800 : 500,
-              background: viewMode === 'simple' ? 'var(--primary)' : 'transparent',
-              color: viewMode === 'simple' ? '#ffffff' : 'var(--text-secondary)',
+              padding: '7px 16px',
+              fontSize: '0.82rem',
+              fontWeight: viewMode === 'balance_sheet' ? 800 : 500,
+              background: viewMode === 'balance_sheet' ? '#d97706' : 'transparent',
+              color: viewMode === 'balance_sheet' ? '#ffffff' : 'var(--text-secondary)',
               border: 'none',
               borderRadius: 'var(--radius-sm)',
               cursor: 'pointer',
@@ -770,22 +640,23 @@ export default function ConsolidatedLedgerPage() {
               transition: '0.15s ease',
             }}
           >
-            <FileText size={14} />
-            <span>સરળ કેશબુક (Register)</span>
+            <Scale size={15} />
+            <span>બેલેન્સ શીટ (Balance Sheet)</span>
           </button>
 
+          {/* Tab 3: Income Statement */}
           <button
             type="button"
             onClick={() => {
-              setViewMode('pro');
-              setSearchParams({ view: 'pro' });
+              setViewMode('income_statement');
+              setSearchParams({ view: 'income_statement' });
             }}
             style={{
-              padding: '6px 14px',
-              fontSize: '0.8rem',
-              fontWeight: viewMode === 'pro' ? 800 : 500,
-              background: viewMode === 'pro' ? 'var(--primary)' : 'transparent',
-              color: viewMode === 'pro' ? '#ffffff' : 'var(--text-secondary)',
+              padding: '7px 16px',
+              fontSize: '0.82rem',
+              fontWeight: viewMode === 'income_statement' ? 800 : 500,
+              background: viewMode === 'income_statement' ? '#10b981' : 'transparent',
+              color: viewMode === 'income_statement' ? '#ffffff' : 'var(--text-secondary)',
               border: 'none',
               borderRadius: 'var(--radius-sm)',
               cursor: 'pointer',
@@ -795,18 +666,16 @@ export default function ConsolidatedLedgerPage() {
               transition: '0.15s ease',
             }}
           >
-            <BookOpen size={14} />
-            <span>ખાતાવહી (CA Splits)</span>
+            <TrendingUp size={15} />
+            <span>નફો-નુકસાન પત્રક (Income Statement)</span>
           </button>
         </div>
-
-
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          VIEW 1: GNUCASH-STYLE CHART OF ACCOUNTS TREE
+          VIEW 1: CHART OF ACCOUNTS TREE (GnuCash Desktop Style)
           ═══════════════════════════════════════════════════════════ */}
-      {viewMode === 'tree' ? (
+      {viewMode === 'tree' && (
         <div className="glass-card" style={{ marginTop: '12px', padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-glass)', background: 'var(--bg-surface-elevated)', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -819,7 +688,6 @@ export default function ConsolidatedLedgerPage() {
               </span>
             </div>
 
-            {/* Quick Expand / Collapse All Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 type="button"
@@ -866,456 +734,558 @@ export default function ConsolidatedLedgerPage() {
             </table>
           </div>
         </div>
-      ) : (
-        /* ═══════════════════════════════════════════════════════════
-            VIEW 2 & 3: REGISTER (સરળ કેશબુક) / CA SPLITS
-            ═══════════════════════════════════════════════════════════ */
-        <>
-          {/* Breadcrumb banner if filtered by an account */}
-          {selectedAccount !== 'all' && (
-            <div
-              className="glass-card"
-              style={{
-                marginTop: '12px',
-                padding: '10px 14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: 'rgba(37, 99, 235, 0.08)',
-                border: '1px solid rgba(37, 99, 235, 0.25)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setViewMode('tree');
-                    setSearchParams({ view: 'tree' });
-                  }}
-                  style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
-                >
-                  <ArrowLeft size={13} />
-                  <span>એકાઉન્ટ્સ વૃક્ષ પર પાછા જાઓ</span>
-                </button>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 600 }}>
-                  ખાતું: <strong style={{ color: 'var(--primary)' }}>{selectedAccount}</strong>
-                </span>
-                <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
-                  {summary?.total_count || transactions.length} વ્યવહારો મળ્યા
-                </span>
-              </div>
+      )}
 
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={handleClearAccountFilter}
-                style={{ fontSize: '0.72rem', padding: '3px 10px', height: '26px' }}
-              >
-                ✕ તમામ ખાતાઓ
-              </button>
+      {/* ═══════════════════════════════════════════════════════════
+          VIEW 2: BALANCE SHEET (MULTICOLUMN) - MATCHING SCREENSHOT 1
+          ═══════════════════════════════════════════════════════════ */}
+      {viewMode === 'balance_sheet' && balanceSheet && (
+        <div className="gnucash-statement-card" style={{ marginTop: '12px' }}>
+          {/* Header Title matching screenshot 1 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.35rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                Balance Sheet (Multicolumn) {balanceSheet.as_of_date_formatted}
+              </h2>
+              <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                દ્વિ-સ્તંભ સરવૈયું / સ્થિતિ દર્શક પત્રક (તારીખ: {balanceSheet.as_of_date_formatted} સુધી)
+              </p>
             </div>
-          )}
 
-          {/* ═══════ SEARCH & COLLAPSIBLE FILTERS ═══════ */}
-          <div className="glass-card" style={{ marginTop: '12px', padding: '12px 16px' }}>
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: isMobile ? '100%' : '240px' }}>
-                <Search size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="વિગત, નોંધ અથવા સામેનું ખાતું શોધો..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ padding: '6px 10px', fontSize: '0.82rem', height: '36px', width: '100%' }}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    className="btn-icon"
-                    onClick={() => setSearchQuery('')}
-                    style={{ padding: '4px', color: 'var(--text-muted)', flexShrink: 0 }}
-                    title="શોધ સાફ કરો"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                  style={{ height: '36px', padding: '0 10px' }}
-                >
-                  <Filter size={13} />
-                  <span>ફિલ્ટર્સ</span>
-                  {showFilters ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                </button>
+                <Calendar size={14} color="var(--text-muted)" />
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>તારીખ સુધી:</span>
+                <input
+                  type="date"
+                  value={bsAsOfDate}
+                  onChange={(e) => setBsAsOfDate(e.target.value)}
+                  className="input-field"
+                  style={{ height: '30px', fontSize: '0.76rem', padding: '2px 8px' }}
+                />
               </div>
+
+              <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '4px 10px' }}>
+                ✓ સરભર છે (Balanced)
+              </span>
             </div>
-
-            {/* Collapsible Filters Row: Financial Year, Month, Same nu Khatu (સામેનું ખાતું), Flow Type */}
-            {showFilters && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
-                  gap: '8px',
-                  marginTop: '10px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid var(--border-glass)',
-                }}
-              >
-                {/* 1. Financial Year */}
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
-                    નાણાકીય વર્ષ (FY)
-                  </label>
-                  <select
-                    className="input-field mix-filter-select"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                  >
-                    <option value="all">તમામ વર્ષો</option>
-                    {summary?.available_years.map((y) => (
-                      <option key={y} value={y}>
-                        વર્ષ {y}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 2. Month */}
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
-                    મહિનો
-                  </label>
-                  <select
-                    className="input-field mix-filter-select"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                  >
-                    <option value="all">તમામ મહિના</option>
-                    {summary?.available_months.map((m) => (
-                      <option key={m} value={m}>
-                        {formatMonthGujarati(m)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 3. SAME NU KHATU (સામેનું ખાતું ફિલ્ટર) - 100% Dynamic */}
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px', fontWeight: 700, color: 'var(--primary)' }}>
-                    📋 સામેનું ખાતું (Account)
-                  </label>
-                  <select
-                    className="input-field mix-filter-select"
-                    value={selectedAccount}
-                    onChange={(e) => {
-                      setSelectedAccount(e.target.value);
-                    }}
-                    style={{ fontWeight: selectedAccount !== 'all' ? 700 : 500 }}
-                  >
-                    <option value="all">તમામ સામેના ખાતાઓ</option>
-                    {availableAccounts.map((acc) => (
-                      <option key={acc} value={acc}>
-                        {acc}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 4. Income / Expense Flow Type (આવક / ખર્ચ ફિલ્ટર) */}
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '3px' }}>
-                    💰 આવક / ખર્ચ
-                  </label>
-                  <select
-                    className="input-field mix-filter-select"
-                    value={selectedFlow}
-                    onChange={(e) => setSelectedFlow(e.target.value)}
-                  >
-                    <option value="all">બધા વ્યવહારો</option>
-                    <option value="income">માત્ર આવક (+) જમા</option>
-                    <option value="expense">માત્ર ખર્ચ / જાવક (-) ઉધાર</option>
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* ═══════ TRANSACTIONS TABLE / LIST ═══════ */}
-          <div className="glass-card" style={{ marginTop: '12px', padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-glass)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <FileText size={16} color="var(--primary)" />
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0 }}>
-                  {viewMode === 'simple' ? 'સરળ રોકડ ખાતાવહી (Cashbook Entries)' : 'દ્વિ-નોંધી ખાતાવહી (Double Entry Splits)'}
-                </h3>
-                <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
-                  દર્શાવેલ: {transactions.length} / {summary?.total_count || 0}
-                </span>
-                {selectedAccount !== 'all' && (
-                  <span className="badge" style={{ fontSize: '0.65rem', background: '#d97706', color: '#fff' }}>
-                    ખાતું: {selectedAccount}
-                  </span>
-                )}
+          {/* Multicolumn Layout: Left = Asset | Right = Liability & Equity */}
+          <div className="gnucash-statement-grid">
+            {/* ══════ LEFT COLUMN: ASSET ══════ */}
+            <div className="gnucash-col">
+              <div className="gnucash-sec-header">
+                <span>Asset (સંપત્તિ)</span>
+                <span>રકમ</span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={fetchData}
-                  disabled={refreshing}
-                  title="ડેટા રીફ્રેશ કરો"
-                >
-                  <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
-                </button>
+              <table className="gnucash-table">
+                <tbody>
+                  {/* ASSETS Root */}
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>{balanceSheet.assets.root_name}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 800 }}>
+                      $ {balanceSheet.assets.root_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+
+                  {/* Children of ASSETS (Clickable Links) */}
+                  {balanceSheet.assets.children.map((item) => (
+                    <tr key={item.full_name}>
+                      <td style={{ paddingLeft: '22px' }}>
+                        <span
+                          className="gnucash-acc-link"
+                          onClick={() => handleOpenAccountModal(item.full_name, item.gujarati_name)}
+                          title="આ ખાતાના વ્યવહારો જુઓ"
+                        >
+                          {item.name}
+                        </span>
+                        {item.gujarati_name && item.gujarati_name !== item.name && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                            ({item.gujarati_name})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        $ {item.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Standalone Asset items (Cap. Old-Money & Cashbook) */}
+                  {balanceSheet.assets.standalone.map((item) => (
+                    <tr key={item.full_name}>
+                      <td>
+                        <span
+                          className="gnucash-acc-link"
+                          onClick={() => handleOpenAccountModal(item.full_name, item.gujarati_name)}
+                          title="આ ખાતાના વ્યવહારો જુઓ"
+                        >
+                          {item.name}
+                        </span>
+                        {item.gujarati_name && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                            ({item.gujarati_name})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right', color: item.balance < 0 ? 'var(--error)' : 'inherit' }}>
+                        {item.balance < 0
+                          ? `$ -${Math.abs(item.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                          : `$ ${item.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Total For Asset */}
+              <div className="gnucash-total-bar" style={{ marginTop: 'auto' }}>
+                <span>Total For Asset (કુલ સંપત્તિ)</span>
+                <span>$ {balanceSheet.assets.total_asset.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
 
-            {transactions.length === 0 ? (
-              <EmptyState
-                icon={BookOpen}
-                message="કોઈ વ્યવહાર મળ્યા નથી. પસંદ કરેલ ફિલ્ટરમાં કોઈ ડેટા નથી અથવા હજુ સુધી કોઈ CSV ફાઇલ અપલોડ થયેલ નથી."
-              />
-            ) : viewMode === 'simple' ? (
-              /* ═══════ REGISTER VIEW: SIMPLE CASHBOOK ═══════ */
-              <div className="table-responsive">
-                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border-glass)' }}>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>તારીખ</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>બિઝનેસ પ્રવાહ</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>વિગત / નોંધ</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>સામેનું ખાતું</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>આવક (+)</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>જાવક (-)</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'center', width: '50px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.map((tx) => {
-                      const streamStyle = getStreamBadgeStyle(tx.business_stream);
-                      const isExpanded = expandedTxId === tx.id;
-                      return (
-                        <React.Fragment key={tx.id}>
-                          <tr
-                            style={{
-                              borderBottom: '1px solid var(--border-glass)',
-                              transition: 'background 0.15s ease',
-                              cursor: (tx.splits?.length > 2) ? 'pointer' : 'default',
-                            }}
-                            onClick={() => (tx.splits?.length > 2) && setExpandedTxId(isExpanded ? null : tx.id)}
-                          >
-                            <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '0.82rem' }}>
-                              {tx.date}
-                            </td>
-                            <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                              <span
-                                className="badge"
-                                style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  background: streamStyle.bg,
-                                  color: streamStyle.color,
-                                  border: `1px solid ${streamStyle.border}`,
-                                }}
-                              >
-                                {tx.business_stream || 'સામાન્ય'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '10px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontWeight: 600, fontSize: '0.84rem' }}>{tx.description}</span>
-                                {(tx.splits?.length > 2) && (
-                                  <span className="badge" style={{ fontSize: '0.62rem', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb' }}>
-                                    {tx.splits?.length} સ્પ્લિટ્સ
-                                  </span>
-                                )}
-                              </div>
-                              {tx.notes && tx.notes !== tx.description && (
-                                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{tx.notes}</p>
-                              )}
-                            </td>
-                            <td style={{ padding: '10px 14px', fontSize: '0.8rem' }}>
-                              <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.76rem', color: 'var(--text-main)' }}>
-                                {tx.primary_account}
-                              </div>
-                            </td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#10b981', whiteSpace: 'nowrap' }}>
-                              {tx.inflow > 0 ? `+₹${tx.inflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
-                            </td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#ef4444', whiteSpace: 'nowrap' }}>
-                              {tx.outflow > 0 ? `-₹${tx.outflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
-                            </td>
-                            <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                              {user?.role === 'admin' && (
-                                <button
-                                  type="button"
-                                  className="btn-icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteTransaction(tx.id);
-                                  }}
-                                  style={{ color: 'var(--error)', padding: '4px' }}
-                                  title="વ્યવહાર કાઢી નાખો"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
+            {/* ══════ RIGHT COLUMN: LIABILITY & EQUITY ══════ */}
+            <div className="gnucash-col">
+              {/* 1. Liability */}
+              <div>
+                <div className="gnucash-sec-header">
+                  <span>Liability (દેવું અને લોન)</span>
+                  <span>રકમ</span>
+                </div>
 
-                          {/* Expanded multi-split drilldown */}
-                          {isExpanded && tx.splits && (
-                            <tr style={{ background: 'var(--bg-surface-elevated)' }}>
-                              <td colSpan={7} style={{ padding: '10px 18px' }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '6px', color: 'var(--primary)' }}>
-                                  આ વ્યવહારના તમામ ખાતાઓ (Splits Breakdown):
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
-                                  {tx.splits.map((s) => (
-                                    <div
-                                      key={s.id}
-                                      style={{
-                                        padding: '6px 10px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'var(--bg-surface)',
-                                        border: '1px solid var(--border-glass)',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                      }}
-                                    >
-                                      <div>
-                                        <div style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.74rem' }}>{s.account_name}</div>
-                                        {s.memo && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{s.memo}</div>}
-                                      </div>
-                                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: s.amount >= 0 ? '#10b981' : '#ef4444' }}>
-                                        {s.amount >= 0 ? `+₹${s.amount.toLocaleString('en-IN')}` : `-₹${Math.abs(s.amount).toLocaleString('en-IN')}`}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              /* ═══════ CA PRO VIEW: DOUBLE ENTRY SPLITS ═══════ */
-              <div className="table-responsive">
-                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border-glass)' }}>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>તારીખ</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>વિગત / વ્યવહાર ID</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)' }}>ખાતાવહી સ્પ્લિટ્સ (Double Entry Splits)</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '130px' }}>ઉધાર (Debit)</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-muted)', width: '130px' }}>જમા (Credit)</th>
-                    </tr>
-                  </thead>
+                <table className="gnucash-table">
                   <tbody>
-                    {transactions.map((tx) => (
-                      <tr key={tx.id} style={{ borderBottom: '1px solid var(--border-glass)', verticalAlign: 'top' }}>
-                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '0.82rem' }}>
-                          {tx.date}
+                    <tr>
+                      <td style={{ fontWeight: 800 }}>{balanceSheet.liabilities.root_name}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 800 }}>
+                        $ {balanceSheet.liabilities.root_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+
+                    {balanceSheet.liabilities.children.map((item) => (
+                      <tr key={item.full_name}>
+                        <td style={{ paddingLeft: '22px' }}>
+                          <span
+                            className="gnucash-acc-link"
+                            onClick={() => handleOpenAccountModal(item.full_name, item.gujarati_name)}
+                            title="આ ખાતાના વ્યવહારો જુઓ"
+                          >
+                            {item.name}
+                          </span>
+                          {item.gujarati_name && item.gujarati_name !== item.name && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                              ({item.gujarati_name})
+                            </span>
+                          )}
                         </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.84rem' }}>{tx.description}</div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                            ID: {tx.tx_guid || tx.id}
-                          </div>
-                        </td>
-                        <td style={{ padding: '6px 14px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {tx.splits && tx.splits.length > 0 ? (
-                              tx.splits.map((s) => (
-                                <div
-                                  key={s.id}
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '4px 8px',
-                                    borderRadius: '3px',
-                                    background: 'var(--bg-surface-elevated)',
-                                    fontSize: '0.75rem',
-                                  }}
-                                >
-                                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.account_name}</span>
-                                  <span style={{ fontWeight: 700, color: s.amount >= 0 ? '#10b981' : '#ef4444' }}>
-                                    {s.amount >= 0 ? `+₹${s.amount.toLocaleString('en-IN')}` : `-₹${Math.abs(s.amount).toLocaleString('en-IN')}`}
-                                  </span>
-                                </div>
-                              ))
-                            ) : (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {tx.primary_account}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#10b981' }}>
-                          {tx.inflow > 0 ? `₹${tx.inflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
-                        </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: '#ef4444' }}>
-                          {tx.outflow > 0 ? `₹${tx.outflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                        <td style={{ textAlign: 'right' }}>
+                          $ {item.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            )}
 
-            {/* ═══════ LOAD MORE BUTTON (15 RECORDS PAGINATION) ═══════ */}
-            {summary && transactions.length < summary.total_count && (
-              <div style={{ padding: '14px', textAlign: 'center', background: 'var(--bg-surface-elevated)', borderTop: '1px solid var(--border-glass)' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  style={{
-                    padding: '8px 24px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    gap: '8px',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  {loadingMore ? (
-                    <>
-                      <RefreshCw size={14} className="spin" />
-                      <span>વધુ વ્યવહારો લોડ થઈ રહ્યા છે...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>વધુ વ્યવહારો જુઓ (આગળના 15)</span>
-                      <ArrowRight size={14} />
-                    </>
-                  )}
-                </button>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-                  કુલ {summary.total_count} માંથી {transactions.length} વ્યવહારો દર્શાવેલ છે
+                {/* Total For Liability */}
+                <div className="gnucash-total-bar" style={{ marginTop: '6px' }}>
+                  <span>Total For Liability (કુલ દેવું)</span>
+                  <span>$ {balanceSheet.liabilities.total_liability.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
-            )}
+
+              {/* 2. Equity */}
+              <div style={{ marginTop: '10px' }}>
+                <div className="gnucash-sec-header">
+                  <span>Equity (મૂડી)</span>
+                  <span>રકમ</span>
+                </div>
+
+                <table className="gnucash-table">
+                  <tbody>
+                    <tr>
+                      <td>
+                        <span
+                          className="gnucash-acc-link"
+                          onClick={() => handleOpenAccountModal('Capital Acc', 'મૂડી ખાતું')}
+                          title="મૂડી ખાતાના વ્યવહારો જુઓ"
+                        >
+                          Capital Acc
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                          (મૂડી ખાતું)
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        $ {balanceSheet.equity.capital_acc.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Unrealized Gains</td>
+                      <td style={{ textAlign: 'right' }}>
+                        $ {balanceSheet.equity.unrealized_gains.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Retained Earnings (અનામત નફો)</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        $ {balanceSheet.equity.retained_earnings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* Total For Equity */}
+                <div className="gnucash-total-bar" style={{ marginTop: '6px' }}>
+                  <span>Total For Equity (કુલ મૂડી)</span>
+                  <span>$ {balanceSheet.equity.total_equity.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {/* Final Grand Total For Liability and Equity */}
+              <div
+                className="gnucash-total-bar"
+                style={{
+                  marginTop: '10px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  borderColor: '#10b981',
+                  borderBottom: '3px double #059669',
+                  color: '#047857',
+                  fontSize: '0.92rem',
+                }}
+              >
+                <span>Total For Liability and Equity (કુલ દેવું + મૂડી)</span>
+                <span>$ {balanceSheet.total_liability_and_equity.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
           </div>
-        </>
+        </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          VIEW 3: INCOME STATEMENT (MULTICOLUMN) - MATCHING SCREENSHOT 2
+          ═══════════════════════════════════════════════════════════ */}
+      {viewMode === 'income_statement' && incomeStatement && (
+        <div className="gnucash-statement-card" style={{ marginTop: '12px' }}>
+          {/* Header Title matching screenshot 2 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.35rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                Income Statement (Multicolumn) {incomeStatement.start_date_formatted} to {incomeStatement.end_date_formatted}
+              </h2>
+              <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                આવક અને ખર્ચ પત્રક / નફો-નુકસાન સ્ટેટમેન્ટ
+              </p>
+            </div>
+
+            {/* Date range filters */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>તારીખથી:</span>
+                <input
+                  type="date"
+                  value={isStartDate}
+                  onChange={(e) => setIsStartDate(e.target.value)}
+                  className="input-field"
+                  style={{ height: '30px', fontSize: '0.76rem', padding: '2px 8px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>સુધી:</span>
+                <input
+                  type="date"
+                  value={isEndDate}
+                  onChange={(e) => setIsEndDate(e.target.value)}
+                  className="input-field"
+                  style={{ height: '30px', fontSize: '0.76rem', padding: '2px 8px' }}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={fetchData}
+                style={{ height: '30px', fontSize: '0.75rem', padding: '0 10px' }}
+              >
+                ફિલ્ટર કરો
+              </button>
+            </div>
+          </div>
+
+          {/* Multicolumn Layout: Left = Income & Net Income | Right = Expense */}
+          <div className="gnucash-statement-grid">
+            {/* ══════ LEFT COLUMN: INCOME ══════ */}
+            <div className="gnucash-col">
+              <div className="gnucash-sec-header">
+                <span>Income (આવક)</span>
+                <span>રકમ</span>
+              </div>
+
+              <table className="gnucash-table">
+                <tbody>
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>{incomeStatement.income.root_name}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 800 }}>
+                      $ {incomeStatement.income.root_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+
+                  {incomeStatement.income.children.map((item) => (
+                    <tr key={item.full_name}>
+                      <td style={{ paddingLeft: '22px' }}>
+                        <span
+                          className="gnucash-acc-link"
+                          onClick={() => handleOpenAccountModal(item.full_name, item.gujarati_name)}
+                          title="આ આવકના તમામ વ્યવહારો જુઓ"
+                        >
+                          {item.name}
+                        </span>
+                        {item.gujarati_name && item.gujarati_name !== item.name && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                            ({item.gujarati_name})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        $ {item.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Total For Income */}
+              <div className="gnucash-total-bar">
+                <span>Total For Income (કુલ આવક)</span>
+                <span>$ {incomeStatement.income.total_income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+
+              {/* Net Income section */}
+              <div style={{ marginTop: '14px' }}>
+                <div className="gnucash-sec-header">
+                  <span>Net Income (ચોખ્ખો નફો)</span>
+                  <span>રકમ</span>
+                </div>
+
+                <div
+                  className="gnucash-total-bar"
+                  style={{
+                    marginTop: '6px',
+                    background: incomeStatement.net_income >= 0 ? 'rgba(16, 185, 129, 0.14)' : 'rgba(239, 68, 68, 0.14)',
+                    borderColor: incomeStatement.net_income >= 0 ? '#10b981' : '#ef4444',
+                    borderBottom: `3px double ${incomeStatement.net_income >= 0 ? '#059669' : '#dc2626'}`,
+                    color: incomeStatement.net_income >= 0 ? '#047857' : '#b91c1c',
+                    fontSize: '0.94rem',
+                  }}
+                >
+                  <span>Total For Net Income (ચોખ્ખો નફો)</span>
+                  <span>$ {incomeStatement.net_income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ══════ RIGHT COLUMN: EXPENSE ══════ */}
+            <div className="gnucash-col">
+              <div className="gnucash-sec-header">
+                <span>Expense (ખર્ચાઓ)</span>
+                <span>રકમ</span>
+              </div>
+
+              <table className="gnucash-table">
+                <tbody>
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>{incomeStatement.expense.root_name}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 800 }}>
+                      $ {incomeStatement.expense.root_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+
+                  {/* BHEGA Group with Sub-accounts */}
+                  <tr>
+                    <td style={{ paddingLeft: '14px', fontWeight: 700 }}>
+                      <span
+                        className="gnucash-acc-link"
+                        onClick={() => handleOpenAccountModal(incomeStatement.expense.bhega.full_name, incomeStatement.expense.bhega.gujarati_name)}
+                        title="સંયુક્ત ઘરખર્ચ વ્યવહારો જુઓ"
+                      >
+                        {incomeStatement.expense.bhega.name}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                        ({incomeStatement.expense.bhega.gujarati_name})
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                      $ {incomeStatement.expense.bhega.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+
+                  {incomeStatement.expense.bhega.children.map((bItem) => (
+                    <tr key={bItem.full_name}>
+                      <td style={{ paddingLeft: '34px' }}>
+                        <span
+                          className="gnucash-acc-link"
+                          onClick={() => handleOpenAccountModal(bItem.full_name, bItem.gujarati_name)}
+                          title="આ ખર્ચના વ્યવહારો જુઓ"
+                        >
+                          {bItem.name}
+                        </span>
+                        {bItem.gujarati_name && bItem.gujarati_name !== bItem.name && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                            ({bItem.gujarati_name})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        $ {bItem.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Direct Expense accounts */}
+                  {incomeStatement.expense.children.map((item) => (
+                    <tr key={item.full_name}>
+                      <td style={{ paddingLeft: '14px' }}>
+                        <span
+                          className="gnucash-acc-link"
+                          onClick={() => handleOpenAccountModal(item.full_name, item.gujarati_name)}
+                          title="આ ખર્ચના વ્યવહારો જુઓ"
+                        >
+                          {item.name}
+                        </span>
+                        {item.gujarati_name && item.gujarati_name !== item.name && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '6px', fontStyle: 'normal' }}>
+                            ({item.gujarati_name})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        $ {item.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Total For Expense */}
+              <div className="gnucash-total-bar" style={{ marginTop: 'auto' }}>
+                <span>Total For Expense (કુલ ખર્ચાઓ)</span>
+                <span>$ {incomeStatement.expense.total_expense.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          ONE-CLICK ACCOUNT TRANSACTIONS MODAL ("one click to show that link")
+          ═══════════════════════════════════════════════════════════ */}
+      <Modal
+        show={Boolean(selectedAccountModal)}
+        onClose={handleCloseAccountModal}
+        title={accountStatement ? `ખાતાવહી: ${accountStatement.account_name} ${accountStatement.gujarati_name ? `(${accountStatement.gujarati_name})` : ''}` : 'ખાતાવહી વિગત'}
+        maxWidth="820px"
+      >
+        {accountStatementLoading ? (
+          <div style={{ padding: '30px', textAlign: 'center' }}>
+            <RefreshCw size={24} className="spin" color="var(--primary)" />
+            <p style={{ marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>વ્યવહારો લોડ થઈ રહ્યા છે...</p>
+          </div>
+        ) : accountStatement ? (
+          <div>
+            {/* Account Metrics Header */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '8px', marginBottom: '14px' }}>
+              <div className="acc-kpi-card" style={{ padding: '10px' }}>
+                <span className="acc-kpi-title" style={{ fontSize: '0.62rem' }}>કુલ વ્યવહારો</span>
+                <div className="acc-kpi-value" style={{ fontSize: '1.1rem', margin: '2px 0' }}>
+                  {accountStatement.transaction_count}
+                </div>
+              </div>
+
+              <div className="acc-kpi-card" style={{ padding: '10px' }}>
+                <span className="acc-kpi-title" style={{ fontSize: '0.62rem' }}>કુલ જમા (+)</span>
+                <div className="acc-kpi-value text-credit" style={{ fontSize: '1.1rem', margin: '2px 0' }}>
+                  ₹{accountStatement.total_inflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="acc-kpi-card" style={{ padding: '10px' }}>
+                <span className="acc-kpi-title" style={{ fontSize: '0.62rem' }}>કુલ ઉધાર (-)</span>
+                <div className="acc-kpi-value text-debit" style={{ fontSize: '1.1rem', margin: '2px 0' }}>
+                  ₹{accountStatement.total_outflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="acc-kpi-card" style={{ padding: '10px' }}>
+                <span className="acc-kpi-title" style={{ fontSize: '0.62rem' }}>ચોખ્ખું બેલેન્સ</span>
+                <div className={`acc-kpi-value ${accountStatement.net_balance >= 0 ? 'text-credit' : 'text-debit'}`} style={{ fontSize: '1.1rem', margin: '2px 0' }}>
+                  ₹{accountStatement.net_balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+              <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '2px solid var(--border-glass)', position: 'sticky', top: 0, zIndex: 1 }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>તારીખ</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>બિઝનેસ</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>વિગત / નોંધ</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>આવક (+)</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>જાવક (-)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountStatement.transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                        આ ખાતામાં કોઈ વ્યવહાર મળ્યા નથી.
+                      </td>
+                    </tr>
+                  ) : (
+                    accountStatement.transactions.map((t) => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                        <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', fontWeight: 600 }}>{t.date}</td>
+                        <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                          <span className="badge" style={{ fontSize: '0.65rem' }}>{t.business_stream}</span>
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <div style={{ fontWeight: 600 }}>{t.description}</div>
+                          {t.notes && t.notes !== t.description && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.notes}</div>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#10b981', whiteSpace: 'nowrap' }}>
+                          {t.inflow > 0 ? `+₹${t.inflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#ef4444', whiteSpace: 'nowrap' }}>
+                          {t.outflow > 0 ? `-₹${t.outflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="modal-footer" style={{ marginTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                ખાતું: <code>{accountStatement.account_name}</code>
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCloseAccountModal}
+              >
+                બંધ કરો
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       {/* ═══════ CENTER-ALIGNED RESPONSIVE UPLOAD MODAL ═══════ */}
       <Modal
@@ -1381,7 +1351,6 @@ export default function ConsolidatedLedgerPage() {
             </div>
           </div>
 
-          {/* Clean Sync Info */}
           <div
             style={{
               marginTop: '12px',
@@ -1401,7 +1370,6 @@ export default function ConsolidatedLedgerPage() {
             નવી ફાઇલ અપલોડ કરવાથી જૂનો હિસાબ રિપ્લેસ થઈને નવી ફાઇલના તમામ વ્યવહારો અને ખાતાઓ ડાયનેમિકલી ઉમેરાશે.
           </div>
 
-          {/* Upload Result Alert */}
           {uploadResult && (
             <div
               style={{
