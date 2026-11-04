@@ -1100,10 +1100,10 @@ table tbody tr:last-child td {
   content: url("/logo-dark-mode.png");
 }
 
-/* Main content container */
+/* Main content container - Responsive Ultra-Wide Desktop Support */
 .main-content {
   flex: 1;
-  max-width: 1200px;
+  max-width: 1440px;
   width: 100%;
   min-width: 0;
   margin: 0 auto;
@@ -1111,6 +1111,12 @@ table tbody tr:last-child td {
   flex-direction: column;
   box-sizing: border-box;
   overflow-x: hidden;
+}
+
+@media (min-width: 1680px) {
+  .main-content {
+    max-width: 1560px;
+  }
 }
 
 /* App shell */
@@ -2696,8 +2702,8 @@ table tbody tr:last-child td {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   GNUCASH FINANCIAL STATEMENTS & MASTER CASHBOOK - RESPONSIVE ARCHITECTURE
-   (Desktop, Tablet & Mobile Perfect Balance)
+   GNUCASH FINANCIAL STATEMENTS & MASTER CASHBOOK - PROFESSIONAL ENTERPRISE UI
+   (Clean Desktop, Tablet & Mobile Balance - No Red Underlines, Executive Cards)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Segmented Native Tab Bar */
@@ -2705,14 +2711,14 @@ table tbody tr:last-child td {
   display: inline-flex;
   align-items: center;
   background: var(--bg-surface-elevated);
-  padding: 4px;
+  padding: 5px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-glass);
   gap: 6px;
   width: fit-content;
   max-width: 100%;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .compact-tab-btn {
@@ -2720,42 +2726,29 @@ table tbody tr:last-child td {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 9px 18px;
+  padding: 9px 20px;
+  font-family: var(--font-heading);
   font-size: 0.86rem;
   font-weight: 650;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
-.compact-tab-btn:hover:not(.active-primary):not(.active-amber):not(.active-emerald) {
+.compact-tab-btn:hover:not(.active-tab) {
   color: var(--text-main);
   background: var(--bg-glass-hover);
 }
 
-.compact-tab-btn.active-primary {
-  background: var(--primary);
+.compact-tab-btn.active-tab {
+  background: linear-gradient(135deg, var(--primary) 0%, #b45309 100%);
   color: #ffffff !important;
   font-weight: 750;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-}
-
-.compact-tab-btn.active-amber {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  color: #ffffff !important;
-  font-weight: 750;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28);
-}
-
-.compact-tab-btn.active-emerald {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #ffffff !important;
-  font-weight: 750;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
+  box-shadow: 0 2px 10px var(--primary-glow);
 }
 
 @media (max-width: 768px) {
@@ -2767,41 +2760,56 @@ table tbody tr:last-child td {
   }
   .compact-tab-btn {
     flex: 1;
-    padding: 6px 4px;
+    padding: 7px 4px;
     font-size: 0.74rem;
     gap: 4px;
   }
 }
 
-/* Stat Tiles Grid (4 cols on desktop, 2x2 on tablet/mobile) */
+/* Stat Tiles Grid (Executive KPI Cards) */
 .compact-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-top: 14px;
+  gap: 16px;
+  margin-top: 16px;
   box-sizing: border-box;
 }
 
 .compact-stat-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-card);
   position: relative;
   box-sizing: border-box;
-  min-height: 86px;
+  min-height: 96px;
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  border-left-width: 4px;
+  overflow: hidden;
 }
+
+.compact-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+}
+
+.compact-stat-card.card-cash::before { background: var(--success); }
+.compact-stat-card.card-inflow::before { background: #3b82f6; }
+.compact-stat-card.card-outflow::before { background: var(--error); }
+.compact-stat-card.card-net::before { background: var(--primary); }
 
 .compact-stat-card:hover {
   border-color: var(--border-glass-active);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .compact-stat-header {
@@ -2816,33 +2824,36 @@ table tbody tr:last-child td {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .compact-stat-badge {
-  font-size: 0.62rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 0.65rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .compact-stat-value {
-  font-size: 1.22rem;
+  font-size: 1.38rem;
   font-weight: 850;
-  font-family: monospace, var(--font-mono);
-  letter-spacing: -0.01em;
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 3px 0;
+  margin: 4px 0 2px;
 }
 
 .compact-stat-sub {
-  font-size: 0.70rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -2852,15 +2863,15 @@ table tbody tr:last-child td {
 @media (max-width: 1024px) and (min-width: 641px) {
   .compact-stat-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-top: 10px;
+    gap: 12px;
+    margin-top: 12px;
   }
   .compact-stat-card {
-    min-height: 74px;
-    padding: 10px 14px;
+    min-height: 80px;
+    padding: 12px 16px;
   }
   .compact-stat-value {
-    font-size: 1.05rem;
+    font-size: 1.18rem;
   }
 }
 
@@ -2868,12 +2879,15 @@ table tbody tr:last-child td {
   .compact-stat-grid {
     grid-template-columns: 1fr 1fr;
     gap: 6px;
-    margin-top: 6px;
+    margin-top: 8px;
   }
   .compact-stat-card {
-    padding: 6px 8px;
-    min-height: 48px;
-    border-left-width: 3px;
+    padding: 7px 9px;
+    min-height: 50px;
+    border-radius: var(--radius-md);
+  }
+  .compact-stat-card::before {
+    width: 3px;
   }
   .compact-stat-header {
     margin-bottom: 2px;
@@ -2886,7 +2900,7 @@ table tbody tr:last-child td {
     padding: 1px 4px;
   }
   .compact-stat-value {
-    font-size: 0.84rem;
+    font-size: 0.88rem;
     margin: 1px 0;
   }
   .compact-stat-sub {
@@ -2899,7 +2913,7 @@ table tbody tr:last-child td {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  padding: 22px 26px;
   box-shadow: var(--shadow-card);
   box-sizing: border-box;
   width: 100%;
@@ -2908,41 +2922,46 @@ table tbody tr:last-child td {
 .gnucash-statement-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-top: 14px;
+  gap: 24px;
+  margin-top: 18px;
   box-sizing: border-box;
+  align-items: start;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .gnucash-statement-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 14px;
+  }
+  .gnucash-statement-card {
+    padding: 14px 14px;
   }
 }
 
 .gnucash-col {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .gnucash-section-box {
-  background: var(--bg-surface-elevated);
+  background: var(--bg-surface);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
   box-sizing: border-box;
 }
 
 .gnucash-sec-header {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(245, 158, 11, 0.05) 100%);
-  border-bottom: 2px solid rgba(217, 119, 6, 0.3);
-  padding: 8px 12px;
+  background: var(--bg-surface-elevated);
+  border-bottom: 2px solid var(--border-glass-active);
+  padding: 11px 18px;
   font-weight: 750;
-  font-size: 0.82rem;
-  color: var(--primary);
+  font-size: 0.86rem;
+  color: var(--text-main);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2950,17 +2969,34 @@ table tbody tr:last-child td {
 }
 
 .gnucash-total-bar {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);
-  border-top: 2px solid rgba(217, 119, 6, 0.3);
-  padding: 9px 12px;
+  background: var(--bg-surface-elevated);
+  border-top: 2px solid var(--border-glass-active);
+  padding: 11px 18px;
   font-weight: 800;
-  font-size: 0.86rem;
+  font-size: 0.90rem;
   color: var(--text-main);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: monospace, var(--font-mono);
+  font-family: var(--font-heading);
   box-sizing: border-box;
+}
+
+.gnucash-grand-total {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border: 2px solid rgba(217, 119, 6, 0.35);
+  border-radius: var(--radius-md);
+  padding: 13px 18px;
+  font-weight: 850;
+  font-size: 0.98rem;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.12);
+  font-family: var(--font-heading);
 }
 
 .gnucash-table-wrapper {
@@ -2973,52 +3009,56 @@ table tbody tr:last-child td {
 .gnucash-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   box-sizing: border-box;
 }
 
 .gnucash-table tr {
   border-bottom: 1px solid var(--border-glass);
-  transition: background 0.1s ease;
+  transition: background 0.12s ease;
 }
 
 .gnucash-table tr:hover {
-  background: rgba(0, 0, 0, 0.025);
+  background: var(--bg-glass-hover);
 }
 
 .gnucash-table td {
-  padding: 7px 12px;
+  padding: 9px 16px;
   vertical-align: middle;
 }
 
 .gnucash-acc-cell {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
+/* NO PERMANENT RED UNDERLINES: Clean, professional, interactive text */
 .gnucash-acc-link {
-  color: var(--primary);
-  text-decoration: underline;
-  text-decoration-color: rgba(217, 119, 6, 0.4);
-  text-underline-offset: 2px;
+  color: var(--text-main);
+  text-decoration: none;
   cursor: pointer;
-  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  transition: color 0.15s ease;
+  font-weight: 600;
 }
 
 .gnucash-acc-link:hover {
-  color: var(--primary-hover);
+  color: var(--primary);
+  text-decoration: underline;
   text-decoration-color: var(--primary);
+  text-underline-offset: 3px;
 }
 
 .gnucash-acc-guj {
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.70rem;
+  font-weight: 400;
 }
 
 .gnucash-amt-cell {
   text-align: right;
-  font-family: monospace, var(--font-mono);
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -3027,11 +3067,11 @@ table tbody tr:last-child td {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-glass-active);
-  border-radius: var(--radius-sm);
-  height: 34px;
+  border-radius: var(--radius-md);
+  height: 36px;
   box-sizing: border-box;
 }
 
@@ -3053,27 +3093,28 @@ table tbody tr:last-child td {
 
 @media (max-width: 640px) {
   .statement-date-bar {
-    padding: 2px 5px;
+    padding: 2px 6px;
     gap: 3px;
-    height: 26px;
+    height: 28px;
+    border-radius: var(--radius-sm);
   }
   .statement-date-input {
-    font-size: 0.68rem !important;
+    font-size: 0.70rem !important;
     width: 95px !important;
     max-width: 98px !important;
-    height: 22px !important;
+    height: 24px !important;
   }
 }
 
-/* Desktop Action Buttons */
+/* Desktop Action Buttons (Unified 38px with text + icon) */
 .desktop-action-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 7px !important;
   height: 38px !important;
-  padding: 0 14px !important;
-  font-size: 0.82rem !important;
+  padding: 0 16px !important;
+  font-size: 0.84rem !important;
   font-weight: 650 !important;
   border-radius: var(--radius-md) !important;
   border: 1px solid var(--border-glass) !important;
@@ -3177,19 +3218,25 @@ table tbody tr:last-child td {
 .tree-toggle-btn {
   background: var(--bg-surface-elevated) !important;
   border: 1px solid var(--border-glass-active) !important;
-  border-radius: 4px !important;
-  padding: 4px 10px !important;
-  font-size: 0.72rem !important;
-  font-weight: 600 !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 5px 12px !important;
+  font-size: 0.74rem !important;
+  font-weight: 650 !important;
   color: var(--text-main) !important;
-  min-height: 26px !important;
-  height: 26px !important;
+  min-height: 28px !important;
+  height: 28px !important;
   cursor: pointer !important;
   line-height: 1 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+}
+
+.tree-toggle-btn:hover {
+  background: var(--bg-glass-hover) !important;
+  border-color: var(--primary) !important;
 }
 
 /* Mobile Ledger Feed Cards (Zero Text/Amount Clipping) */
@@ -3227,7 +3274,7 @@ table tbody tr:last-child td {
 
 .mobile-ledger-amt {
   text-align: right;
-  font-family: monospace, var(--font-mono);
+  font-family: var(--font-heading);
   font-size: 0.86rem;
   font-weight: 800;
   white-space: nowrap;
