@@ -2695,34 +2695,34 @@ table tbody tr:last-child td {
 
 
 
-/* ═══════ GNUCASH MULTICOLUMN FINANCIAL STATEMENTS ═══════ */
-
 /* ═══════════════════════════════════════════════════════════════════════════
-   GNUCASH FINANCIAL STATEMENTS & MASTER CASHBOOK - PROFESSIONAL RESPONSIVE UI
+   GNUCASH FINANCIAL STATEMENTS & MASTER CASHBOOK - RESPONSIVE ARCHITECTURE
+   (Desktop, Tablet & Mobile Perfect Balance)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Segmented Native Tab Bar */
 .compact-segmented-tabs {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   background: var(--bg-surface-elevated);
   padding: 4px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-glass);
-  gap: 4px;
-  width: 100%;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .compact-tab-btn {
-  flex: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 0.86rem;
+  font-weight: 650;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -2732,79 +2732,88 @@ table tbody tr:last-child td {
   white-space: nowrap;
 }
 
-.compact-tab-btn:hover {
+.compact-tab-btn:hover:not(.active-primary):not(.active-amber):not(.active-emerald) {
   color: var(--text-main);
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--bg-glass-hover);
 }
 
 .compact-tab-btn.active-primary {
   background: var(--primary);
   color: #ffffff !important;
   font-weight: 750;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 .compact-tab-btn.active-amber {
-  background: #d97706;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
   color: #ffffff !important;
   font-weight: 750;
-  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28);
 }
 
 .compact-tab-btn.active-emerald {
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff !important;
   font-weight: 750;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
-}
-
-/* Compact Equal-Height Stat Tiles */
-.compact-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
 }
 
 @media (max-width: 768px) {
-  .compact-stat-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+  .compact-segmented-tabs {
+    display: flex;
+    width: 100%;
+    padding: 3px;
+    gap: 3px;
   }
+  .compact-tab-btn {
+    flex: 1;
+    padding: 6px 4px;
+    font-size: 0.74rem;
+    gap: 4px;
+  }
+}
+
+/* Stat Tiles Grid (4 cols on desktop, 2x2 on tablet/mobile) */
+.compact-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+  box-sizing: border-box;
 }
 
 .compact-stat-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
-  padding: 10px 12px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   position: relative;
   box-sizing: border-box;
-  min-height: 76px;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  min-height: 86px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   border-left-width: 4px;
 }
 
 .compact-stat-card:hover {
   border-color: var(--border-glass-active);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 .compact-stat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2px;
-  gap: 4px;
+  margin-bottom: 4px;
+  gap: 6px;
 }
 
 .compact-stat-title {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-muted);
   white-space: nowrap;
@@ -2813,8 +2822,8 @@ table tbody tr:last-child td {
 }
 
 .compact-stat-badge {
-  font-size: 0.58rem;
-  padding: 1px 5px;
+  font-size: 0.62rem;
+  padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
   white-space: nowrap;
@@ -2822,30 +2831,75 @@ table tbody tr:last-child td {
 }
 
 .compact-stat-value {
-  font-size: 1.02rem;
-  font-weight: 800;
+  font-size: 1.22rem;
+  font-weight: 850;
   font-family: monospace, var(--font-mono);
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 1px 0;
+  margin: 3px 0;
 }
 
 .compact-stat-sub {
-  font-size: 0.64rem;
+  font-size: 0.70rem;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Statement Main Card */
+@media (max-width: 1024px) and (min-width: 641px) {
+  .compact-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .compact-stat-card {
+    min-height: 74px;
+    padding: 10px 14px;
+  }
+  .compact-stat-value {
+    font-size: 1.05rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .compact-stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .compact-stat-card {
+    padding: 6px 8px;
+    min-height: 48px;
+    border-left-width: 3px;
+  }
+  .compact-stat-header {
+    margin-bottom: 2px;
+  }
+  .compact-stat-title {
+    font-size: 0.64rem;
+  }
+  .compact-stat-badge {
+    font-size: 0.54rem;
+    padding: 1px 4px;
+  }
+  .compact-stat-value {
+    font-size: 0.84rem;
+    margin: 1px 0;
+  }
+  .compact-stat-sub {
+    display: none;
+  }
+}
+
+/* Statement Card & Multi-Column Layout */
 .gnucash-statement-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-card);
   box-sizing: border-box;
   width: 100%;
@@ -2862,7 +2916,7 @@ table tbody tr:last-child td {
 @media (max-width: 900px) {
   .gnucash-statement-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 }
 
@@ -2874,34 +2928,39 @@ table tbody tr:last-child td {
   box-sizing: border-box;
 }
 
-/* Card container for each statement section */
 .gnucash-section-box {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
 }
 
 .gnucash-sec-header {
-  background: #fbf6df;
-  color: #4a4128;
-  font-weight: 800;
-  font-size: 0.84rem;
-  padding: 9px 14px;
-  border-bottom: 1px solid #ebdcb2;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border-bottom: 2px solid rgba(217, 119, 6, 0.3);
+  padding: 8px 12px;
+  font-weight: 750;
+  font-size: 0.82rem;
+  color: var(--primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
 }
 
-[data-theme="dark"] .gnucash-sec-header {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.28);
+.gnucash-total-bar {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);
+  border-top: 2px solid rgba(217, 119, 6, 0.3);
+  padding: 9px 12px;
+  font-weight: 800;
+  font-size: 0.86rem;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: monospace, var(--font-mono);
+  box-sizing: border-box;
 }
 
 .gnucash-table-wrapper {
@@ -2920,6 +2979,11 @@ table tbody tr:last-child td {
 
 .gnucash-table tr {
   border-bottom: 1px solid var(--border-glass);
+  transition: background 0.1s ease;
+}
+
+.gnucash-table tr:hover {
+  background: rgba(0, 0, 0, 0.025);
 }
 
 .gnucash-table td {
@@ -2927,146 +2991,47 @@ table tbody tr:last-child td {
   vertical-align: middle;
 }
 
-/* Stacked account name & Gujarati translation to prevent horizontal stretching */
 .gnucash-acc-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  gap: 1px;
 }
 
 .gnucash-acc-link {
-  color: #b91c1c;
+  color: var(--primary);
   text-decoration: underline;
+  text-decoration-color: rgba(217, 119, 6, 0.4);
+  text-underline-offset: 2px;
   cursor: pointer;
-  font-style: italic;
-  font-weight: 600;
-  font-size: 0.82rem;
-  transition: color 0.15s ease;
-  word-break: break-word;
-  line-height: 1.3;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 
 .gnucash-acc-link:hover {
-  color: #dc2626;
-  font-weight: 750;
-}
-
-[data-theme="dark"] .gnucash-acc-link {
-  color: #f87171;
+  color: var(--primary-hover);
+  text-decoration-color: var(--primary);
 }
 
 .gnucash-acc-guj {
-  font-size: 0.68rem;
   color: var(--text-muted);
-  font-style: normal;
-  line-height: 1.2;
+  font-size: 0.68rem;
 }
 
 .gnucash-amt-cell {
   text-align: right;
   font-family: monospace, var(--font-mono);
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  font-size: 0.83rem;
-  font-weight: 700;
-  min-width: 95px;
-  width: 110px;
 }
 
-.gnucash-total-bar {
-  background: #fbf6df;
-  font-weight: 800;
-  font-size: 0.86rem;
-  color: #1f2937;
-  padding: 10px 14px;
-  border-top: 1px solid #ebdcb2;
-  border-bottom: 3px double #b45309;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-}
-
-[data-theme="dark"] .gnucash-total-bar {
-  background: rgba(245, 158, 11, 0.18);
-  color: #f3f4f6;
-  border-color: rgba(245, 158, 11, 0.4);
-  border-bottom-color: #f59e0b;
-}
-
-/* Mobile Specific Fine-Tuning */
-@media (max-width: 640px) {
-  .gnucash-statement-card {
-    padding: 12px 10px;
-    border-radius: var(--radius-md);
-  }
-
-  .gnucash-sec-header {
-    font-size: 0.78rem;
-    padding: 7px 10px;
-  }
-
-  .gnucash-table td {
-    padding: 6px 8px;
-  }
-
-  .gnucash-acc-link {
-    font-size: 0.78rem;
-  }
-
-  .gnucash-amt-cell {
-    font-size: 0.79rem;
-    min-width: 85px;
-    width: 95px;
-  }
-
-  .gnucash-total-bar {
-    font-size: 0.82rem;
-    padding: 8px 10px;
-  }
-
-  .compact-stat-card {
-    padding: 6px 8px;
-    min-height: 46px;
-  }
-
-  .compact-stat-title {
-    font-size: 0.65rem;
-  }
-
-  .compact-stat-value {
-    font-size: 0.84rem;
-  }
-
-  .compact-stat-sub {
-    display: none;
-  }
-}
-
-/* Compact Icon Buttons for Mobile Action Strip */
-.icon-btn-compact {
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 30px !important;
-  min-height: 30px !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: var(--radius-sm) !important;
-  flex-shrink: 0 !important;
-}
-
-/* Compact Date Picker for Financial Statements */
+/* Statement Date Filter Bar */
 .statement-date-bar {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 3px 8px;
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-glass-active);
-  border-radius: 6px;
-  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  height: 34px;
   box-sizing: border-box;
 }
 
@@ -3074,30 +3039,157 @@ table tbody tr:last-child td {
   border: none !important;
   background: transparent !important;
   color: var(--text-main) !important;
-  font-size: 0.72rem !important;
+  font-size: 0.82rem !important;
   font-weight: 600 !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  padding: 0 2px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  padding: 0 4px !important;
   outline: none !important;
-  width: 105px !important;
-  max-width: 110px !important;
+  width: 125px !important;
+  max-width: 130px !important;
   box-sizing: border-box !important;
   font-family: inherit !important;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .statement-date-bar {
-    padding: 2px 4px;
-    gap: 2px;
+    padding: 2px 5px;
+    gap: 3px;
+    height: 26px;
   }
   .statement-date-input {
     font-size: 0.68rem !important;
     width: 95px !important;
     max-width: 98px !important;
     height: 22px !important;
-    min-height: 22px !important;
   }
+}
+
+/* Desktop Action Buttons */
+.desktop-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 0.82rem !important;
+  font-weight: 650 !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-glass) !important;
+  background: var(--bg-surface-elevated) !important;
+  color: var(--text-main) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+.desktop-action-btn:hover:not(:disabled) {
+  background: var(--bg-glass-hover) !important;
+  border-color: var(--border-glass-active) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.desktop-action-btn:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+.desktop-action-btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #b45309 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 2px 8px var(--primary-glow) !important;
+}
+
+.desktop-action-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary) 100%) !important;
+  box-shadow: 0 4px 14px rgba(212, 168, 83, 0.4) !important;
+}
+
+.desktop-action-btn-danger {
+  color: var(--error) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.04) !important;
+}
+
+.desktop-action-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: var(--error) !important;
+}
+
+/* Mobile Action Button (Unified 34x34px with 100% visible SVGs) */
+.mobile-action-btn {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border-glass-active) !important;
+  background: var(--bg-surface-elevated) !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  color: var(--text-main) !important;
+  transition: transform 0.1s ease, background 0.15s ease !important;
+}
+
+.mobile-action-btn svg {
+  width: 17px !important;
+  height: 17px !important;
+  stroke: currentColor !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+.mobile-action-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.mobile-action-btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #b45309 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+}
+
+.mobile-action-btn-primary svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.mobile-action-btn-danger {
+  color: var(--error) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.mobile-action-btn-danger svg {
+  stroke: var(--error) !important;
+  color: var(--error) !important;
+}
+
+.tree-toggle-btn {
+  background: var(--bg-surface-elevated) !important;
+  border: 1px solid var(--border-glass-active) !important;
+  border-radius: 4px !important;
+  padding: 4px 10px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
+  min-height: 26px !important;
+  height: 26px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
 }
 
 /* Mobile Ledger Feed Cards (Zero Text/Amount Clipping) */
@@ -3153,7 +3245,7 @@ table tbody tr:last-child td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 2px;
+  margin-top: 3px;
   gap: 6px;
 }
 
@@ -3164,58 +3256,4 @@ table tbody tr:last-child td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Action Buttons for Mobile Navigation */
-.mobile-action-btn {
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
-  min-height: 34px !important;
-  max-width: 34px !important;
-  max-height: 34px !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 8px !important;
-  border: 1px solid var(--border-glass-active) !important;
-  background: var(--bg-surface-elevated) !important;
-  cursor: pointer !important;
-  flex-shrink: 0 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-  color: var(--text-main) !important;
-  transition: transform 0.1s ease, background 0.15s ease !important;
-}
-
-.mobile-action-btn:active {
-  transform: scale(0.95) !important;
-}
-
-.mobile-action-btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, #b45309 100%) !important;
-  color: #ffffff !important;
-  border-color: var(--primary) !important;
-}
-
-.mobile-action-btn-danger {
-  color: var(--error) !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
-}
-
-.tree-toggle-btn {
-  background: var(--bg-surface-elevated) !important;
-  border: 1px solid var(--border-glass-active) !important;
-  border-radius: 4px !important;
-  padding: 3px 8px !important;
-  font-size: 0.68rem !important;
-  font-weight: 600 !important;
-  color: var(--text-main) !important;
-  min-height: 24px !important;
-  height: 24px !important;
-  cursor: pointer !important;
-  line-height: 1 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
 }

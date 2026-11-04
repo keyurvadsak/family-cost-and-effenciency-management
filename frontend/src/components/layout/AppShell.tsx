@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Navbar, { Sidebar } from './Navbar';
-import { useIsMobile } from '../../hooks/useMediaQuery';
+import { useIsMobile, useIsTablet } from '../../hooks/useMediaQuery';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -9,6 +9,7 @@ interface AppShellProps {
 export default function AppShell({ children }: AppShellProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   return (
     <div className="app-shell">
@@ -26,7 +27,9 @@ export default function AppShell({ children }: AppShellProps) {
       <main
         id="main-content"
         className="main-content"
-        style={{ padding: isMobile ? '6px 4px' : '24px 32px' }}
+        style={{
+          padding: isMobile ? '8px 8px' : isTablet ? '16px 20px' : '24px 32px'
+        }}
       >
         {children}
       </main>
