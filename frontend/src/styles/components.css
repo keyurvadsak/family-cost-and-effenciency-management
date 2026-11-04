@@ -2791,3 +2791,91 @@ table tbody tr:last-child td {
   border-color: rgba(245, 158, 11, 0.4);
   border-bottom-color: #f59e0b;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GNUCASH FINANCIAL STATEMENTS - PROFESSIONAL MOBILE RESPONSIVE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gnucash-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px;
+}
+.gnucash-tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.gnucash-tab-btn {
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.gnucash-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 900px) {
+  .gnucash-statement-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .gnucash-statement-card {
+    padding: 12px 10px;
+    border-radius: var(--radius-md);
+  }
+
+  .gnucash-sec-header {
+    font-size: 0.8rem;
+    padding: 7px 10px;
+  }
+
+  .gnucash-table {
+    font-size: 0.77rem;
+  }
+
+  .gnucash-table td {
+    padding: 4px 6px;
+  }
+
+  .gnucash-acc-link {
+    font-size: 0.78rem;
+  }
+
+  .gnucash-total-bar {
+    font-size: 0.82rem;
+    padding: 7px 10px;
+  }
+
+  .acc-kpi-card {
+    padding: 8px 10px;
+  }
+
+  .acc-kpi-title {
+    font-size: 0.65rem;
+  }
+
+  .acc-kpi-value {
+    font-size: 0.98rem !important;
+  }
+
+  .acc-kpi-sub {
+    font-size: 0.62rem;
+  }
+}
