@@ -2696,62 +2696,243 @@ table tbody tr:last-child td {
 
 
 /* ═══════ GNUCASH MULTICOLUMN FINANCIAL STATEMENTS ═══════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GNUCASH FINANCIAL STATEMENTS & MASTER CASHBOOK - PROFESSIONAL RESPONSIVE UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Segmented Native Tab Bar */
+.compact-segmented-tabs {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface-elevated);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.compact-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.compact-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.compact-tab-btn.active-primary {
+  background: var(--primary);
+  color: #ffffff !important;
+  font-weight: 750;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.compact-tab-btn.active-amber {
+  background: #d97706;
+  color: #ffffff !important;
+  font-weight: 750;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+}
+
+.compact-tab-btn.active-emerald {
+  background: #10b981;
+  color: #ffffff !important;
+  font-weight: 750;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+/* Compact Equal-Height Stat Tiles */
+.compact-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .compact-stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+.compact-stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  position: relative;
+  box-sizing: border-box;
+  min-height: 76px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  border-left-width: 4px;
+}
+
+.compact-stat-card:hover {
+  border-color: var(--border-glass-active);
+  transform: translateY(-1px);
+}
+
+.compact-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  gap: 4px;
+}
+
+.compact-stat-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-stat-badge {
+  font-size: 0.58rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.compact-stat-value {
+  font-size: 1.02rem;
+  font-weight: 800;
+  font-family: monospace, var(--font-mono);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 1px 0;
+}
+
+.compact-stat-sub {
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Statement Main Card */
 .gnucash-statement-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   padding: 18px;
   box-shadow: var(--shadow-card);
-  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .gnucash-statement-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 16px;
   margin-top: 14px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 900px) {
   .gnucash-statement-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 14px;
   }
 }
 
 .gnucash-col {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Card container for each statement section */
+.gnucash-section-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .gnucash-sec-header {
   background: #fbf6df;
   color: #4a4128;
   font-weight: 800;
-  font-size: 0.88rem;
-  padding: 8px 12px;
-  border-top: 1px solid #ebdcb2;
+  font-size: 0.84rem;
+  padding: 9px 14px;
   border-bottom: 1px solid #ebdcb2;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
 }
 
 [data-theme="dark"] .gnucash-sec-header {
   background: rgba(245, 158, 11, 0.16);
   color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.gnucash-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .gnucash-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.83rem;
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+.gnucash-table tr {
+  border-bottom: 1px solid var(--border-glass);
 }
 
 .gnucash-table td {
-  padding: 5px 8px;
+  padding: 7px 12px;
+  vertical-align: middle;
+}
+
+/* Stacked account name & Gujarati translation to prevent horizontal stretching */
+.gnucash-acc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .gnucash-acc-link {
@@ -2759,30 +2940,52 @@ table tbody tr:last-child td {
   text-decoration: underline;
   cursor: pointer;
   font-style: italic;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.82rem;
   transition: color 0.15s ease;
+  word-break: break-word;
+  line-height: 1.3;
 }
 
 .gnucash-acc-link:hover {
   color: #dc2626;
-  font-weight: 700;
+  font-weight: 750;
 }
 
 [data-theme="dark"] .gnucash-acc-link {
   color: #f87171;
 }
 
+.gnucash-acc-guj {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-style: normal;
+  line-height: 1.2;
+}
+
+.gnucash-amt-cell {
+  text-align: right;
+  font-family: monospace, var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: 0.83rem;
+  font-weight: 700;
+  min-width: 95px;
+  width: 110px;
+}
+
 .gnucash-total-bar {
   background: #fbf6df;
   font-weight: 800;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   color: #1f2937;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-top: 1px solid #ebdcb2;
   border-bottom: 3px double #b45309;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
 }
 
 [data-theme="dark"] .gnucash-total-bar {
@@ -2792,49 +2995,7 @@ table tbody tr:last-child td {
   border-bottom-color: #f59e0b;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   GNUCASH FINANCIAL STATEMENTS - PROFESSIONAL MOBILE RESPONSIVE STYLES
-   ═══════════════════════════════════════════════════════════════════════════ */
-.gnucash-tabs-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 4px;
-}
-.gnucash-tabs-container::-webkit-scrollbar {
-  display: none;
-}
-
-.gnucash-tab-btn {
-  padding: 8px 16px;
-  font-size: 0.82rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.gnucash-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-@media (max-width: 900px) {
-  .gnucash-statement-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
+/* Mobile Specific Fine-Tuning */
 @media (max-width: 640px) {
   .gnucash-statement-card {
     padding: 12px 10px;
@@ -2842,40 +3003,43 @@ table tbody tr:last-child td {
   }
 
   .gnucash-sec-header {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     padding: 7px 10px;
   }
 
-  .gnucash-table {
-    font-size: 0.77rem;
-  }
-
   .gnucash-table td {
-    padding: 4px 6px;
+    padding: 6px 8px;
   }
 
   .gnucash-acc-link {
     font-size: 0.78rem;
   }
 
-  .gnucash-total-bar {
-    font-size: 0.82rem;
-    padding: 7px 10px;
+  .gnucash-amt-cell {
+    font-size: 0.79rem;
+    min-width: 85px;
+    width: 95px;
   }
 
-  .acc-kpi-card {
+  .gnucash-total-bar {
+    font-size: 0.82rem;
     padding: 8px 10px;
   }
 
-  .acc-kpi-title {
-    font-size: 0.65rem;
+  .compact-stat-card {
+    padding: 8px 10px;
+    min-height: 72px;
   }
 
-  .acc-kpi-value {
-    font-size: 0.98rem !important;
+  .compact-stat-title {
+    font-size: 0.68rem;
   }
 
-  .acc-kpi-sub {
-    font-size: 0.62rem;
+  .compact-stat-value {
+    font-size: 0.94rem;
+  }
+
+  .compact-stat-sub {
+    font-size: 0.60rem;
   }
 }
