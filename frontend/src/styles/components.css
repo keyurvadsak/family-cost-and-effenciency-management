@@ -3165,3 +3165,57 @@ table tbody tr:last-child td {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Action Buttons for Mobile Navigation */
+.mobile-action-btn {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border-glass-active) !important;
+  background: var(--bg-surface-elevated) !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  color: var(--text-main) !important;
+  transition: transform 0.1s ease, background 0.15s ease !important;
+}
+
+.mobile-action-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.mobile-action-btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #b45309 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+}
+
+.mobile-action-btn-danger {
+  color: var(--error) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.tree-toggle-btn {
+  background: var(--bg-surface-elevated) !important;
+  border: 1px solid var(--border-glass-active) !important;
+  border-radius: 4px !important;
+  padding: 3px 8px !important;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
+  min-height: 24px !important;
+  height: 24px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}

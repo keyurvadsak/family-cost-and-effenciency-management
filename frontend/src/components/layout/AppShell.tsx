@@ -26,7 +26,7 @@ export default function AppShell({ children }: AppShellProps) {
       <main
         id="main-content"
         className="main-content"
-        style={{ padding: isMobile ? '16px 14px' : '24px 32px' }}
+        style={{ padding: isMobile ? '6px 4px' : '24px 32px' }}
       >
         {children}
       </main>

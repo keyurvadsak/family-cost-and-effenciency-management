@@ -57,12 +57,12 @@ interface StatementRowProps {
 const StatementItemRow: React.FC<StatementRowProps> = ({ item, depth = 0, isMobile = false, onSelectAccount }) => {
   const hasChildren = Boolean(item.children && item.children.length > 0);
   const indentStep = isMobile ? 8 : 14;
-  const paddingLeft = depth === 0 ? '8px' : `${depth * indentStep + 8}px`;
+  const paddingLeft = depth === 0 ? '6px' : `${depth * indentStep + 6}px`;
 
   return (
     <>
       <tr style={{ background: hasChildren ? 'rgba(0, 0, 0, 0.02)' : 'transparent' }}>
-        <td style={{ paddingLeft, padding: isMobile ? '5px 6px' : '7px 10px' }}>
+        <td style={{ paddingLeft, padding: isMobile ? '4px 5px' : '7px 10px' }}>
           <div className="gnucash-acc-cell">
             <span
               className="gnucash-acc-link"
@@ -85,7 +85,7 @@ const StatementItemRow: React.FC<StatementRowProps> = ({ item, depth = 0, isMobi
             fontWeight: hasChildren ? 750 : 500,
             fontSize: isMobile ? '0.76rem' : '0.83rem',
             color: item.balance < 0 ? 'var(--error)' : 'inherit',
-            padding: isMobile ? '5px 6px' : '7px 10px',
+            padding: isMobile ? '4px 5px' : '7px 10px',
             width: isMobile ? '88px' : '110px',
             minWidth: isMobile ? '82px' : '95px'
           }}
@@ -419,7 +419,7 @@ export default function ConsolidatedLedgerPage() {
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '8px 6px' : '16px 20px', boxSizing: 'border-box' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '2px 0' : '16px 20px', boxSizing: 'border-box' }}>
       {/* ═════════════════════ TOP NAVIGATION & COMPACT ACTION STRIP ═════════════════════ */}
       <div
         style={{
@@ -427,40 +427,42 @@ export default function ConsolidatedLedgerPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '6px',
-          marginBottom: '8px',
+          marginBottom: '6px',
           width: '100%',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          padding: isMobile ? '0 2px' : 0
         }}
       >
         <button
           type="button"
-          className="btn btn-secondary"
           onClick={() => navigate('/')}
+          className="btn btn-secondary"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '4px',
             padding: isMobile ? '4px 8px' : '6px 12px',
-            fontSize: isMobile ? '0.74rem' : '0.80rem',
-            height: isMobile ? '28px' : '34px',
+            fontSize: isMobile ? '0.76rem' : '0.80rem',
+            height: isMobile ? '32px' : '34px',
+            minHeight: isMobile ? '32px' : '34px',
             flexShrink: 0
           }}
         >
-          <ArrowLeft size={isMobile ? 13 : 15} />
+          <ArrowLeft size={isMobile ? 14 : 15} />
           <span>ધંધાઓ</span>
         </button>
 
-        {/* Compact Action Icon Strip: Never overflows on mobile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+        {/* High-Contrast Action Buttons with Visible 17px Icons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '6px', flexShrink: 0 }}>
           <button
             type="button"
-            className={`btn btn-secondary ${isMobile ? 'icon-btn-compact' : ''}`}
+            className={isMobile ? 'mobile-action-btn' : 'btn btn-secondary'}
             onClick={() => loadData(true)}
             disabled={refreshing}
             title="રિફ્રેશ કરો"
             style={!isMobile ? { width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' } : undefined}
           >
-            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={17} strokeWidth={2.2} color="var(--text-main)" className={refreshing ? 'animate-spin' : ''} />
           </button>
 
           {!isMobile && (
@@ -471,13 +473,13 @@ export default function ConsolidatedLedgerPage() {
               title="પ્રિન્ટ કરો"
               style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Printer size={14} />
+              <Printer size={15} />
             </button>
           )}
 
           <button
             type="button"
-            className={`btn btn-secondary ${isMobile ? 'icon-btn-compact' : ''}`}
+            className={isMobile ? 'mobile-action-btn' : 'btn btn-secondary'}
             onClick={handleOpenManageAccounts}
             title="ખાતાઓ ગોઠવો"
             style={!isMobile ? {
@@ -489,15 +491,15 @@ export default function ConsolidatedLedgerPage() {
               fontSize: '0.78rem'
             } : undefined}
           >
-            <Settings size={13} />
-            {!isMobile && <span>ખાતાઓ</span>}
+            <Settings size={17} strokeWidth={2.2} color="var(--text-main)" />
+            {!isMobile && <span style={{ marginLeft: 4 }}>ખાતાઓ</span>}
           </button>
 
           {user?.role === 'admin' && (
             <>
               <button
                 type="button"
-                className={`btn btn-primary ${isMobile ? 'icon-btn-compact' : ''}`}
+                className={isMobile ? 'mobile-action-btn mobile-action-btn-primary' : 'btn btn-primary'}
                 onClick={() => {
                   setSelectedFile(null);
                   setUploadResult(null);
@@ -513,42 +515,42 @@ export default function ConsolidatedLedgerPage() {
                   fontSize: '0.78rem'
                 } : undefined}
               >
-                <Upload size={13} />
-                {!isMobile && <span>માસિક CSV</span>}
+                <Upload size={17} strokeWidth={2.2} color="#ffffff" />
+                {!isMobile && <span style={{ marginLeft: 4 }}>માસિક CSV</span>}
               </button>
 
               <button
                 type="button"
-                className={`btn btn-outline-danger ${isMobile ? 'icon-btn-compact' : ''}`}
+                className={isMobile ? 'mobile-action-btn mobile-action-btn-danger' : 'btn btn-outline-danger'}
                 onClick={() => setShowResetModal(true)}
                 title="ડેટા સાફ કરો"
                 style={!isMobile ? { width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' } : undefined}
               >
-                <Trash2 size={13} />
+                <Trash2 size={17} strokeWidth={2.2} color="var(--error)" />
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* ═════════════════════ HERO / SUMMARY BANNER (High-Density Mobile Header) ═════════════════════ */}
+      {/* ═════════════════════ HERO / SUMMARY BANNER (Edge-to-Edge Mobile Fit) ═════════════════════ */}
       <div
         className="glass-card"
         style={{
           background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.07) 0%, rgba(245, 158, 11, 0.02) 100%)',
           borderColor: 'rgba(217, 119, 6, 0.22)',
-          padding: isMobile ? '8px 10px' : '14px 18px',
-          marginBottom: '8px',
+          padding: isMobile ? '6px 8px' : '14px 18px',
+          marginBottom: '6px',
           boxSizing: 'border-box'
         }}
       >
         {/* Compact Title Line */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '10px', minWidth: 0 }}>
             <div
               style={{
-                width: isMobile ? '26px' : '36px',
-                height: isMobile ? '26px' : '36px',
+                width: isMobile ? '24px' : '36px',
+                height: isMobile ? '24px' : '36px',
                 borderRadius: '6px',
                 background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                 color: '#ffffff',
@@ -559,14 +561,14 @@ export default function ConsolidatedLedgerPage() {
                 flexShrink: 0
               }}
             >
-              <BookOpen size={isMobile ? 15 : 18} />
+              <BookOpen size={isMobile ? 14 : 18} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h1 style={{ fontSize: isMobile ? '0.90rem' : '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <h1 style={{ fontSize: isMobile ? '0.88rem' : '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
                   બધા નો મિક્સ હિસાબ
                 </h1>
-                <span className="badge badge-warning" style={{ fontSize: '0.60rem', padding: '1px 5px', flexShrink: 0 }}>
+                <span className="badge badge-warning" style={{ fontSize: '0.58rem', padding: '1px 5px', flexShrink: 0 }}>
                   {summary ? summary.total_count : 0} વ્યવહારો
                 </span>
               </div>
@@ -579,52 +581,52 @@ export default function ConsolidatedLedgerPage() {
           </div>
         </div>
 
-        {/* 4 Compact Stat Tiles with Equal Heights & Zero Clipping */}
+        {/* 4 Compact Stat Tiles with Zero Waste Space */}
         {summary && (
-          <div className="compact-stat-grid" style={{ marginTop: '8px', gap: isMobile ? '6px' : '10px' }}>
+          <div className="compact-stat-grid" style={{ marginTop: '6px', gap: isMobile ? '4px' : '10px' }}>
             {/* Card 1: Rokad Silak */}
-            <div className="compact-stat-card" style={{ borderLeftColor: '#10b981' }}>
+            <div className="compact-stat-card" style={{ borderLeftColor: '#10b981', minHeight: isMobile ? '40px' : '48px', padding: isMobile ? '4px 6px' : '8px 10px' }}>
               <div className="compact-stat-header">
-                <span className="compact-stat-title">રોકડ સિલક</span>
+                <span className="compact-stat-title" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem' }}>રોકડ સિલક</span>
                 <span className="compact-stat-badge" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>CASH</span>
               </div>
-              <div className={`compact-stat-value ${summary.net_cash_balance >= 0 ? 'text-credit' : 'text-debit'}`}>
+              <div className={`compact-stat-value ${summary.net_cash_balance >= 0 ? 'text-credit' : 'text-debit'}`} style={{ fontSize: isMobile ? '0.80rem' : '1.02rem' }}>
                 {formatCurrency(summary.net_cash_balance)}
               </div>
               {!isMobile && <span className="compact-stat-sub">હાથ પર રોકડ</span>}
             </div>
 
             {/* Card 2: Period Inflow */}
-            <div className="compact-stat-card" style={{ borderLeftColor: '#3b82f6' }}>
+            <div className="compact-stat-card" style={{ borderLeftColor: '#3b82f6', minHeight: isMobile ? '40px' : '48px', padding: isMobile ? '4px 6px' : '8px 10px' }}>
               <div className="compact-stat-header">
-                <span className="compact-stat-title">કુલ આવક</span>
+                <span className="compact-stat-title" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem' }}>કુલ આવક</span>
                 <span className="compact-stat-badge" style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' }}>જમા (+)</span>
               </div>
-              <div className="compact-stat-value text-credit">
+              <div className="compact-stat-value text-credit" style={{ fontSize: isMobile ? '0.80rem' : '1.02rem' }}>
                 {formatCurrency(summary.period_inflow)}
               </div>
               {!isMobile && <span className="compact-stat-sub">કુલ રોકડ આવક</span>}
             </div>
 
             {/* Card 3: Period Outflow */}
-            <div className="compact-stat-card" style={{ borderLeftColor: '#ef4444' }}>
+            <div className="compact-stat-card" style={{ borderLeftColor: '#ef4444', minHeight: isMobile ? '40px' : '48px', padding: isMobile ? '4px 6px' : '8px 10px' }}>
               <div className="compact-stat-header">
-                <span className="compact-stat-title">કુલ ખર્ચ</span>
+                <span className="compact-stat-title" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem' }}>કુલ ખર્ચ</span>
                 <span className="compact-stat-badge" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>ઉધાર (-)</span>
               </div>
-              <div className="compact-stat-value text-debit">
+              <div className="compact-stat-value text-debit" style={{ fontSize: isMobile ? '0.80rem' : '1.02rem' }}>
                 {formatCurrency(summary.period_outflow)}
               </div>
               {!isMobile && <span className="compact-stat-sub">કુલ રોકડ ખર્ચ</span>}
             </div>
 
             {/* Card 4: Net Change */}
-            <div className="compact-stat-card" style={{ borderLeftColor: '#f59e0b' }}>
+            <div className="compact-stat-card" style={{ borderLeftColor: '#f59e0b', minHeight: isMobile ? '40px' : '48px', padding: isMobile ? '4px 6px' : '8px 10px' }}>
               <div className="compact-stat-header">
-                <span className="compact-stat-title">ચોખ્ખો પ્રવાહ</span>
+                <span className="compact-stat-title" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem' }}>ચોખ્ખો પ્રવાહ</span>
                 <span className="compact-stat-badge" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>નેટ</span>
               </div>
-              <div className={`compact-stat-value ${summary.net_change >= 0 ? 'text-credit' : 'text-debit'}`}>
+              <div className={`compact-stat-value ${summary.net_change >= 0 ? 'text-credit' : 'text-debit'}`} style={{ fontSize: isMobile ? '0.80rem' : '1.02rem' }}>
                 {formatCurrency(summary.net_change, true)}
               </div>
               {!isMobile && <span className="compact-stat-sub">આવક - ખર્ચ તફાવત</span>}
@@ -634,8 +636,8 @@ export default function ConsolidatedLedgerPage() {
       </div>
 
       {/* ═════════════════════ NATIVE SEGMENTED TAB BAR ═════════════════════ */}
-      <div style={{ marginBottom: '8px', width: '100%', boxSizing: 'border-box' }}>
-        <div className="compact-segmented-tabs" style={{ padding: '3px' }}>
+      <div style={{ marginBottom: '6px', width: '100%', boxSizing: 'border-box' }}>
+        <div className="compact-segmented-tabs" style={{ padding: '2px' }}>
           <button
             type="button"
             className={`compact-tab-btn ${viewMode === 'tree' ? 'active-primary' : ''}`}
@@ -643,7 +645,7 @@ export default function ConsolidatedLedgerPage() {
               setViewMode('tree');
               setSearchParams({ view: 'tree' });
             }}
-            style={{ padding: isMobile ? '6px 8px' : '8px 12px', fontSize: isMobile ? '0.74rem' : '0.80rem' }}
+            style={{ padding: isMobile ? '5px 6px' : '8px 12px', fontSize: isMobile ? '0.72rem' : '0.80rem' }}
           >
             <Building size={13} />
             <span>{isMobile ? 'એકાઉન્ટ્સ' : 'એકાઉન્ટ્સ વૃક્ષ (Chart of Accounts)'}</span>
@@ -656,7 +658,7 @@ export default function ConsolidatedLedgerPage() {
               setViewMode('balance_sheet');
               setSearchParams({ view: 'balance_sheet' });
             }}
-            style={{ padding: isMobile ? '6px 8px' : '8px 12px', fontSize: isMobile ? '0.74rem' : '0.80rem' }}
+            style={{ padding: isMobile ? '5px 6px' : '8px 12px', fontSize: isMobile ? '0.72rem' : '0.80rem' }}
           >
             <Scale size={13} />
             <span>{isMobile ? 'બેલેન્સ શીટ' : 'બેલેન્સ શીટ (Balance Sheet)'}</span>
@@ -669,7 +671,7 @@ export default function ConsolidatedLedgerPage() {
               setViewMode('income_statement');
               setSearchParams({ view: 'income_statement' });
             }}
-            style={{ padding: isMobile ? '6px 8px' : '8px 12px', fontSize: isMobile ? '0.74rem' : '0.80rem' }}
+            style={{ padding: isMobile ? '5px 6px' : '8px 12px', fontSize: isMobile ? '0.72rem' : '0.80rem' }}
           >
             <TrendingUp size={13} />
             <span>{isMobile ? 'નફો-નુકસાન' : 'આવક-ખર્ચ હિસાબ (Income Statement)'}</span>
@@ -681,34 +683,35 @@ export default function ConsolidatedLedgerPage() {
           VIEW 1: CHART OF ACCOUNTS HIERARCHICAL TREE VIEW
           ═══════════════════════════════════════════════════════════ */}
       {viewMode === 'tree' && (
-        <div className="glass-card" style={{ padding: isMobile ? '10px 8px' : '16px', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+        <div className="glass-card" style={{ padding: isMobile ? '8px 6px' : '16px', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
             <div>
-              <h2 style={{ fontSize: isMobile ? '0.86rem' : '1.05rem', fontWeight: 750, margin: 0, color: 'var(--text-main)' }}>
+              <h2 style={{ fontSize: isMobile ? '0.84rem' : '1.05rem', fontWeight: 750, margin: 0, color: 'var(--text-main)' }}>
                 તમામ એકાઉન્ટ્સ વૃક્ષ (Hierarchy Tree)
               </h2>
-              <p style={{ margin: '1px 0 0', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '1px 0 0', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
                 કોઈપણ ખાતા પર ક્લિક કરીને વિગતવાર વ્યવહારો જુઓ.
               </p>
             </div>
 
+            {/* Compact Toggle Buttons (Not Bulky Pills) */}
             <div style={{ display: 'flex', gap: '4px' }}>
-              <button type="button" className="btn btn-secondary" onClick={expandAllNodes} style={{ fontSize: '0.66rem', padding: '2px 7px', height: '26px' }}>
+              <button type="button" className="tree-toggle-btn" onClick={expandAllNodes}>
                 બધું ખોલો
               </button>
-              <button type="button" className="btn btn-secondary" onClick={collapseAllNodes} style={{ fontSize: '0.66rem', padding: '2px 7px', height: '26px' }}>
+              <button type="button" className="tree-toggle-btn" onClick={collapseAllNodes}>
                 બધું બંધ કરો
               </button>
             </div>
           </div>
 
           <div className="gnucash-table-wrapper">
-            <table className="gnucash-table" style={{ width: '100%', fontSize: '0.76rem' }}>
+            <table className="gnucash-table" style={{ width: '100%', fontSize: '0.74rem' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '2px solid var(--border-glass)', textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px' }}>એકાઉન્ટ નામ</th>
-                  <th style={{ padding: '6px 8px', width: isMobile ? '65px' : '110px' }}>પ્રકાર</th>
-                  <th style={{ padding: '6px 8px', width: isMobile ? '95px' : '135px', textAlign: 'right' }}>કુલ રકમ</th>
+                  <th style={{ padding: '5px 6px' }}>એકાઉન્ટ નામ</th>
+                  <th style={{ padding: '5px 6px', width: isMobile ? '60px' : '110px' }}>પ્રકાર</th>
+                  <th style={{ padding: '5px 6px', width: isMobile ? '90px' : '135px', textAlign: 'right' }}>કુલ રકમ</th>
                 </tr>
               </thead>
               <tbody>
@@ -716,13 +719,13 @@ export default function ConsolidatedLedgerPage() {
                   const renderNode = (n: AccountTreeNode, depth = 0): React.ReactNode => {
                     const isExpanded = expandedNodes[n.full_name] ?? false;
                     const badge = getTypeBadgeStyle(n.type);
-                    const indent = isMobile ? depth * 10 + 2 : depth * 18 + 8;
+                    const indent = isMobile ? depth * 8 + 2 : depth * 18 + 8;
 
                     return (
                       <React.Fragment key={n.full_name}>
                         <tr>
-                          <td style={{ padding: isMobile ? '5px 6px' : '6px 8px', paddingLeft: `${indent}px` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <td style={{ padding: isMobile ? '4px 5px' : '6px 8px', paddingLeft: `${indent}px` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                               {n.has_children ? (
                                 <button
                                   type="button"
@@ -769,11 +772,11 @@ export default function ConsolidatedLedgerPage() {
                             </div>
                           </td>
 
-                          <td style={{ padding: isMobile ? '5px 6px' : '6px 8px' }}>
+                          <td style={{ padding: isMobile ? '4px 5px' : '6px 8px' }}>
                             <span
                               style={{
-                                fontSize: '0.60rem',
-                                padding: '1px 5px',
+                                fontSize: '0.58rem',
+                                padding: '1px 4px',
                                 borderRadius: '4px',
                                 background: badge.bg,
                                 color: badge.color,
@@ -789,7 +792,7 @@ export default function ConsolidatedLedgerPage() {
                           <td
                             className="gnucash-amt-cell"
                             style={{
-                              padding: isMobile ? '5px 6px' : '6px 8px',
+                              padding: isMobile ? '4px 5px' : '6px 8px',
                               fontWeight: depth === 0 ? 800 : n.has_children ? 700 : 500,
                               fontSize: isMobile ? '0.76rem' : '0.83rem',
                               color: n.balance < 0 ? 'var(--error)' : 'inherit',
@@ -816,7 +819,7 @@ export default function ConsolidatedLedgerPage() {
           VIEW 2: DYNAMIC MULTICOLUMN BALANCE SHEET
           ═══════════════════════════════════════════════════════════ */}
       {viewMode === 'balance_sheet' && balanceSheet && (
-        <div className="gnucash-statement-card" style={{ padding: isMobile ? '10px 8px' : '16px' }}>
+        <div className="gnucash-statement-card" style={{ padding: isMobile ? '8px 6px' : '16px' }}>
           {/* Header */}
           <div
             style={{
@@ -824,24 +827,24 @@ export default function ConsolidatedLedgerPage() {
               justifyContent: 'space-between',
               alignItems: isMobile ? 'flex-start' : 'center',
               flexDirection: isMobile ? 'column' : 'row',
-              gap: '6px',
+              gap: '5px',
               borderBottom: '1px solid var(--border-glass)',
-              paddingBottom: '8px'
+              paddingBottom: '6px'
             }}
           >
             <div>
-              <h2 style={{ fontSize: isMobile ? '0.88rem' : '1.20rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+              <h2 style={{ fontSize: isMobile ? '0.86rem' : '1.20rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
                 Balance Sheet (Multicolumn) {balanceSheet.as_of_date_formatted}
               </h2>
-              <p style={{ margin: '1px 0 0', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '1px 0 0', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
                 દ્વિ-સ્તંભ સરવૈયું / સ્થિતિ દર્શક પત્રક (તારીખ: {balanceSheet.as_of_date_formatted} સુધી)
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <div className="statement-date-bar">
                 <Calendar size={12} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>તારીખ:</span>
+                <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>તારીખ:</span>
                 <input
                   type="date"
                   value={bsAsOfDate}
@@ -850,14 +853,14 @@ export default function ConsolidatedLedgerPage() {
                 />
               </div>
 
-              <span className="badge badge-success" style={{ fontSize: '0.64rem', padding: '2px 6px' }}>
+              <span className="badge badge-success" style={{ fontSize: '0.62rem', padding: '2px 5px' }}>
                 ✓ ટેલી છે
               </span>
             </div>
           </div>
 
           {/* Multicolumn Layout: Left = Asset | Right = Liability & Equity */}
-          <div className="gnucash-statement-grid" style={{ marginTop: '10px', gap: isMobile ? '8px' : '14px' }}>
+          <div className="gnucash-statement-grid" style={{ marginTop: '8px', gap: isMobile ? '6px' : '14px' }}>
             {/* ───── LEFT COLUMN: ASSETS ───── */}
             <div className="gnucash-col">
               <div className="gnucash-section-box">
@@ -870,7 +873,7 @@ export default function ConsolidatedLedgerPage() {
                   <table className="gnucash-table">
                     <tbody>
                       <tr>
-                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '5px 6px' : '7px 10px' }}>
+                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '4px 5px' : '7px 10px' }}>
                           {balanceSheet.assets.root_name}
                         </td>
                         <td className="gnucash-amt-cell" style={{ fontWeight: 800 }}>
@@ -921,7 +924,7 @@ export default function ConsolidatedLedgerPage() {
                   <table className="gnucash-table">
                     <tbody>
                       <tr>
-                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '5px 6px' : '7px 10px' }}>
+                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '4px 5px' : '7px 10px' }}>
                           {balanceSheet.liabilities.root_name}
                         </td>
                         <td className="gnucash-amt-cell" style={{ fontWeight: 800 }}>
@@ -980,7 +983,7 @@ export default function ConsolidatedLedgerPage() {
                         ))
                       ) : (
                         <tr>
-                          <td style={{ padding: isMobile ? '5px 6px' : '7px 10px', paddingLeft: isMobile ? '8px' : '10px' }}>
+                          <td style={{ padding: isMobile ? '4px 5px' : '7px 10px', paddingLeft: isMobile ? '6px' : '10px' }}>
                             <div className="gnucash-acc-cell">
                               <span
                                 className="gnucash-acc-link"
@@ -999,7 +1002,7 @@ export default function ConsolidatedLedgerPage() {
 
                       {/* Retained Earnings */}
                       <tr>
-                        <td style={{ padding: isMobile ? '5px 6px' : '7px 10px', paddingLeft: isMobile ? '8px' : '10px' }}>
+                        <td style={{ padding: isMobile ? '4px 5px' : '7px 10px', paddingLeft: isMobile ? '6px' : '10px' }}>
                           <div className="gnucash-acc-cell">
                             <span style={{ fontWeight: 600, fontSize: isMobile ? '0.74rem' : '0.82rem' }}>
                               Retained Earnings
@@ -1014,7 +1017,7 @@ export default function ConsolidatedLedgerPage() {
                           style={{
                             fontWeight: 600,
                             fontSize: isMobile ? '0.76rem' : '0.83rem',
-                            padding: isMobile ? '5px 6px' : '7px 10px',
+                            padding: isMobile ? '4px 5px' : '7px 10px',
                             width: isMobile ? '88px' : '110px'
                           }}
                         >
@@ -1039,8 +1042,8 @@ export default function ConsolidatedLedgerPage() {
                   borderTop: '2px solid #d97706',
                   borderBottom: '3px double #b45309',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: isMobile ? '0.80rem' : '0.90rem',
-                  padding: isMobile ? '7px 8px' : '10px 14px',
+                  fontSize: isMobile ? '0.78rem' : '0.90rem',
+                  padding: isMobile ? '6px 8px' : '10px 14px',
                 }}
               >
                 <span>Total For Liability and Equity</span>
@@ -1057,7 +1060,7 @@ export default function ConsolidatedLedgerPage() {
           VIEW 3: DYNAMIC MULTICOLUMN INCOME STATEMENT
           ═══════════════════════════════════════════════════════════ */}
       {viewMode === 'income_statement' && incomeStatement && (
-        <div className="gnucash-statement-card" style={{ padding: isMobile ? '10px 8px' : '16px' }}>
+        <div className="gnucash-statement-card" style={{ padding: isMobile ? '8px 6px' : '16px' }}>
           {/* Header */}
           <div
             style={{
@@ -1065,16 +1068,16 @@ export default function ConsolidatedLedgerPage() {
               justifyContent: 'space-between',
               alignItems: isMobile ? 'flex-start' : 'center',
               flexDirection: isMobile ? 'column' : 'row',
-              gap: '6px',
+              gap: '5px',
               borderBottom: '1px solid var(--border-glass)',
-              paddingBottom: '8px'
+              paddingBottom: '6px'
             }}
           >
             <div>
-              <h2 style={{ fontSize: isMobile ? '0.88rem' : '1.20rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+              <h2 style={{ fontSize: isMobile ? '0.86rem' : '1.20rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
                 Income Statement (Multicolumn)
               </h2>
-              <p style={{ margin: '1px 0 0', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '1px 0 0', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
                 દ્વિ-સ્તંભ આવક-ખર્ચ પત્રક ({incomeStatement.start_date_formatted} થી {incomeStatement.end_date_formatted})
               </p>
             </div>
@@ -1088,7 +1091,7 @@ export default function ConsolidatedLedgerPage() {
                 onChange={(e) => setIsStartDate(e.target.value)}
                 className="statement-date-input"
               />
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>થી</span>
+              <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>થી</span>
               <input
                 type="date"
                 value={isEndDate}
@@ -1099,7 +1102,7 @@ export default function ConsolidatedLedgerPage() {
           </div>
 
           {/* Multicolumn Layout: Left = Income | Right = Expense */}
-          <div className="gnucash-statement-grid" style={{ marginTop: '10px', gap: isMobile ? '8px' : '14px' }}>
+          <div className="gnucash-statement-grid" style={{ marginTop: '8px', gap: isMobile ? '6px' : '14px' }}>
             {/* ───── LEFT COLUMN: INCOME ───── */}
             <div className="gnucash-col">
               <div className="gnucash-section-box">
@@ -1112,7 +1115,7 @@ export default function ConsolidatedLedgerPage() {
                   <table className="gnucash-table">
                     <tbody>
                       <tr>
-                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '5px 6px' : '7px 10px' }}>
+                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '4px 5px' : '7px 10px' }}>
                           {incomeStatement.income.root_name}
                         </td>
                         <td className="gnucash-amt-cell" style={{ fontWeight: 800 }}>
@@ -1180,7 +1183,7 @@ export default function ConsolidatedLedgerPage() {
                   <table className="gnucash-table">
                     <tbody>
                       <tr>
-                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '5px 6px' : '7px 10px' }}>
+                        <td style={{ fontWeight: 800, fontSize: isMobile ? '0.78rem' : '0.86rem', padding: isMobile ? '4px 5px' : '7px 10px' }}>
                           {incomeStatement.expense.root_name}
                         </td>
                         <td className="gnucash-amt-cell" style={{ fontWeight: 800 }}>
@@ -1212,7 +1215,7 @@ export default function ConsolidatedLedgerPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════
-          ONE-CLICK ACCOUNT STATEMENT MODAL / DRAWER (Zero Clipping)
+          ONE-CLICK ACCOUNT STATEMENT MODAL / DRAWER (Bold Date & Zero Clipping)
           ═══════════════════════════════════════════════════════════ */}
       <Modal
         show={Boolean(selectedAccountModal)}
@@ -1229,7 +1232,7 @@ export default function ConsolidatedLedgerPage() {
         maxWidth="820px"
       >
         {accountStatementLoading ? (
-          <div style={{ padding: '24px', textAlign: 'center' }}>
+          <div style={{ padding: '20px', textAlign: 'center' }}>
             <RefreshCw size={22} className="animate-spin" style={{ margin: '0 auto 8px', color: 'var(--primary)' }} />
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>ખાતાના વ્યવહારો લોડ થઈ રહ્યા છે...</div>
           </div>
@@ -1237,7 +1240,7 @@ export default function ConsolidatedLedgerPage() {
           <div>
             {/* Account Path on Mobile */}
             {isMobile && (
-              <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginBottom: '8px', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginBottom: '6px', wordBreak: 'break-all' }}>
                 {accountStatement.account_name}
               </div>
             )}
@@ -1251,29 +1254,29 @@ export default function ConsolidatedLedgerPage() {
                 background: 'var(--bg-surface-elevated)',
                 border: '1px solid var(--border-glass)',
                 borderRadius: '6px',
-                padding: '5px 8px',
-                marginBottom: '8px',
+                padding: '4px 6px',
+                marginBottom: '6px',
               }}
             >
               <div>
-                <div style={{ fontSize: '0.60rem', color: 'var(--text-muted)', fontWeight: 600 }}>કુલ આવક (+)</div>
-                <div className="text-credit" style={{ fontSize: isMobile ? '0.78rem' : '0.94rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }}>કુલ આવક (+)</div>
+                <div className="text-credit" style={{ fontSize: isMobile ? '0.76rem' : '0.94rem', fontWeight: 800, fontFamily: 'monospace' }}>
                   {formatCurrency(accountStatement.total_inflow)}
                 </div>
               </div>
 
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.60rem', color: 'var(--text-muted)', fontWeight: 600 }}>કુલ ખર્ચ (-)</div>
-                <div className="text-debit" style={{ fontSize: isMobile ? '0.78rem' : '0.94rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }}>કુલ ખર્ચ (-)</div>
+                <div className="text-debit" style={{ fontSize: isMobile ? '0.76rem' : '0.94rem', fontWeight: 800, fontFamily: 'monospace' }}>
                   {formatCurrency(accountStatement.total_outflow)}
                 </div>
               </div>
 
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.60rem', color: 'var(--text-muted)', fontWeight: 600 }}>ચોખ્ખી બાકી</div>
+                <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }}>ચોખ્ખી બાકી</div>
                 <div
                   className={accountStatement.net_balance >= 0 ? 'text-credit' : 'text-debit'}
-                  style={{ fontSize: isMobile ? '0.78rem' : '0.94rem', fontWeight: 800, fontFamily: 'monospace' }}
+                  style={{ fontSize: isMobile ? '0.76rem' : '0.94rem', fontWeight: 800, fontFamily: 'monospace' }}
                 >
                   {formatCurrency(accountStatement.net_balance)}
                 </div>
@@ -1282,10 +1285,10 @@ export default function ConsolidatedLedgerPage() {
 
             {/* Transactions Section: Responsive Mobile Feed Cards OR Desktop Table */}
             {isMobile ? (
-              /* Mobile High-Density Ledger Rows (100% visible, zero clipping) */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '52vh', overflowY: 'auto' }}>
+              /* Mobile High-Density Ledger Rows with BOLD DATE */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '54vh', overflowY: 'auto' }}>
                 {accountStatement.transactions.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.76rem' }}>
+                  <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '0.76rem' }}>
                     આ ખાતામાં કોઈ વ્યવહારો મળ્યા નથી.
                   </div>
                 ) : (
@@ -1293,13 +1296,14 @@ export default function ConsolidatedLedgerPage() {
                     const isInflow = t.inflow > 0;
                     const isOutflow = t.outflow > 0;
                     return (
-                      <div key={t.id} className="mobile-ledger-row">
+                      <div key={t.id} className="mobile-ledger-row" style={{ padding: '6px 8px' }}>
                         {/* Top Line: Description & Prominent Amount */}
                         <div className="mobile-ledger-top">
-                          <span className="mobile-ledger-desc">{t.description || 'વ્યવહાર'}</span>
+                          <span className="mobile-ledger-desc" style={{ fontSize: '0.78rem' }}>{t.description || 'વ્યવહાર'}</span>
                           <span
                             className="mobile-ledger-amt"
                             style={{
+                              fontSize: '0.84rem',
                               color: isInflow ? '#10b981' : isOutflow ? '#ef4444' : 'var(--text-muted)',
                             }}
                           >
@@ -1309,18 +1313,23 @@ export default function ConsolidatedLedgerPage() {
 
                         {/* Note if available and distinct */}
                         {t.notes && t.notes !== t.description && (
-                          <div className="mobile-ledger-notes">{t.notes}</div>
+                          <div className="mobile-ledger-notes" style={{ fontSize: '0.66rem' }}>{t.notes}</div>
                         )}
 
-                        {/* Bottom Line: Date, Stream & Badge */}
-                        <div className="mobile-ledger-bot">
-                          <span className="mobile-ledger-meta">
-                            {t.date} • {t.business_stream}
-                          </span>
+                        {/* Bottom Line: BOLD DATE, Stream & Badge */}
+                        <div className="mobile-ledger-bot" style={{ marginTop: '3px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.74rem', color: 'var(--text-main)', fontFamily: 'monospace' }}>
+                              📅 {t.date}
+                            </span>
+                            <span className="badge" style={{ fontSize: '0.58rem', padding: '1px 5px' }}>
+                              {t.business_stream}
+                            </span>
+                          </div>
                           <span
                             style={{
                               fontSize: '0.58rem',
-                              fontWeight: 700,
+                              fontWeight: 800,
                               padding: '1px 5px',
                               borderRadius: '4px',
                               background: isInflow ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
@@ -1336,7 +1345,7 @@ export default function ConsolidatedLedgerPage() {
                 )}
               </div>
             ) : (
-              /* Desktop CA 5-Column Table */
+              /* Desktop CA 5-Column Table with BOLD DATE */
               <div className="gnucash-table-wrapper" style={{ maxHeight: '380px', overflowY: 'auto' }}>
                 <table className="data-table" style={{ width: '100%', fontSize: '0.78rem' }}>
                   <thead>
@@ -1358,7 +1367,9 @@ export default function ConsolidatedLedgerPage() {
                     ) : (
                       accountStatement.transactions.map((t) => (
                         <tr key={t.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
-                          <td style={{ padding: '6px 8px', whiteSpace: 'nowrap', fontWeight: 600 }}>{t.date}</td>
+                          <td style={{ padding: '6px 8px', whiteSpace: 'nowrap', fontWeight: 800, fontFamily: 'monospace', color: 'var(--text-main)' }}>
+                            {t.date}
+                          </td>
                           <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
                             <span className="badge" style={{ fontSize: '0.60rem' }}>{t.business_stream}</span>
                           </td>
@@ -1383,7 +1394,7 @@ export default function ConsolidatedLedgerPage() {
             )}
 
             {/* Modal Footer */}
-            <div className="modal-footer" style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="modal-footer" style={{ marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 {accountStatement.transactions.length} વ્યવહારો મળ્યા
               </span>
@@ -1391,7 +1402,7 @@ export default function ConsolidatedLedgerPage() {
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleCloseAccountModal}
-                style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
+                style={{ padding: '3px 10px', fontSize: '0.74rem', height: '26px' }}
               >
                 બંધ કરો
               </button>
@@ -1413,19 +1424,18 @@ export default function ConsolidatedLedgerPage() {
         maxWidth="860px"
       >
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
             <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
               તમામ ખાતાઓના ગુજરાતી નામ અને બિઝનેસ પ્રવાહ અહીંથી ગોઠવી શકો છો.
             </p>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="tree-toggle-btn"
               onClick={handleSyncAccounts}
               disabled={accountsListLoading}
-              style={{ fontSize: '0.70rem', padding: '3px 8px', height: '26px' }}
             >
               <RefreshCw size={12} className={accountsListLoading ? 'animate-spin' : ''} />
-              <span>ખાતાઓ સિંક કરો</span>
+              <span style={{ marginLeft: 3 }}>ખાતાઓ સિંક કરો</span>
             </button>
           </div>
 
@@ -1564,8 +1574,8 @@ export default function ConsolidatedLedgerPage() {
         maxWidth="500px"
       >
         <form onSubmit={handleUploadSubmit}>
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.78rem', fontWeight: 600 }}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.78rem', fontWeight: 600 }}>
               GnuCash એક્સપોર્ટ થયેલ CSV ફાઇલ પસંદ કરો:
             </label>
             <input
@@ -1598,7 +1608,7 @@ export default function ConsolidatedLedgerPage() {
                 borderRadius: 'var(--radius-md)',
                 background: uploadResult.duplicate_transactions_skipped > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
                 border: `1px solid ${uploadResult.duplicate_transactions_skipped > 0 ? '#f59e0b' : '#10b981'}`,
-                marginBottom: '12px',
+                marginBottom: '10px',
                 fontSize: '0.74rem',
               }}
             >
@@ -1617,7 +1627,7 @@ export default function ConsolidatedLedgerPage() {
               className="btn btn-secondary"
               onClick={() => setShowUploadModal(false)}
               disabled={uploadLoading}
-              style={{ padding: '5px 12px', fontSize: '0.76rem' }}
+              style={{ padding: '4px 12px', fontSize: '0.76rem' }}
             >
               રદ કરો
             </button>
@@ -1625,9 +1635,9 @@ export default function ConsolidatedLedgerPage() {
               type="submit"
               className="btn btn-primary"
               disabled={!selectedFile || uploadLoading}
-              style={{ padding: '5px 14px', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+              style={{ padding: '4px 14px', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
-              <Upload size={13} className={uploadLoading ? 'animate-spin' : ''} />
+              <Upload size={14} className={uploadLoading ? 'animate-spin' : ''} />
               <span>{uploadLoading ? 'પ્રોસેસ થઈ રહ્યું છે...' : 'અપલોડ કરો'}</span>
             </button>
           </div>
@@ -1643,7 +1653,7 @@ export default function ConsolidatedLedgerPage() {
         title="ચેતવણી: તમામ ડેટા સાફ કરો"
         maxWidth="440px"
       >
-        <p style={{ fontSize: '0.78rem', color: 'var(--text-main)', margin: '0 0 14px' }}>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-main)', margin: '0 0 12px' }}>
           શું તમે ખરેખર તમામ સંકલિત વ્યવહારો, સ્પ્લિટ્સ અને હિસાબ સાફ કરવા માંગો છો? આ ક્રિયા પાછી વાળી શકાશે નહીં.
         </p>
         <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -1652,7 +1662,7 @@ export default function ConsolidatedLedgerPage() {
             className="btn btn-secondary"
             onClick={() => setShowResetModal(false)}
             disabled={resetLoading}
-            style={{ padding: '5px 12px', fontSize: '0.76rem' }}
+            style={{ padding: '4px 12px', fontSize: '0.76rem' }}
           >
             ના, રહેવા દો
           </button>
@@ -1661,7 +1671,7 @@ export default function ConsolidatedLedgerPage() {
             className="btn btn-danger"
             onClick={handleResetAll}
             disabled={resetLoading}
-            style={{ padding: '5px 14px', fontSize: '0.76rem' }}
+            style={{ padding: '4px 14px', fontSize: '0.76rem' }}
           >
             {resetLoading ? 'સાફ થઈ રહ્યું છે...' : 'હા, તમામ ડેટા સાફ કરો'}
           </button>
