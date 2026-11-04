@@ -3027,19 +3027,141 @@ table tbody tr:last-child td {
   }
 
   .compact-stat-card {
-    padding: 8px 10px;
-    min-height: 72px;
+    padding: 6px 8px;
+    min-height: 46px;
   }
 
   .compact-stat-title {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
   }
 
   .compact-stat-value {
-    font-size: 0.94rem;
+    font-size: 0.84rem;
   }
 
   .compact-stat-sub {
-    font-size: 0.60rem;
+    display: none;
   }
+}
+
+/* Compact Icon Buttons for Mobile Action Strip */
+.icon-btn-compact {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-sm) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Compact Date Picker for Financial Statements */
+.statement-date-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass-active);
+  border-radius: 6px;
+  padding: 2px 6px;
+  box-sizing: border-box;
+}
+
+.statement-date-input {
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-main) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 2px !important;
+  outline: none !important;
+  width: 105px !important;
+  max-width: 110px !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+}
+
+@media (max-width: 480px) {
+  .statement-date-bar {
+    padding: 2px 4px;
+    gap: 2px;
+  }
+  .statement-date-input {
+    font-size: 0.68rem !important;
+    width: 95px !important;
+    max-width: 98px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+  }
+}
+
+/* Mobile Ledger Feed Cards (Zero Text/Amount Clipping) */
+.mobile-ledger-row {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-sizing: border-box;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.mobile-ledger-row:hover {
+  border-color: var(--border-glass-active);
+}
+
+.mobile-ledger-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mobile-ledger-desc {
+  font-weight: 700;
+  font-size: 0.80rem;
+  color: var(--text-main);
+  line-height: 1.25;
+  word-break: break-word;
+  flex: 1;
+}
+
+.mobile-ledger-amt {
+  text-align: right;
+  font-family: monospace, var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobile-ledger-notes {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.mobile-ledger-bot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+  gap: 6px;
+}
+
+.mobile-ledger-meta {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

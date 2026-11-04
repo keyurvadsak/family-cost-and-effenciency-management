@@ -52,12 +52,12 @@ export default function Modal({ show, onClose, title, children, maxWidth = '500p
         style={{
           width: isMobile ? '100%' : '92%',
           maxWidth,
-          padding: isMobile ? '20px 16px 28px' : '26px 28px',
+          padding: isMobile ? '14px 12px 18px' : '26px 28px',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <h3 id="modal-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+        <div className="modal-header" style={{ alignItems: 'flex-start', gap: '8px' }}>
+          <h3 id="modal-title" style={{ fontSize: isMobile ? '0.96rem' : '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', lineHeight: 1.3 }}>
             {title}
           </h3>
           <button
@@ -65,9 +65,9 @@ export default function Modal({ show, onClose, title, children, maxWidth = '500p
             className="btn-icon"
             onClick={onClose}
             aria-label="Close modal"
-            style={{ flexShrink: 0, color: 'var(--text-muted)' }}
+            style={{ flexShrink: 0, color: 'var(--text-muted)', padding: '2px' }}
           >
-            <X size={20} />
+            <X size={isMobile ? 18 : 20} />
           </button>
         </div>
         <div className="modal-body" style={{ marginTop: '8px' }}>
