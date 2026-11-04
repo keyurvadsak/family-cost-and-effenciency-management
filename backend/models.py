@@ -142,3 +142,24 @@ class ConsolidatedSplit(Base):
 
     # Relationship
     transaction = relationship("ConsolidatedTransaction", back_populates="splits")
+
+
+class ConsolidatedAccount(Base):
+    """
+    Dynamic Account Registry for GnuCash Chart of Accounts.
+    Allows zero-code dynamic management of any account, parent-child hierarchies,
+    custom Gujarati display names, and business stream groupings.
+    """
+    __tablename__ = "consolidated_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, unique=True, index=True, nullable=False)  # E.g. "EXPENSES:BHEGA:BIG"
+    name = Column(String, nullable=False)  # E.g. "BIG"
+    parent_name = Column(String, index=True, nullable=True)  # E.g. "EXPENSES:BHEGA"
+    root_type = Column(String, index=True, nullable=False)  # "ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"
+    gujarati_name = Column(String, nullable=True)  # Custom or default Gujarati label
+    business_stream = Column(String, nullable=True)  # Custom or inferred business stream
+    display_order = Column(Integer, default=100)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+

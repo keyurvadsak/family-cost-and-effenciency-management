@@ -287,12 +287,22 @@ export interface AccountTreeNode {
   children: AccountTreeNode[];
 }
 
-export interface BalanceSheetItem {
+export interface StatementItem {
+  id?: number;
   name: string;
   full_name: string;
+  parent_name?: string | null;
+  root_type?: string;
   balance: number;
+  direct_balance?: number;
   gujarati_name?: string;
+  business_stream?: string;
+  has_children?: boolean;
+  children?: StatementItem[];
 }
+
+export type BalanceSheetItem = StatementItem;
+export type IncomeStatementItem = StatementItem;
 
 export interface BalanceSheetData {
   as_of_date: string;
@@ -300,33 +310,30 @@ export interface BalanceSheetData {
   assets: {
     root_name: string;
     root_total: number;
-    children: BalanceSheetItem[];
-    standalone: BalanceSheetItem[];
+    children: StatementItem[];
+    standalone: StatementItem[];
     total_asset: number;
+    tree?: StatementItem[];
   };
   liabilities: {
     root_name: string;
     root_total: number;
-    children: BalanceSheetItem[];
+    children: StatementItem[];
+    standalone?: StatementItem[];
     total_liability: number;
+    tree?: StatementItem[];
   };
   equity: {
+    accounts?: StatementItem[];
     capital_acc: number;
     capital_acc_name: string;
     capital_acc_full: string;
     unrealized_gains: number;
     retained_earnings: number;
     total_equity: number;
+    tree?: StatementItem[];
   };
   total_liability_and_equity: number;
-}
-
-export interface IncomeStatementItem {
-  name: string;
-  full_name: string;
-  balance: number;
-  gujarati_name?: string;
-  children?: IncomeStatementItem[];
 }
 
 export interface IncomeStatementData {
@@ -337,23 +344,31 @@ export interface IncomeStatementData {
   income: {
     root_name: string;
     root_total: number;
-    children: IncomeStatementItem[];
+    children: StatementItem[];
     total_income: number;
+    tree?: StatementItem[];
   };
   expense: {
     root_name: string;
     root_total: number;
-    bhega: {
-      name: string;
-      full_name: string;
-      balance: number;
-      gujarati_name?: string;
-      children: IncomeStatementItem[];
-    };
-    children: IncomeStatementItem[];
+    bhega?: StatementItem | null;
+    children: StatementItem[];
     total_expense: number;
+    tree?: StatementItem[];
   };
   net_income: number;
+}
+
+export interface ConsolidatedAccountRecord {
+  id: number;
+  full_name: string;
+  name: string;
+  parent_name: string | null;
+  root_type: string;
+  gujarati_name: string | null;
+  business_stream: string | null;
+  display_order: number;
+  is_active: boolean;
 }
 
 export interface AccountStatementTx {
@@ -423,6 +438,21 @@ export const consolidatedApi = {
   },
   resetAll: async (): Promise<{ message: string }> => {
     const response = await api.delete('/consolidated/reset');
+    return response.data;
+  },
+  getAccountsList: async (): Promise<ConsolidatedAccountRecord[]> => {
+    const response = await api.get('/consolidated/accounts');
+    return response.data;
+  },
+  updateAccount: async (
+    accountId: number,
+    payload: { gujarati_name?: string; business_stream?: string; display_order?: number; is_active?: boolean }
+  ): Promise<ConsolidatedAccountRecord> => {
+    const response = await api.put(`/consolidated/accounts/${accountId}`, payload);
+    return response.data;
+  },
+  syncAccounts: async (): Promise<{ message: string; added_count: number }> => {
+    const response = await api.post('/consolidated/sync-accounts');
     return response.data;
   },
 };

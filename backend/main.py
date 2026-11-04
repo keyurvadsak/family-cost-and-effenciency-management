@@ -715,6 +715,48 @@ def reset_all_consolidated(
     return {"message": f"તમામ {deleted_txs} વ્યવહારો સફળતાપૂર્વક સાફ કરવામાં આવ્યા."}
 
 
+# ----------------- DYNAMIC ACCOUNTS REGISTRY -----------------
+class UpdateAccountMetadataPayload(BaseModel):
+    gujarati_name: Optional[str] = None
+    business_stream: Optional[str] = None
+    display_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+@app.get("/api/consolidated/accounts")
+def get_consolidated_accounts_list(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return consolidated_service.get_all_registered_accounts(db)
+
+@app.put("/api/consolidated/accounts/{account_id}")
+def update_consolidated_account(
+    account_id: int,
+    payload: UpdateAccountMetadataPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    try:
+        return consolidated_service.update_account_metadata(
+            db,
+            account_id=account_id,
+            gujarati_name=payload.gujarati_name,
+            business_stream=payload.business_stream,
+            display_order=payload.display_order,
+            is_active=payload.is_active
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.post("/api/consolidated/sync-accounts")
+def sync_accounts_endpoint(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    added = consolidated_service.sync_consolidated_accounts(db)
+    return {"message": f"{added} નવા ખાતાઓ સફળતાપૂર્વક સિન્ક થયા.", "added_count": added}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True, log_level="info", access_log=True)

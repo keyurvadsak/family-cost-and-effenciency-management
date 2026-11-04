@@ -1,91 +1,220 @@
 import csv
 import io
 import hashlib
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, Any, List, Tuple, Set, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 
 import models
 
-CATEGORY_MAPPING: Dict[str, Tuple[str, str]] = {
-    'INCOME:M.J & J.T': ('બિઝનેસ આવક', 'M.J & J.T ટ્રેડિંગ આવક'),
-    'INCOME:EMBRO-PRISHA FAB': ('બિઝનેસ આવક', 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક'),
-    'INCOME:LOOMS': ('બિઝનેસ આવક', 'લૂમ્સ ખાતાની આવક'),
-    'ASSETS:DAIMOND KG': ('હીરા વેપાર', 'કેયુર જેમ્સ હીરા વેપાર'),
-    'INCOME:Other Income': ('અન્ય આવક', 'અન્ય આવક (ભાડું/પગાર/વેચાણ)'),
-    'LIABILITIES:UCHINA LIDHELA': ('ઉછીના & લોન', 'ઉછીના લીધેલા'),
-    'LIABILITIES:VALLBHBHAI N.': ('ઉછીના & લોન', 'વલ્લભભાઈ એન. લોન'),
-    'LIABILITIES:BHARATBHAI GARAGE': ('ઉછીના & લોન', 'ભારતભાઈ ગેરેજ લોન'),
-    'LIABILITIES:GoldLoan': ('ઉછીના & લોન', 'ગોલ્ડ લોન'),
-    'LIABILITIES:DADA': ('ઉછીના & લોન', 'દાદા ખાતે'),
-    'LIABILITIES:DEVANA CM CO.': ('ઉછીના & લોન', 'દેવાના CM CO.'),
-    'ASSETS:UCHINA APELA': ('ઉછીના & લોન', 'ઉછીના આપેલા'),
-    'ASSETS:EMBRO-HARDIK/RAVI-INVEST XX': ('મૂડી રોકાણ', 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)'),
-    'ASSETS:EMBRO-AKASH/MAYANK-INVEST PF': ('મૂડી રોકાણ', 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)'),
-    'EXPENSES:BHEGA:BIG': ('સંયુક્ત ઘરખર્ચ', 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)'),
-    'EXPENSES:BHEGA:Monthly': ('સંયુક્ત ઘરખર્ચ', 'નિયમિત માસિક ઘરખર્ચ'),
-    'EXPENSES:BHEGA:Small': ('સંયુક્ત ઘરખર્ચ', 'પરચૂરણ રોજિંદો ઘરખર્ચ'),
-    'EXPENSES:Medical': ('મેડિકલ & દવાઓ', 'મેડિકલ અને હોસ્પિટલ ખર્ચ'),
-    'EXPENSES:School & Education': ('શિક્ષણ & ફી', 'શિક્ષણ અને કોલેજ/સ્કૂલ ફી'),
-    'EXPENSES:Intrest & EMIs': ('વ્યાજ & હપ્તા', 'વ્યાજ અને લોન EMI'),
-    'EXPENSES:Car & Bike': ('વાહન ખર્ચ', 'વાહન પેટ્રોલ/ગેસ/રીપેરીંગ'),
-    'EXPENSES:TRAVEL': ('પ્રવાસ & ટૂર', 'પ્રવાસ અને ટૂર ખર્ચ'),
-    'EXPENSES:Mobile & Recharge': ('પરચૂરણ ઘરખર્ચ', 'મોબાઈલ રિચાર્જ'),
-    'EXPENSES:Insuranse': ('વીમો (ઇન્સ્યોરન્સ)', 'મેડિક્લેમ ઇન્સ્યોરન્સ'),
-    'Cap. Old-Money 24-25': ('મૂડી ખાતું', 'જૂની મૂડી ૨૦૨૪-૨૫'),
-    'Capital Acc': ('મૂડી ખાતું', 'મૂડી ખાતું (Capital)')
+# ═══════════════════════════════════════════════════════════════════════════
+# DEFAULT DICTIONARIES & HEURISTICS (Used as baseline seeds / fallbacks)
+# All user changes are saved dynamically to database (models.ConsolidatedAccount)
+# ═══════════════════════════════════════════════════════════════════════════
+
+DEFAULT_GUJARATI_MAP: Dict[str, str] = {
+    'ASSETS': 'કુલ સંપત્તિ',
+    'EXPENSES': 'કુલ ખર્ચાઓ',
+    'INCOME': 'કુલ આવક',
+    'LIABILITIES': 'કુલ દેવું & લોન',
+    'CAPITAL ACC': 'મૂડી ખાતું',
+    'CAP. OLD-MONEY 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
+    'CASHBOOK': 'રોકડ સિલક',
+    'BHEGA': 'સંયુક્ત ઘરખર્ચ',
+    'BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
+    'MONTHLY': 'નિયમિત માસિક ઘરખર્ચ',
+    'SMALL': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
+    'MEDICAL': 'મેડિકલ & દવાઓ',
+    'SCHOOL & EDUCATION': 'શિક્ષણ & સ્કૂલ ફી',
+    'INTREST & EMIS': 'વ્યાજ & લોન EMI',
+    'CAR & BIKE': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
+    'TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
+    'MOBILE & RECHARGE': 'મોબાઈલ રિચાર્જ',
+    'INSURANSE': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
+    'DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
+    'DAIMOND- C & M CO.': 'ડાયમંડ C & M Co.',
+    'LOOMS': 'લૂમ્સ ખાતાની આવક',
+    'OTHER INCOME': 'અન્ય આવક (ભાડું/પગાર)',
+    'RENT': 'ભાડું આવક',
+    'UCHINA LIDHELA': 'ઉછીના લીધેલા',
+    'UCHINA APELA': 'ઉછીના આપેલા',
+    'VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
+    'BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
+    'GOLDLOAN': 'ગોલ્ડ લોન',
+    'DADA': 'દાદા ખાતે લોન',
+    'DEVANA CM CO.': 'દેવાના CM CO.',
+    'EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
+    'M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
+    'EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
+    'EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
 }
 
-def classify_business_stream(acc_name: str) -> str:
-    cleaned = (acc_name or "").strip()
-    upper = cleaned.upper()
-    if "LOOMS" in upper:
-        return "લૂમ્સ (LOOMS)"
-    elif "EMBRO" in upper or "PRISHA" in upper:
-        return "પ્રિશા ફેબ / એમ્બ્રોઈડરી"
-    elif "DAIMOND" in upper or "DIAMOND" in upper or "KEYUR" in upper:
-        return "કેયુર જેમ્સ (હીરા વેપાર)"
-    elif "M.J" in upper or "J.T" in upper:
-        return "M.J & J.T ટ્રેડિંગ"
-    elif "UCHINA" in upper or "LIABILITIES" in upper or "LOAN" in upper or "DEVANA" in upper or "DADA" in upper or "INTREST" in upper or "INTEREST" in upper:
-        return "લોન & ઉછીના"
-    elif "CAPITAL" in upper or "CAP." in upper or "INVEST" in upper:
-        return "મૂડી & રોકાણ"
-    elif "EXPENSES" in upper:
-        return "પારિવારિક ઘરખર્ચ"
+DEFAULT_STREAM_KEYWORDS: Dict[str, str] = {
+    'LOOMS': 'લૂમ્સ (LOOMS)',
+    'EMBRO': 'પ્રિશા ફેબ / એમ્બ્રોઈડરી',
+    'PRISHA': 'પ્રિશા ફેબ / એમ્બ્રોઈડરી',
+    'DAIMOND': 'કેયુર જેમ્સ (હીરા વેપાર)',
+    'DIAMOND': 'કેયુર જેમ્સ (હીરા વેપાર)',
+    'M.J': 'M.J & J.T ટ્રેડિંગ',
+    'J.T': 'M.J & J.T ટ્રેડિંગ',
+    'UCHINA': 'લોન & ઉછીના',
+    'LOAN': 'લોન & ઉછીના',
+    'CAPITAL': 'મૂડી & રોકાણ',
+    'INVEST': 'મૂડી & રોકાણ',
+    'BHEGA': 'સંયુક્ત ઘરખર્ચ',
+}
+
+def infer_root_type(full_name: str) -> str:
+    """Dynamically determine account category without hardcoded lists."""
+    parts = full_name.split(':')
+    root = parts[0].strip().upper()
+    if 'ASSET' in root or 'CASH' in root or 'BANK' in root or 'OLD-MONEY' in root:
+        return 'ASSET'
+    elif 'LIABILIT' in root or 'LOAN' in root or 'DEBT' in root or 'PAYABLE' in root:
+        return 'LIABILITY'
+    elif 'EQUITY' in root or 'CAPITAL' in root:
+        return 'EQUITY'
+    elif 'INCOME' in root or 'REVENUE' in root or 'SALES' in root:
+        return 'INCOME'
+    elif 'EXPENSE' in root or 'COST' in root or 'PURCHASE' in root:
+        return 'EXPENSE'
+    return 'ASSET'
+
+def infer_business_stream(full_name: str) -> str:
+    """Dynamically deduce business stream from account path."""
+    upper = full_name.upper()
+    for kw, label in DEFAULT_STREAM_KEYWORDS.items():
+        if kw in upper:
+            return label
+    parts = [p.strip() for p in full_name.split(':') if p.strip()]
+    if len(parts) > 1:
+        return parts[1]
     return "અન્ય વ્યવસાય / આવક"
 
-def classify_account(acc_name: str) -> Tuple[str, str]:
-    cleaned = acc_name.strip()
-    if cleaned in CATEGORY_MAPPING:
-        return CATEGORY_MAPPING[cleaned]
-    
-    # Heuristic dynamic fallback
-    if cleaned.startswith("INCOME:"):
-        sub = cleaned.split(":", 1)[1] if ":" in cleaned else cleaned
-        return ("બિઝનેસ આવક", f"આવક ({sub})")
-    elif cleaned.startswith("EXPENSES:"):
-        sub = cleaned.split(":", 1)[1] if ":" in cleaned else cleaned
-        return ("ઘરખર્ચ / વ્યવસાય ખર્ચ", f"ખર્ચ ({sub})")
-    elif cleaned.startswith("LIABILITIES:"):
-        sub = cleaned.split(":", 1)[1] if ":" in cleaned else cleaned
-        return ("ઉછીના & લોન", f"લોન/દેવું ({sub})")
-    elif cleaned.startswith("ASSETS:"):
-        sub = cleaned.split(":", 1)[1] if ":" in cleaned else cleaned
-        return ("મૂડી રોકાણ", f"સંપત્તિ ({sub})")
-    elif "Capital" in cleaned or "Cap." in cleaned:
-        return ("મૂડી ખાતું", "મૂડી ખાતું")
-    return ("અન્ય વ્યવહારો", cleaned)
+def get_dynamic_gujarati_label(full_name: str, leaf_name: str, db: Optional[Session] = None) -> str:
+    """Fetches custom user label from database if available, else standard fallback."""
+    if db:
+        acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.full_name == full_name).first()
+        if acc and acc.gujarati_name:
+            return acc.gujarati_name
+    return (
+        DEFAULT_GUJARATI_MAP.get(full_name.upper()) or
+        DEFAULT_GUJARATI_MAP.get(leaf_name.upper()) or
+        leaf_name
+    )
+
+def sync_consolidated_accounts(db: Session) -> int:
+    """
+    100% Dynamic Account Synchronizer:
+    Scans all database splits and transactions, discovers any new or modified accounts,
+    builds parent-child links, and registers them in models.ConsolidatedAccount.
+    User-defined customizations (custom labels, order) are strictly preserved!
+    """
+    accounts_set: Set[str] = set()
+
+    # Discover all accounts from splits
+    for (acc_name,) in db.query(models.ConsolidatedSplit.account_name).distinct():
+        if acc_name and acc_name.strip():
+            accounts_set.add(acc_name.strip())
+
+    # Discover all primary accounts
+    for (p_name,) in db.query(models.ConsolidatedTransaction.primary_account).distinct():
+        if p_name and p_name.strip():
+            accounts_set.add(p_name.strip())
+
+    # Baseline seed accounts (e.g. from GnuCash chart of accounts that may have 0 transactions)
+    accounts_set.add("ASSETS:DAIMOND- C & M Co.")
+    accounts_set.add("INCOME:Rent")
+
+    # Build all hierarchy paths
+    all_paths: Set[str] = set()
+    for acc in accounts_set:
+        parts = [p.strip() for p in acc.split(':') if p.strip()]
+        cur: List[str] = []
+        for p in parts:
+            cur.append(p)
+            all_paths.add(':'.join(cur))
+
+    existing_map = {a.full_name: a for a in db.query(models.ConsolidatedAccount).all()}
+    added_count = 0
+
+    for path in sorted(all_paths):
+        if path not in existing_map:
+            parts = path.split(':')
+            leaf_name = parts[-1].strip()
+            parent_name = ':'.join(parts[:-1]) if len(parts) > 1 else None
+            root_t = infer_root_type(path)
+            guj = DEFAULT_GUJARATI_MAP.get(path.upper()) or DEFAULT_GUJARATI_MAP.get(leaf_name.upper()) or leaf_name
+            stream = infer_business_stream(path)
+
+            new_acc = models.ConsolidatedAccount(
+                full_name=path,
+                name=leaf_name,
+                parent_name=parent_name,
+                root_type=root_t,
+                gujarati_name=guj,
+                business_stream=stream,
+                display_order=100,
+                is_active=True
+            )
+            db.add(new_acc)
+            existing_map[path] = new_acc
+            added_count += 1
+
+    if added_count > 0:
+        db.commit()
+
+    return added_count
+
+
+def classify_business_stream(acc_name: str, db: Optional[Session] = None) -> str:
+    cleaned = (acc_name or "").strip()
+    if db:
+        acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.full_name == cleaned).first()
+        if acc and acc.business_stream:
+            return acc.business_stream
+    return infer_business_stream(cleaned)
+
+
+def classify_account(acc_name: str, db: Optional[Session] = None) -> Tuple[str, str]:
+    cleaned = (acc_name or "").strip()
+    if db:
+        acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.full_name == cleaned).first()
+        if acc:
+            group_map = {
+                'ASSET': 'મૂડી રોકાણ / સંપત્તિ',
+                'LIABILITY': 'ઉછીના & લોન',
+                'EQUITY': 'મૂડી ખાતું',
+                'INCOME': 'બિઝનેસ આવક',
+                'EXPENSE': 'ઘરખર્ચ / વ્યવસાય ખર્ચ'
+            }
+            cat_group = group_map.get(acc.root_type, 'અન્ય વ્યવહારો')
+            label = acc.gujarati_name or acc.name
+            return (cat_group, label)
+
+    root_t = infer_root_type(cleaned)
+    group_map = {
+        'ASSET': 'મૂડી રોકાણ / સંપત્તિ',
+        'LIABILITY': 'ઉછીના & લોન',
+        'EQUITY': 'મૂડી ખાતું',
+        'INCOME': 'બિઝનેસ આવક',
+        'EXPENSE': 'ઘરખર્ચ / વ્યવસાય ખર્ચ'
+    }
+    cat_group = group_map.get(root_t, 'અન્ય વ્યવહારો')
+    leaf = cleaned.split(':')[-1].strip()
+    label = DEFAULT_GUJARATI_MAP.get(cleaned.upper()) or DEFAULT_GUJARATI_MAP.get(leaf.upper()) or leaf
+    return (cat_group, label)
+
 
 def calculate_financial_year(dt: datetime) -> str:
-    # Indian Financial Year: April 1 to March 31
     if dt.month >= 4:
         return f"{dt.year}-{str(dt.year + 1)[-2:]}"
     else:
         return f"{dt.year - 1}-{str(dt.year)[-2:]}"
 
-def parse_date(date_str: str) -> datetime.date:
+
+def parse_date(date_str: str) -> date:
     cleaned = date_str.strip()
     for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
         try:
@@ -93,6 +222,7 @@ def parse_date(date_str: str) -> datetime.date:
         except ValueError:
             pass
     raise ValueError(f"Unknown date format: {date_str}")
+
 
 def parse_float_amount(amt_str: Optional[str]) -> float:
     if not amt_str:
@@ -104,6 +234,7 @@ def parse_float_amount(amt_str: Optional[str]) -> float:
         return float(cleaned)
     except ValueError:
         return 0.0
+
 
 def process_consolidated_csv(
     file_bytes: bytes,
@@ -127,19 +258,18 @@ def process_consolidated_csv(
             "date_max": None
         }
 
-    # Group splits by Transaction ID or fingerprint
+    # Group splits by Transaction ID or deterministic fingerprint
     tx_groups: Dict[str, List[Dict[str, str]]] = {}
     for r in rows:
         tx_id = r.get("Transaction ID", "").strip()
         if not tx_id:
-            # Fallback deterministic fingerprint
             row_fp = f"{r.get('Date', '')}|{r.get('Description', '')}|{r.get('Amount Num.', '')}|{r.get('Full Account Name', '')}"
             tx_id = "FP_" + hashlib.sha256(row_fp.encode("utf-8")).hexdigest()[:24]
         if tx_id not in tx_groups:
             tx_groups[tx_id] = []
         tx_groups[tx_id].append(r)
 
-    # User requirement: When uploading a new CSV, clear old records and replace with newly uploaded CSV records
+    # Clear old records when uploading new CSV file
     db.query(models.ConsolidatedSplit).delete()
     db.query(models.ConsolidatedTransaction).delete()
     db.commit()
@@ -160,7 +290,6 @@ def process_consolidated_csv(
         number = (first.get("Number") or "").strip()
         fy = calculate_financial_year(datetime.combine(tx_date, datetime.min.time()))
 
-        # Separate Cashbook split from other split
         cb_split = next((s for s in splits if (s.get("Full Account Name") or "").strip() == "Cashbook"), None)
         other_split = next((s for s in splits if (s.get("Full Account Name") or "").strip() != "Cashbook"), None)
 
@@ -177,7 +306,6 @@ def process_consolidated_csv(
             primary_acc = other_split.get("Full Account Name", "").strip() if other_split else "Cashbook"
         else:
             is_journal = True
-            # For journal transactions, calculate the positive/negative split amount
             pos_split = next((s for s in splits if parse_float_amount(s.get("Amount Num.")) > 0), None)
             neg_split = next((s for s in splits if parse_float_amount(s.get("Amount Num.")) < 0), None)
 
@@ -194,13 +322,13 @@ def process_consolidated_csv(
             inflow = val
             outflow = 0.0
 
-        cat_group, _ = classify_account(primary_acc)
-        biz_stream = classify_business_stream(primary_acc)
+        cat_group, _ = classify_account(primary_acc, db=db)
+        biz_stream = classify_business_stream(primary_acc, db=db)
         if biz_stream == "અન્ય વ્યવસાય / આવક" or primary_acc == "Cashbook":
             for s in splits:
                 s_acc = (s.get("Full Account Name") or "").strip()
                 if s_acc != "Cashbook":
-                    cand = classify_business_stream(s_acc)
+                    cand = classify_business_stream(s_acc, db=db)
                     if cand != "અન્ય વ્યવસાય / આવક":
                         biz_stream = cand
                         break
@@ -222,24 +350,11 @@ def process_consolidated_csv(
             added_by=user_id
         )
 
-        # Build split models
         for s in splits:
             s_acc = (s.get("Full Account Name") or "").strip()
             s_amt = parse_float_amount(s.get("Amount Num."))
             s_memo = (s.get("Memo") or "").strip()
-
-            # Determine account type
-            s_acc_upper = s_acc.upper()
-            if "INCOME" in s_acc_upper:
-                acc_type = "INCOME"
-            elif "EXPENSE" in s_acc_upper:
-                acc_type = "EXPENSE"
-            elif "LIABILIT" in s_acc_upper:
-                acc_type = "LIABILITY"
-            elif "CAPITAL" in s_acc_upper or "CAP." in s_acc_upper:
-                acc_type = "EQUITY"
-            else:
-                acc_type = "ASSET"
+            acc_type = infer_root_type(s_acc)
 
             split_obj = models.ConsolidatedSplit(
                 account_name=s_acc,
@@ -251,14 +366,15 @@ def process_consolidated_csv(
 
         new_tx_models.append(tx_obj)
 
-    # Bulk save new transactions
     if new_tx_models:
         db.add_all(new_tx_models)
         db.commit()
 
+    # Automatically synchronize any newly discovered accounts into models.ConsolidatedAccount
+    sync_consolidated_accounts(db)
+
     total_in_file = len(tx_groups)
     new_added = len(new_tx_models)
-
     msg = f"જૂનો હિસાબ સાફ કરીને નવા {new_added} વ્યવહારો સફળતાપૂર્વક સાચવવામાં આવ્યા."
 
     d_min = min(all_dates).strftime("%d-%m-%Y") if all_dates else None
@@ -276,7 +392,7 @@ def process_consolidated_csv(
     }
 
 
-def infer_account_type(root_name: str, path: str):
+def infer_account_type(root_name: str, path: str) -> Tuple[str, int]:
     root_upper = root_name.upper()
     if 'ASSET' in root_upper:
         return 'Asset', 1
@@ -294,118 +410,91 @@ def infer_account_type(root_name: str, path: str):
         return 'Cash', 1
     return 'Asset', 1
 
-DYNAMIC_GUJARATI_TERMS = {
-    'ASSETS': 'કુલ સંપત્તિ',
-    'EXPENSES': 'કુલ ખર્ચાઓ',
-    'INCOME': 'કુલ આવક',
-    'LIABILITIES': 'કુલ દેવું & લોન',
-    'CAPITAL ACC': 'મૂડી ખાતું',
-    'CAP. OLD-MONEY 24-25': 'જૂની મૂડી ૨૦૨૪-૨૫',
-    'CASHBOOK': 'રોકડ સિલક',
-    'BHEGA': 'સંયુક્ત ઘરખર્ચ',
-    'BIG': 'મોટા ઘરખર્ચ (મકાન/પ્રસંગ)',
-    'MONTHLY': 'નિયમિત માસિક ઘરખર્ચ',
-    'SMALL': 'પરચૂરણ રોજિંદો ઘરખર્ચ',
-    'MEDICAL': 'મેડિકલ & દવાઓ',
-    'SCHOOL & EDUCATION': 'શિક્ષણ & સ્કૂલ ફી',
-    'INTREST & EMIS': 'વ્યાજ & લોન EMI',
-    'CAR & BIKE': 'વાહન ખર્ચ (પેટ્રોલ/રીપેરીંગ)',
-    'TRAVEL': 'પ્રવાસ અને ટૂર ખર્ચ',
-    'MOBILE & RECHARGE': 'મોબાઈલ રિચાર્જ',
-    'INSURANSE': 'મેડિક્લેમ ઇન્સ્યોરન્સ',
-    'DAIMOND KG': 'કેયુર જેમ્સ હીરા વેપાર',
-    'LOOMS': 'લૂમ્સ ખાતાની આવક',
-    'OTHER INCOME': 'અન્ય આવક (ભાડું/પગાર)',
-    'RENT': 'ભાડું આવક',
-    'UCHINA LIDHELA': 'ઉછીના લીધેલા',
-    'UCHINA APELA': 'ઉછીના આપેલા',
-    'VALLBHBHAI N.': 'વલ્લભભાઈ એન. લોન',
-    'BHARATBHAI GARAGE': 'ભારતભાઈ ગેરેજ લોન',
-    'GOLDLOAN': 'ગોલ્ડ લોન',
-    'DADA': 'દાદા ખાતે લોન',
-    'DEVANA CM CO.': 'દેવાના CM CO.',
-    'EMBRO-PRISHA FAB': 'પ્રિશા ફેબ એમ્બ્રોઈડરી આવક',
-    'M.J & J.T': 'M.J & J.T ટ્રેડિંગ આવક',
-    'EMBRO-HARDIK/RAVI-INVEST XX': 'એમ્બ્રોઈડરી રોકાણ (હાર્દિક/રવિ)',
-    'EMBRO-AKASH/MAYANK-INVEST PF': 'એમ્બ્રોઈડરી રોકાણ (આકાશ/મયંક)',
-}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# GENERIC DYNAMIC TREE BUILDER (Works for arbitrary accounts, categories & depth)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def build_generic_statement_tree(
+    accounts: List[models.ConsolidatedAccount],
+    amt_map: Dict[str, float]
+) -> List[Dict[str, Any]]:
+    """
+    Builds a generic hierarchical tree from accounts and aggregate amounts.
+    Sums up all children recursively to their parent nodes.
+    Supports arbitrary depth (0, 1, 2, 3... levels) with zero hardcoded account names.
+    """
+    node_map: Dict[str, Dict[str, Any]] = {}
+
+    for a in accounts:
+        raw_amt = amt_map.get(a.full_name, 0.0)
+        # Sign normalization:
+        # Assets & Cash: Debit > 0
+        # Liabilities, Equity, Income: Credit balances are negative in splits, so we use absolute values
+        # Expenses: Debit balances are positive
+        if a.root_type in ('INCOME', 'LIABILITY', 'EQUITY', 'EXPENSE'):
+            direct_bal = abs(raw_amt)
+        else:
+            direct_bal = raw_amt
+
+        node_map[a.full_name] = {
+            'id': a.id,
+            'name': a.name,
+            'full_name': a.full_name,
+            'parent_name': a.parent_name,
+            'root_type': a.root_type,
+            'gujarati_name': a.gujarati_name or a.name,
+            'business_stream': a.business_stream,
+            'direct_balance': direct_bal,
+            'balance': direct_bal,
+            'children': []
+        }
+
+    # Build parent-child links
+    root_nodes: List[Dict[str, Any]] = []
+    for full_name, node in node_map.items():
+        p_name = node['parent_name']
+        if p_name and p_name in node_map:
+            node_map[p_name]['children'].append(node)
+        else:
+            root_nodes.append(node)
+
+    # Recursive balance rollup
+    def rollup(n: Dict[str, Any]) -> float:
+        child_sum = 0.0
+        for c in n['children']:
+            child_sum += rollup(c)
+        n['children'].sort(key=lambda x: (x['name'].upper()))
+        n['has_children'] = len(n['children']) > 0
+        n['balance'] = round(n['direct_balance'] + child_sum, 2)
+        return n['balance']
+
+    for r in root_nodes:
+        rollup(r)
+
+    root_nodes.sort(key=lambda x: (x['root_type'], x['name'].upper()))
+    return root_nodes
+
 
 def get_accounts_tree_data(db: Session) -> List[Dict[str, Any]]:
     """
     Dynamic Hierarchical Tree Builder for Chart of Accounts.
-    Reads all accounts directly from database splits without any hardcoded lists.
-    Parses colon-separated names ('Parent:Child:Grandchild') into an arbitrary-depth tree.
-    Recursively sums child totals and tx counts.
+    Reads directly from database splits and models.ConsolidatedAccount.
     """
+    sync_consolidated_accounts(db)
+
     rows = db.query(
         models.ConsolidatedSplit.account_name,
         func.sum(models.ConsolidatedSplit.amount).label('total'),
         func.count(models.ConsolidatedSplit.id).label('tx_count')
     ).group_by(models.ConsolidatedSplit.account_name).all()
 
-    root_nodes: Dict[str, Dict[str, Any]] = {}
+    amt_map = {name: float(total or 0.0) for name, total, _ in rows}
+    all_accs = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.is_active == True).all()
 
-    for acc_name, total, count in rows:
-        if not acc_name:
-            continue
-        parts = [p.strip() for p in acc_name.split(':') if p.strip()]
-        if not parts:
-            continue
+    roots = build_generic_statement_tree(all_accs, amt_map)
 
-        curr_dict = root_nodes
-        curr_path: List[str] = []
-        for i, part in enumerate(parts):
-            curr_path.append(part)
-            full_path = ':'.join(curr_path)
-            if part not in curr_dict:
-                curr_dict[part] = {
-                    'name': part,
-                    'full_name': full_path,
-                    'raw_total': 0.0,
-                    'tx_count': 0,
-                    'children': {}
-                }
-            if i == len(parts) - 1:
-                curr_dict[part]['raw_total'] += float(total or 0.0)
-                curr_dict[part]['tx_count'] += int(count or 0)
-            curr_dict = curr_dict[part]['children']
-
-    def finalize_node(node_dict: Dict[str, Any], root_type: Optional[str] = None, sign: int = 1) -> Dict[str, Any]:
-        name = node_dict['name']
-        full_name = node_dict['full_name']
-        if root_type is None:
-            ac_type, s = infer_account_type(name, full_name)
-        else:
-            ac_type = root_type
-            s = sign
-
-        children_list = []
-        child_total = 0.0
-        child_count = 0
-        for _, child_node in sorted(node_dict['children'].items(), key=lambda x: x[0].upper()):
-            fin_child = finalize_node(child_node, ac_type, s)
-            children_list.append(fin_child)
-            child_total += fin_child['balance']
-            child_count += fin_child['tx_count']
-
-        direct_balance = node_dict['raw_total'] * s
-        total_balance = (child_total + direct_balance) if children_list else direct_balance
-        if abs(total_balance) < 1e-6:
-            total_balance = 0.0
-
-        guj = DYNAMIC_GUJARATI_TERMS.get(full_name.upper()) or DYNAMIC_GUJARATI_TERMS.get(name.upper())
-
-        return {
-            'name': name,
-            'full_name': full_name,
-            'type': ac_type,
-            'gujarati_name': guj,
-            'balance': round(total_balance, 2),
-            'tx_count': node_dict['tx_count'] + child_count,
-            'has_children': len(children_list) > 0,
-            'children': children_list
-        }
-
+    # Map order for standard accounting presentation
     order_map = {
         'ASSETS': 1,
         'CAP. OLD-MONEY 24-25': 2,
@@ -415,17 +504,35 @@ def get_accounts_tree_data(db: Session) -> List[Dict[str, Any]]:
         'INCOME': 6,
         'LIABILITIES': 7
     }
-    sorted_roots = sorted(
-        root_nodes.values(),
-        key=lambda r: (order_map.get(r['name'].upper(), 99), r['name'].upper())
-    )
 
-    return [finalize_node(r) for r in sorted_roots]
+    # Helper to convert to AccountTreeNode format expected by frontend tree
+    def format_tree_node(n: Dict[str, Any]) -> Dict[str, Any]:
+        ac_type, _ = infer_account_type(n['name'], n['full_name'])
+        return {
+            'name': n['name'],
+            'full_name': n['full_name'],
+            'type': ac_type,
+            'gujarati_name': n['gujarati_name'],
+            'balance': n['balance'],
+            'tx_count': 0,
+            'has_children': n['has_children'],
+            'children': [format_tree_node(c) for c in n['children']]
+        }
+
+    formatted = [format_tree_node(r) for r in roots]
+    formatted.sort(key=lambda r: (order_map.get(r['name'].upper(), 99), r['name'].upper()))
+    return formatted
+
+
 def get_balance_sheet_data(db: Session, as_of_date_str: Optional[str] = None) -> Dict[str, Any]:
     """
-    Multicolumn Balance Sheet calculation matching GnuCash.
+    100% Dynamic Multicolumn Balance Sheet calculation.
     Assets = Liabilities + Equity
+    Uses models.ConsolidatedAccount to dynamically assemble any number of Asset,
+    Liability, and Equity accounts with zero hardcoded names.
     """
+    sync_consolidated_accounts(db)
+
     if as_of_date_str:
         try:
             as_of = datetime.strptime(as_of_date_str, "%Y-%m-%d").date()
@@ -441,90 +548,69 @@ def get_balance_sheet_data(db: Session, as_of_date_str: Optional[str] = None) ->
         models.ConsolidatedTransaction.date <= as_of
     ).group_by(models.ConsolidatedSplit.account_name).all()
 
-    s_map = {n: float(a or 0) for n, a in splits}
+    amt_map = {n: float(a or 0.0) for n, a in splits}
+    all_accs = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.is_active == True).all()
 
-    # ASSETS root
-    asset_rows = []
-    tot_asset_root = 0.0
-    for name, amt in s_map.items():
-        if name.startswith("ASSETS:"):
-            sub = name.split(":", 1)[1]
-            val = abs(amt)
-            tot_asset_root += val
-            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
-            asset_rows.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+    # 1. Assets (All accounts marked ASSET)
+    asset_accs = [a for a in all_accs if a.root_type == 'ASSET']
+    asset_roots = build_generic_statement_tree(asset_accs, amt_map)
+    total_asset = round(sum(r['balance'] for r in asset_roots), 2)
 
-    asset_rows.sort(key=lambda x: x["name"])
-    if not any(x["name"] == "DAIMOND- C & M Co." for x in asset_rows):
-        asset_rows.insert(0, {
-            "name": "DAIMOND- C & M Co.",
-            "full_name": "ASSETS:DAIMOND- C & M Co.",
-            "balance": 0.0,
-            "gujarati_name": "ડાયમંડ C & M Co."
-        })
+    # Separate main ASSETS root from standalone asset accounts (e.g. Cashbook, Old-Money)
+    assets_group = next((r for r in asset_roots if r['name'].upper() == 'ASSETS'), None)
+    assets_children = assets_group['children'] if assets_group else [r for r in asset_roots if r['has_children']]
+    standalone_assets = [r for r in asset_roots if r != assets_group and not r.get('parent_name')]
 
-    old_money = float(s_map.get("Cap. Old-Money 24-25", 0.0))
-    cashbook = float(s_map.get("Cashbook", 0.0))
-    total_asset = tot_asset_root + old_money + cashbook
+    # 2. Liabilities (All accounts marked LIABILITY)
+    liab_accs = [a for a in all_accs if a.root_type == 'LIABILITY']
+    liab_roots = build_generic_statement_tree(liab_accs, amt_map)
+    total_liab = round(sum(r['balance'] for r in liab_roots), 2)
 
-    # LIABILITIES root
-    liab_rows = []
-    tot_liab_root = 0.0
-    for name, amt in s_map.items():
-        if name.startswith("LIABILITIES:"):
-            sub = name.split(":", 1)[1]
-            val = abs(amt)
-            tot_liab_root += val
-            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
-            liab_rows.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+    liab_group = next((r for r in liab_roots if r['name'].upper() == 'LIABILITIES'), None)
+    liab_children = liab_group['children'] if liab_group else liab_roots
 
-    liab_rows.sort(key=lambda x: x["name"])
-    total_liab = tot_liab_root
+    # 3. Equity (All accounts marked EQUITY)
+    equity_accs = [a for a in all_accs if a.root_type == 'EQUITY']
+    equity_roots = build_generic_statement_tree(equity_accs, amt_map)
+    total_explicit_equity = round(sum(r['balance'] for r in equity_roots), 2)
 
-    # EQUITY
-    cap_acc = abs(float(s_map.get("Capital Acc", 0.0)))
+    # Accounting Identity: Retained Earnings balances Assets with Liabilities and Capital
     unrealized_gains = 0.0
-    retained_earnings = round(total_asset - total_liab - cap_acc, 2)
-    total_equity = round(cap_acc + unrealized_gains + retained_earnings, 2)
+    retained_earnings = round(total_asset - total_liab - total_explicit_equity, 2)
+    total_equity = round(total_explicit_equity + unrealized_gains + retained_earnings, 2)
+    total_liab_and_equity = round(total_liab + total_equity, 2)
+
+    cap_acc = total_explicit_equity
 
     return {
         "as_of_date": as_of.strftime("%Y-%m-%d"),
         "as_of_date_formatted": as_of.strftime("%d-%m-%Y"),
         "assets": {
             "root_name": "ASSETS",
-            "root_total": round(tot_asset_root, 2),
-            "children": asset_rows,
-            "standalone": [
-                {
-                    "name": "Cap. Old-Money 24-25",
-                    "full_name": "Cap. Old-Money 24-25",
-                    "balance": round(old_money, 2),
-                    "gujarati_name": DYNAMIC_GUJARATI_TERMS.get("CAP. OLD-MONEY 24-25", "જૂની મૂડી ૨૦૨૪-૨૫")
-                },
-                {
-                    "name": "Cashbook",
-                    "full_name": "Cashbook",
-                    "balance": round(cashbook, 2),
-                    "gujarati_name": DYNAMIC_GUJARATI_TERMS.get("CASHBOOK", "રોકડ સિલક (Cashbook)")
-                }
-            ],
-            "total_asset": round(total_asset, 2)
+            "root_total": round(assets_group['balance'] if assets_group else total_asset, 2),
+            "children": assets_children,
+            "standalone": standalone_assets,
+            "total_asset": total_asset,
+            "tree": asset_roots
         },
         "liabilities": {
             "root_name": "LIABILITIES",
-            "root_total": round(tot_liab_root, 2),
-            "children": liab_rows,
-            "total_liability": round(total_liab, 2)
+            "root_total": round(liab_group['balance'] if liab_group else total_liab, 2),
+            "children": liab_children,
+            "total_liability": total_liab,
+            "tree": liab_roots
         },
         "equity": {
+            "accounts": equity_roots,
             "capital_acc": round(cap_acc, 2),
             "capital_acc_name": "Capital Acc",
             "capital_acc_full": "Capital Acc",
             "unrealized_gains": round(unrealized_gains, 2),
             "retained_earnings": round(retained_earnings, 2),
-            "total_equity": round(total_equity, 2)
+            "total_equity": round(total_equity, 2),
+            "tree": equity_roots
         },
-        "total_liability_and_equity": round(total_liab + total_equity, 2)
+        "total_liability_and_equity": total_liab_and_equity
     }
 
 
@@ -534,9 +620,12 @@ def get_income_statement_data(
     end_date_str: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Multicolumn Income Statement calculation matching GnuCash.
+    100% Dynamic Multicolumn Income Statement calculation.
     Net Income = Total Income - Total Expense
+    Uses generic recursive trees to render any depth of income or expense categories dynamically.
     """
+    sync_consolidated_accounts(db)
+
     if start_date_str:
         try:
             start_d = datetime.strptime(start_date_str, "%Y-%m-%d").date()
@@ -553,7 +642,7 @@ def get_income_statement_data(
     else:
         end_d = date(2026, 12, 31)
 
-    inc_splits = db.query(
+    splits = db.query(
         models.ConsolidatedSplit.account_name,
         func.sum(models.ConsolidatedSplit.amount)
     ).join(models.ConsolidatedTransaction).filter(
@@ -561,54 +650,29 @@ def get_income_statement_data(
         models.ConsolidatedTransaction.date <= end_d
     ).group_by(models.ConsolidatedSplit.account_name).all()
 
-    inc_map = {name: float(amt or 0) for name, amt in inc_splits}
+    amt_map = {n: float(a or 0.0) for n, a in splits}
+    all_accs = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.is_active == True).all()
 
-    # INCOME items
-    inc_items = []
-    tot_inc = 0.0
-    for name, amt in inc_map.items():
-        if name.startswith("INCOME:"):
-            sub = name.split(":", 1)[1]
-            val = abs(amt)
-            tot_inc += val
-            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
-            inc_items.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+    # 1. Income Tree
+    inc_accs = [a for a in all_accs if a.root_type == 'INCOME']
+    inc_roots = build_generic_statement_tree(inc_accs, amt_map)
+    total_income = round(sum(r['balance'] for r in inc_roots), 2)
 
-    inc_items.sort(key=lambda x: x["name"])
-    if not any(x["name"] == "Rent" for x in inc_items):
-        inc_items.append({
-            "name": "Rent",
-            "full_name": "INCOME:Rent",
-            "balance": 0.0,
-            "gujarati_name": "ભાડું આવક"
-        })
+    inc_group = next((r for r in inc_roots if r['name'].upper() == 'INCOME'), None)
+    inc_children = inc_group['children'] if inc_group else inc_roots
 
-    # EXPENSES items
-    exp_items = []
-    tot_exp = 0.0
-    bhega_children = []
-    bhega_tot = 0.0
+    # 2. Expense Tree
+    exp_accs = [a for a in all_accs if a.root_type == 'EXPENSE']
+    exp_roots = build_generic_statement_tree(exp_accs, amt_map)
+    total_expense = round(sum(r['balance'] for r in exp_roots), 2)
 
-    for name, amt in inc_map.items():
-        if name.startswith("EXPENSES:BHEGA:"):
-            sub = name.split(":", 2)[2]
-            val = abs(amt)
-            bhega_tot += val
-            tot_exp += val
-            guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
-            bhega_children.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
-        elif name.startswith("EXPENSES:"):
-            sub = name.split(":", 1)[1]
-            if sub != "BHEGA":
-                val = abs(amt)
-                tot_exp += val
-                guj = DYNAMIC_GUJARATI_TERMS.get(name.upper()) or DYNAMIC_GUJARATI_TERMS.get(sub.upper())
-                exp_items.append({"name": sub, "full_name": name, "balance": round(val, 2), "gujarati_name": guj})
+    exp_group = next((r for r in exp_roots if r['name'].upper() == 'EXPENSES'), None)
+    exp_children = exp_group['children'] if exp_group else exp_roots
 
-    bhega_children.sort(key=lambda x: x["name"])
-    exp_items.sort(key=lambda x: x["name"])
+    # Backward compatibility helper for BHEGA
+    bhega_node = next((c for c in exp_children if c['name'].upper() == 'BHEGA'), None)
 
-    net_income = round(tot_inc - tot_exp, 2)
+    net_income = round(total_income - total_expense, 2)
 
     return {
         "start_date": start_d.strftime("%Y-%m-%d"),
@@ -617,22 +681,18 @@ def get_income_statement_data(
         "end_date_formatted": end_d.strftime("%d-%m-%Y"),
         "income": {
             "root_name": "INCOME",
-            "root_total": round(tot_inc, 2),
-            "children": inc_items,
-            "total_income": round(tot_inc, 2)
+            "root_total": total_income,
+            "children": inc_children,
+            "total_income": total_income,
+            "tree": inc_roots
         },
         "expense": {
             "root_name": "EXPENSES",
-            "root_total": round(tot_exp, 2),
-            "bhega": {
-                "name": "BHEGA",
-                "full_name": "EXPENSES:BHEGA",
-                "balance": round(bhega_tot, 2),
-                "gujarati_name": "સંયુક્ત ઘરખર્ચ",
-                "children": bhega_children
-            },
-            "children": exp_items,
-            "total_expense": round(tot_exp, 2)
+            "root_total": total_expense,
+            "bhega": bhega_node,
+            "children": exp_children,
+            "total_expense": total_expense,
+            "tree": exp_roots
         },
         "net_income": net_income
     }
@@ -660,7 +720,6 @@ def get_account_statement_data(db: Session, account_name: str) -> Dict[str, Any]
     tx_list = []
 
     for t in txs:
-        # Check specific split for this account if exists
         matched_split = next((s for s in t.splits if s.account_name == account_name or s.account_name.startswith(prefix)), None)
         split_amt = matched_split.amount if matched_split else (t.inflow if t.inflow > 0 else -t.outflow)
 
@@ -689,7 +748,9 @@ def get_account_statement_data(db: Session, account_name: str) -> Dict[str, Any]
             ]
         })
 
-    guj = DYNAMIC_GUJARATI_TERMS.get(account_name.upper())
+    # Retrieve custom label from database
+    acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.full_name == account_name).first()
+    guj = acc.gujarati_name if acc else DEFAULT_GUJARATI_MAP.get(account_name.upper())
 
     return {
         "account_name": account_name,
@@ -699,4 +760,65 @@ def get_account_statement_data(db: Session, account_name: str) -> Dict[str, Any]
         "net_balance": round(total_in - total_out, 2),
         "transaction_count": len(tx_list),
         "transactions": tx_list
+    }
+
+
+def get_all_registered_accounts(db: Session) -> List[Dict[str, Any]]:
+    sync_consolidated_accounts(db)
+    accs = db.query(models.ConsolidatedAccount).order_by(
+        models.ConsolidatedAccount.root_type,
+        models.ConsolidatedAccount.display_order,
+        models.ConsolidatedAccount.full_name
+    ).all()
+
+    return [
+        {
+            "id": a.id,
+            "full_name": a.full_name,
+            "name": a.name,
+            "parent_name": a.parent_name,
+            "root_type": a.root_type,
+            "gujarati_name": a.gujarati_name,
+            "business_stream": a.business_stream,
+            "display_order": a.display_order,
+            "is_active": a.is_active
+        }
+        for a in accs
+    ]
+
+
+def update_account_metadata(
+    db: Session,
+    account_id: int,
+    gujarati_name: Optional[str] = None,
+    business_stream: Optional[str] = None,
+    display_order: Optional[int] = None,
+    is_active: Optional[bool] = None
+) -> Dict[str, Any]:
+    acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.id == account_id).first()
+    if not acc:
+        raise ValueError("Account not found")
+
+    if gujarati_name is not None:
+        acc.gujarati_name = gujarati_name.strip()
+    if business_stream is not None:
+        acc.business_stream = business_stream.strip()
+    if display_order is not None:
+        acc.display_order = display_order
+    if is_active is not None:
+        acc.is_active = is_active
+
+    db.commit()
+    db.refresh(acc)
+
+    return {
+        "id": acc.id,
+        "full_name": acc.full_name,
+        "name": acc.name,
+        "parent_name": acc.parent_name,
+        "root_type": acc.root_type,
+        "gujarati_name": acc.gujarati_name,
+        "business_stream": acc.business_stream,
+        "display_order": acc.display_order,
+        "is_active": acc.is_active
     }
