@@ -1,281 +1,246 @@
 #!/usr/bin/env python3
 """
-Supabase Database Keep-Alive & Health Check Script
-=================================================
-Automated activity monitoring system designed to verify connectivity,
-measure latency, and perform lightweight read-only queries against Supabase
-PostgreSQL databases to prevent inactivity-related pausing on free tiers.
+Supabase Database Live Keep-Alive & Health Check Script.
 
-Features:
-- Pure read-only operation (SELECT 1). Zero risk of data mutation.
-- Automatic credential resolution (DATABASE_URL, backend/.env, individual PG envs).
-- Strict credential masking to prevent password leakage in logs and CI summaries.
-- Configurable connection timeouts and graceful error handling.
-- Exit code 0 for healthy, 1 for errors (CI/CD friendly).
+Periodically sends a lightweight request to the live deployment and/or Supabase database.
+This helps prevent inactivity pausing on free tier instances.
+
+DISCLAIMER:
+This can help prevent inactivity, but it is not a guaranteed way to prevent pausing.
+Do not rely on this for production availability.
+
+SECURITY:
+- No database credentials, usernames, or passwords are hardcoded or exposed publicly.
+- Credentials are read securely from environment variables / backend/.env (when available).
+- Live health check can run against the public live API without needing any database credentials.
+- All logs and outputs mask sensitive details.
 """
 
-import sys
 import os
+import sys
 import time
-import argparse
 import json
-import logging
-from datetime import datetime, timezone
-from urllib.parse import urlparse, urlunparse
+import urllib.request
+import urllib.error
+import argparse
+import datetime
+from pathlib import Path
+from dotenv import load_dotenv
 
-# Optional dotenv support for local environments
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    load_dotenv = None
+# Locate environment file safely (if running locally or in container with .env)
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+ENV_PATHS = [
+    PROJECT_ROOT / "backend" / ".env",
+    PROJECT_ROOT / ".env",
+    Path(".env")
+]
 
-# Configure logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-logger = logging.getLogger("supabase_keepalive")
+for p in ENV_PATHS:
+    if p.exists():
+        load_dotenv(p, override=False)
+        break
+
+LOG_FILE = SCRIPT_DIR / "supabase_health.log"
 
 
-def mask_database_url(url: str) -> str:
-    """
-    Safely masks user passwords in database connection strings.
-    Example:
-            """
-    if not url:
-        return "<empty>"
+def log_event(message: str):
+    """Safely append to local log file."""
     try:
-        parsed = urlparse(url)
-        if parsed.password:
-            netloc = f"{parsed.username}:***@{parsed.hostname}"
-            if parsed.port:
-                netloc += f":{parsed.port}"
-            return urlunparse((
-                parsed.scheme,
-                netloc,
-                parsed.path,
-                parsed.params,
-                parsed.query,
-                parsed.fragment
-            ))
-        return url
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(message + "\n")
     except Exception:
-        # Fallback regex-style replacement if parsing fails
-        import re
-        return re.sub(r":([^@/]+)@", ":***@", url)
+        pass
 
 
-def resolve_database_url() -> tuple[str, str]:
+def get_sanitized_target(db_url: str) -> str:
+    """Extract host without exposing passwords or usernames."""
+    try:
+        if "@" in db_url:
+            host_part = db_url.split("@")[-1].split("/")[0]
+            return f"postgresql://***:***@{host_part}"
+        return "configured database"
+    except Exception:
+        return "configured database"
+
+
+def ping_live_url(url: str, as_json: bool = False, timeout: int = 30) -> bool:
     """
-    Resolves the database URL from environment variables or .env files.
-    Returns:
-        tuple[url, source_description]
+    Pings the live backend health endpoint.
+    The live backend securely runs a query against Supabase, keeping both alive.
+    Zero database credentials are required from the caller!
     """
-    # 1. Check existing environment variable
-    env_keys = ["DATABASE_URL", "SUPABASE_DATABASE_URL", "SUPABASE_DB_URL"]
-    for key in env_keys:
-        val = os.getenv(key)
-        if val and val.strip():
-            return val.strip(), f"environment variable ({key})"
-
-    # 2. Try loading from .env files if dotenv is available
-    if load_dotenv:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(script_dir)
-        candidates = [
-            os.path.join(project_root, "backend", ".env"),
-            os.path.join(project_root, ".env"),
-            os.path.join(os.getcwd(), "backend", ".env"),
-            os.path.join(os.getcwd(), ".env"),
-        ]
-        for path in candidates:
-            if os.path.exists(path):
-                load_dotenv(path)
-                for key in env_keys:
-                    val = os.getenv(key)
-                    if val and val.strip():
-                        return val.strip(), f".env file ({os.path.basename(path)})"
-
-    # 3. Check individual PG variables
-    pg_user = os.getenv("SUPABASE_DB_USER") or os.getenv("PGUSER") or os.getenv("user")
-    pg_pass = os.getenv("SUPABASE_DB_PASSWORD") or os.getenv("PGPASSWORD")
-    pg_host = os.getenv("SUPABASE_DB_HOST") or os.getenv("PGHOST") or os.getenv("host")
-    pg_port = os.getenv("SUPABASE_DB_PORT") or os.getenv("PGPORT") or os.getenv("port", "5432")
-    pg_name = os.getenv("SUPABASE_DB_NAME") or os.getenv("PGDATABASE") or os.getenv("database", "postgres")
-
-    if pg_user and pg_pass and pg_host:
-        constructed = f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_name}"
-        return constructed, "individual connection variables"
-
-    return "", "not found"
-
-
-def normalize_sqlalchemy_url(raw_url: str) -> str:
-    """
-    Ensures URL has standard SQLAlchemy postgresql driver prefix.
-    """
-    url = raw_url
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
-    elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
-        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    return url
-
-
-def run_database_health_check(db_url: str, timeout_sec: int = 15) -> dict:
-    """
-    Connects to PostgreSQL using SQLAlchemy with timeout and executes SELECT 1.
-    Returns a dictionary of execution metrics.
-    """
-    from sqlalchemy import create_engine, text
-
-    norm_url = normalize_sqlalchemy_url(db_url)
-    masked_target = mask_database_url(db_url)
-
-    engine_args = {
-        "connect_args": {
-            "connect_timeout": timeout_sec
-        },
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-    }
-
-    start_time = time.perf_counter()
-    connect_latency_ms = None
-    query_latency_ms = None
+    timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    start_time = time.time()
 
     try:
-        engine = create_engine(norm_url, **engine_args)
-        
-        t0 = time.perf_counter()
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "Supabase-Live-KeepAlive/1.0",
+                "Accept": "application/json"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            elapsed_ms = round((time.time() - start_time) * 1000, 2)
+            data = json.loads(resp.read().decode())
+
+            status = data.get("status", "unknown")
+            db_status = data.get("database", "unknown")
+            db_latency = data.get("latency_ms", "N/A")
+
+            if resp.status == 200 and status == "ok":
+                if as_json:
+                    print(json.dumps({
+                        "mode": "live_endpoint",
+                        "status": "healthy",
+                        "alive": True,
+                        "url": url,
+                        "database_status": db_status,
+                        "db_latency_ms": db_latency,
+                        "total_latency_ms": elapsed_ms,
+                        "timestamp": timestamp_str
+                    }))
+                else:
+                    msg = f"[{timestamp_str}] SUCCESS: Live endpoint pinged ({url}) - DB Status: {db_status} ({db_latency}ms) - Total: {elapsed_ms}ms"
+                    print(msg)
+                log_event(f"[{timestamp_str}] SUCCESS: Live endpoint pinged ({url}) - DB: {db_status}")
+                return True
+            else:
+                msg = f"[{timestamp_str}] WARNING: Unexpected live response: {data}"
+                if as_json:
+                    print(json.dumps({"mode": "live_endpoint", "status": "warning", "response": data, "timestamp": timestamp_str}))
+                else:
+                    print(msg)
+                log_event(msg)
+                return False
+
+    except Exception as e:
+        elapsed_ms = round((time.time() - start_time) * 1000, 2)
+        msg = f"[{timestamp_str}] ERROR: Failed to reach live health endpoint ({url}): {e} ({elapsed_ms}ms)"
+        if as_json:
+            print(json.dumps({"mode": "live_endpoint", "status": "error", "error": str(e), "timestamp": timestamp_str}))
+        else:
+            print(msg, file=sys.stderr)
+        log_event(msg)
+        return False
+
+
+def ping_supabase(as_json: bool = False, timeout: int = 15) -> bool:
+    """Executes a direct lightweight SELECT 1 query against the database pooler."""
+    raw_url = os.getenv("DATABASE_URL")
+    timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if not raw_url:
+        msg = f"[{timestamp_str}] NOTE: DATABASE_URL not provided (skipping direct pooler ping)."
+        if not as_json:
+            print(msg)
+        return False
+
+    db_url = raw_url
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+    target_info = get_sanitized_target(raw_url)
+
+    try:
+        from sqlalchemy import create_engine, text
+
+        engine = create_engine(
+            db_url,
+            connect_args={"connect_timeout": timeout},
+            pool_pre_ping=True
+        )
+
+        start_time = time.time()
         with engine.connect() as conn:
-            connect_latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-            
-            t1 = time.perf_counter()
-            result = conn.execute(
-                text("SELECT 1 AS alive, current_timestamp AS server_time, version() AS pg_version")
-            ).mappings().first()
-            query_latency_ms = round((time.perf_counter() - t1) * 1000, 2)
+            result = conn.execute(text("SELECT 1 AS alive, current_timestamp AS server_time, version() AS pg_version")).first()
+        elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
-        total_latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        server_time_str = str(result["server_time"]) if result and "server_time" in result else None
-        pg_version = str(result["pg_version"]).split()[0:2] if result and "pg_version" in result else []
-        version_summary = " ".join(pg_version) if pg_version else "PostgreSQL"
+        alive_val = result[0] if result else 0
+        server_time = str(result[1]) if result and len(result) > 1 else ""
+        pg_version = str(result[2]).split(",")[0] if result and len(result) > 2 else "PostgreSQL"
 
-        return {
-            "status": "healthy",
-            "alive": True,
-            "target": masked_target,
-            "server_time": server_time_str,
-            "pg_version": version_summary,
-            "connect_latency_ms": connect_latency_ms,
-            "query_latency_ms": query_latency_ms,
-            "total_latency_ms": total_latency_ms,
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            "error": None
-        }
+        if alive_val == 1:
+            if as_json:
+                print(json.dumps({
+                    "mode": "direct_database",
+                    "status": "healthy",
+                    "alive": True,
+                    "target": target_info,
+                    "server_time": server_time,
+                    "pg_version": pg_version,
+                    "latency_ms": elapsed_ms,
+                    "timestamp": timestamp_str
+                }))
+            else:
+                msg = f"[{timestamp_str}] SUCCESS: Direct ping to Supabase ({target_info}) - Latency: {elapsed_ms}ms"
+                print(msg)
+            log_event(f"[{timestamp_str}] SUCCESS: Direct ping ({target_info}) - Latency: {elapsed_ms}ms")
+            return True
+        else:
+            msg = f"[{timestamp_str}] WARNING: Unexpected query response: {result}"
+            if as_json:
+                print(json.dumps({"mode": "direct_database", "status": "warning", "response": str(result), "timestamp": timestamp_str}))
+            else:
+                print(msg)
+            log_event(msg)
+            return False
 
-    except Exception as exc:
-        total_latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        # Clean error message to avoid printing any credentials
-        err_msg = str(exc)
-        # Mask any occurrences of passwords that might appear in driver error messages
-        parsed = urlparse(db_url)
-        if parsed.password and parsed.password in err_msg:
-            err_msg = err_msg.replace(parsed.password, "***")
+    except Exception as e:
+        clean_err = f"{type(e).__name__}: {e}"
+        if raw_url and raw_url in clean_err:
+            clean_err = clean_err.replace(raw_url, "[REDACTED_DATABASE_URL]")
+        msg = f"[{timestamp_str}] ERROR: Failed direct connection to Supabase: {clean_err}"
 
-        return {
-            "status": "unhealthy",
-            "alive": False,
-            "target": masked_target,
-            "server_time": None,
-            "pg_version": None,
-            "connect_latency_ms": connect_latency_ms,
-            "query_latency_ms": None,
-            "total_latency_ms": total_latency_ms,
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            "error": err_msg
-        }
+        if as_json:
+            print(json.dumps({"mode": "direct_database", "status": "error", "error": clean_err, "timestamp": timestamp_str}))
+        else:
+            print(msg, file=sys.stderr)
+        log_event(msg)
+        return False
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Automated Supabase database activity keep-alive and health check."
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Supabase Live Keep-Alive & Health Check")
+    parser.add_argument(
+        "--live-url",
+        type=str,
+        default=os.getenv("LIVE_HEALTH_URL", "https://family-cost-and-effenciency-management.onrender.com/health"),
+        help="URL of the live deployment health endpoint"
     )
     parser.add_argument(
-        "--timeout",
-        type=int,
-        default=15,
-        help="Database connection timeout in seconds (default: 15)"
+        "--no-live",
+        action="store_true",
+        help="Skip pinging the live health URL"
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Output results strictly in JSON format (useful for CI/CD and automation scripts)"
+        help="Output in JSON format"
     )
     parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress informational stdout output except errors"
+        "--timeout",
+        type=int,
+        default=30,
+        help="Timeout in seconds"
     )
+
     args = parser.parse_args()
 
-    if args.quiet:
-        logger.setLevel(logging.ERROR)
+    live_ok = False
+    direct_ok = False
 
-    # 1. Resolve connection string
-    db_url, source = resolve_database_url()
+    # 1. Ping Live Deployment (No credentials needed from caller)
+    if not args.no_live and args.live_url:
+        live_ok = ping_live_url(args.live_url, as_json=args.json, timeout=args.timeout)
 
-    if not db_url:
-        err_payload = {
-            "status": "failed",
-            "alive": False,
-            "target": None,
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            "error": (
-                "Missing database connection URL. Please set DATABASE_URL or "
-                "configure backend/.env with valid Supabase PostgreSQL credentials."
-            )
-        }
-        if args.json:
-            print(json.dumps(err_payload, indent=2))
-        else:
-            logger.error("❌ %s", err_payload["error"])
-        sys.exit(1)
+    # 2. Ping Direct Database (if DATABASE_URL is available)
+    if os.getenv("DATABASE_URL"):
+        direct_ok = ping_supabase(as_json=args.json, timeout=min(args.timeout, 15))
 
-    masked_url = mask_database_url(db_url)
-    if not args.json and not args.quiet:
-        logger.info("Initiating Supabase Keep-Alive Health Check...")
-        logger.info("Target: %s (resolved from %s)", masked_url, source)
-        logger.info("Timeout: %d seconds", args.timeout)
-
-    # 2. Execute lightweight read-only query
-    result = run_database_health_check(db_url, timeout_sec=args.timeout)
-
-    # 3. Output results
-    if args.json:
-        print(json.dumps(result, indent=2))
-    else:
-        if result["status"] == "healthy":
-            logger.info("✅ Supabase database is REACHABLE and ACTIVE!")
-            logger.info("Server Time: %s", result["server_time"])
-            logger.info("Engine: %s", result["pg_version"])
-            logger.info(
-                "Latency: Connect %sms | Query %sms | Total %sms",
-                result["connect_latency_ms"],
-                result["query_latency_ms"],
-                result["total_latency_ms"]
-            )
-        else:
-            logger.error("❌ Supabase database health check FAILED!")
-            logger.error("Target: %s", result["target"])
-            logger.error("Duration: %sms", result["total_latency_ms"])
-            logger.error("Error Detail: %s", result["error"])
-
-    # 4. Exit code
-    sys.exit(0 if result["status"] == "healthy" else 1)
-
-
-if __name__ == "__main__":
-    main()
+    # Succeed if either live endpoint or direct database connection succeeded
+    success = live_ok or direct_ok
+    sys.exit(0 if success else 1)

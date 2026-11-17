@@ -68,12 +68,9 @@ def root():
     return {"message": "Welcome to the Joint Family Expense & Business Manager API!"}
 
 @app.get("/health")
-@app.get("/api/health")
 def health_check(db: Session = Depends(get_db)):
-    t0 = datetime.datetime.utcnow()
     db.execute(text("SELECT 1"))
-    latency_ms = round((datetime.datetime.utcnow() - t0).total_seconds() * 1000, 2)
-    return {"status": "ok", "database": "connected", "latency_ms": latency_ms, "timestamp": datetime.datetime.utcnow().isoformat()}
+    return {"status": "ok"}
 
 # ----------------- AUTH ENDPOINTS -----------------
 @app.post("/api/auth/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)

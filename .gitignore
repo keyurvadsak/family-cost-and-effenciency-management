@@ -1,4 +1,14 @@
 backend/venv
+.venv
 .env
+*.env
+*.env.*
+backend/.env
+frontend/.env
 .env.server
-__pycache__
+__pycache__/
+*.pyc
+*.log
+scripts/*.log
+dist/
+node_modules/

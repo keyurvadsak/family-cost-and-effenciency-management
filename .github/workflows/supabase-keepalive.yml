@@ -1,88 +1,41 @@
-name: Supabase Database Keep-Alive & Health Check
+name: Live Supabase Database Keep-Alive
 
-'on':
-  # Daily scheduled execution (Runs every 24 hours at 06:00 UTC / 11:30 AM IST)
+# Scheduled job to periodically make a lightweight request to the live deployment & Supabase project.
+# This can help prevent inactivity, but it is not a guaranteed way to prevent pausing.
+# Do not rely on this for production availability.
+#
+# Runs automatically in the cloud every 24 hours. Does not require your local computer to be on.
+# All credentials remain strictly private and are never exposed publicly.
+
+on:
   schedule:
+    # Runs once every 24 hours at 06:00 UTC
     - cron: '0 6 * * *'
-  
-  # Allows manual triggers from the GitHub Actions tab
-  workflow_dispatch:
-    inputs:
-      verbose:
-        description: 'Enable verbose output'
-        required: false
-        default: 'false'
-        type: boolean
-
-concurrency:
-  group: supabase-keepalive
-  cancel-in-progress: true
+  workflow_dispatch: # Allows 1-click manual trigger from GitHub Actions UI
 
 jobs:
-  health-check:
-    name: Database Ping & Activity Monitor
+  live-health-check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Checkout Code Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set Up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - name: Install Minimal Health Check Dependencies
+      - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install sqlalchemy psycopg2-binary python-dotenv
+          pip install --no-cache-dir sqlalchemy psycopg2-binary python-dotenv
 
-      - name: Execute Supabase Keep-Alive Health Check
-        id: health_check
+      - name: Execute Live Keep-Alive Health Check
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.SUPABASE_DATABASE_URL }}
+          # Optional: Read from GitHub Secrets if configured. If not configured, the script
+          # safely pings the live Render endpoint which connects to Supabase without public creds.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LIVE_HEALTH_URL: "https://family-cost-and-effenciency-management.onrender.com/health"
         run: |
-          echo "Executing Supabase keep-alive script..."
-          # Execute health check and save JSON output to file
-          python scripts/supabase_health_check.py --json > health_result.json 2>&1 || true
-          cat health_result.json
-
-          # Parse status safely
-          STATUS=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('status', 'unknown'))")
-          ALIVE=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('alive', False))")
-          LATENCY=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('total_latency_ms', 'N/A'))")
-          TARGET=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('target', 'N/A'))")
-          SERVER_TIME=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('server_time', 'N/A'))")
-          VERSION=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('pg_version', 'N/A'))")
-          ERR_MSG=$(python -c "import json; data=json.load(open('health_result.json')); print(data.get('error', 'None'))")
-
-          # Write formatted summary to GitHub Actions Step Summary
-          echo "## 🛡️ Supabase Keep-Alive Health Check Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "$STATUS" = "healthy" ]; then
-            echo "### Status: ✅ ACTIVE & HEALTHY" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### Status: ❌ FAILED / INACTIVE" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target Database** | \`$TARGET\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Engine** | $VERSION |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Server Time (UTC)** | $SERVER_TIME |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Total Latency** | ${LATENCY} ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Check Timestamp** | $(date -u) |" >> $GITHUB_STEP_SUMMARY
-          if [ "$STATUS" != "healthy" ]; then
-            echo "| **Error Message** | \`$ERR_MSG\` |" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> *Note: This keep-alive mechanism performs lightweight read-only queries (\`SELECT 1\`) to maintain periodic database activity and mitigate Supabase Free tier inactivity pausing.*" >> $GITHUB_STEP_SUMMARY
-
-          # Check final success
-          if [ "$ALIVE" != "True" ]; then
-            echo "Health check failed with error: $ERR_MSG"
-            exit 1
-          fi
-          echo "Health check succeeded."
+          python scripts/supabase_health_check.py --live-url "$LIVE_HEALTH_URL"
