@@ -239,9 +239,66 @@ def parse_float_amount(amt_str: Optional[str]) -> float:
 def process_consolidated_csv(
     file_bytes: bytes,
     db: Session,
+    type_file_bytes: Optional[bytes] = None,
     user_id: Optional[int] = None,
     filename: Optional[str] = None
 ) -> Dict[str, Any]:
+    # 1. If type_file_bytes is provided, dynamically update/seed models.ConsolidatedAccount
+    accounts_updated_count = 0
+    if type_file_bytes:
+        try:
+            type_text = type_file_bytes.decode("utf-8-sig", errors="replace")
+            type_reader = csv.DictReader(io.StringIO(type_text))
+            existing_accs = {a.full_name: a for a in db.query(models.ConsolidatedAccount).all()}
+            
+            for r in type_reader:
+                full_n = (r.get("Full Account Name") or "").strip()
+                leaf_n = (r.get("Account Name") or "").strip()
+                t = (r.get("Type") or "").strip().upper()
+                if not full_n and leaf_n:
+                    full_n = leaf_n
+                if not leaf_n and full_n:
+                    leaf_n = full_n.split(":")[-1].strip()
+                
+                if full_n and t:
+                    parts = [p.strip() for p in full_n.split(':') if p.strip()]
+                    parent = ':'.join(parts[:-1]) if len(parts) > 1 else None
+                    guj = DEFAULT_GUJARATI_MAP.get(full_n.upper()) or DEFAULT_GUJARATI_MAP.get(leaf_n.upper()) or leaf_n
+                    stream = infer_business_stream(full_n)
+
+                    if full_n in existing_accs:
+                        acc = existing_accs[full_n]
+                        acc.name = leaf_n
+                        acc.parent_name = parent
+                        acc.root_type = t
+                        if not acc.gujarati_name:
+                            acc.gujarati_name = guj
+                        if not acc.business_stream:
+                            acc.business_stream = stream
+                        acc.is_active = True
+                    else:
+                        new_acc = models.ConsolidatedAccount(
+                            full_name=full_n,
+                            name=leaf_n,
+                            parent_name=parent,
+                            root_type=t,
+                            gujarati_name=guj,
+                            business_stream=stream,
+                            display_order=100,
+                            is_active=True
+                        )
+                        db.add(new_acc)
+                        existing_accs[full_n] = new_acc
+                    accounts_updated_count += 1
+            db.commit()
+        except Exception as e:
+            print(f"Error parsing type.csv: {e}")
+
+    # Build live dynamic account type lookup
+    acc_type_lookup: Dict[str, str] = {
+        a.full_name: a.root_type for a in db.query(models.ConsolidatedAccount).all()
+    }
+
     text_content = file_bytes.decode("utf-8-sig", errors="replace")
     reader = csv.DictReader(io.StringIO(text_content))
     rows = list(reader)
@@ -354,7 +411,7 @@ def process_consolidated_csv(
             s_acc = (s.get("Full Account Name") or "").strip()
             s_amt = parse_float_amount(s.get("Amount Num."))
             s_memo = (s.get("Memo") or "").strip()
-            acc_type = infer_root_type(s_acc)
+            acc_type = acc_type_lookup.get(s_acc) or infer_root_type(s_acc)
 
             split_obj = models.ConsolidatedSplit(
                 account_name=s_acc,
@@ -376,6 +433,8 @@ def process_consolidated_csv(
     total_in_file = len(tx_groups)
     new_added = len(new_tx_models)
     msg = f"જૂનો હિસાબ સાફ કરીને નવા {new_added} વ્યવહારો સફળતાપૂર્વક સાચવવામાં આવ્યા."
+    if accounts_updated_count > 0:
+        msg += f" ({accounts_updated_count} એકાઉન્ટ પ્રકાર અપડેટ થયા)"
 
     d_min = min(all_dates).strftime("%d-%m-%Y") if all_dates else None
     d_max = max(all_dates).strftime("%d-%m-%Y") if all_dates else None
@@ -429,11 +488,10 @@ def build_generic_statement_tree(
     for a in accounts:
         raw_amt = amt_map.get(a.full_name, 0.0)
         # Sign normalization:
-        # Assets & Cash: Debit > 0
-        # Liabilities, Equity, Income: Credit balances are negative in splits, so we use absolute values
-        # Expenses: Debit balances are positive
-        if a.root_type in ('INCOME', 'LIABILITY', 'EQUITY', 'EXPENSE'):
-            direct_bal = abs(raw_amt)
+        # ASSET, CASH, BANK, EXPENSE: normal balance is Debit (+) -> Display Balance = raw_amt
+        # LIABILITY, EQUITY, INCOME: normal balance is Credit (-) in raw GnuCash splits -> Display Balance = -raw_amt
+        if a.root_type in ('INCOME', 'LIABILITY', 'EQUITY'):
+            direct_bal = -raw_amt
         else:
             direct_bal = raw_amt
 
@@ -507,11 +565,10 @@ def get_accounts_tree_data(db: Session) -> List[Dict[str, Any]]:
 
     # Helper to convert to AccountTreeNode format expected by frontend tree
     def format_tree_node(n: Dict[str, Any]) -> Dict[str, Any]:
-        ac_type, _ = infer_account_type(n['name'], n['full_name'])
         return {
             'name': n['name'],
             'full_name': n['full_name'],
-            'type': ac_type,
+            'type': n['root_type'],
             'gujarati_name': n['gujarati_name'],
             'balance': n['balance'],
             'tx_count': 0,
@@ -551,8 +608,8 @@ def get_balance_sheet_data(db: Session, as_of_date_str: Optional[str] = None) ->
     amt_map = {n: float(a or 0.0) for n, a in splits}
     all_accs = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.is_active == True).all()
 
-    # 1. Assets (All accounts marked ASSET)
-    asset_accs = [a for a in all_accs if a.root_type == 'ASSET']
+    # 1. Assets (All accounts marked ASSET, CASH, BANK)
+    asset_accs = [a for a in all_accs if a.root_type in ('ASSET', 'CASH', 'BANK')]
     asset_roots = build_generic_statement_tree(asset_accs, amt_map)
     total_asset = round(sum(r['balance'] for r in asset_roots), 2)
 
@@ -701,32 +758,97 @@ def get_income_statement_data(
 def get_account_statement_data(db: Session, account_name: str) -> Dict[str, Any]:
     """
     Returns full ledger statement for a single account:
-    All matching transactions, splits, inflows, outflows, and net balance.
+    Accurately tracks all debit and credit splits according to account type (Asset, Liability, Equity, Income, Expense).
+    Guarantees that net_balance EXACTLY matches the Chart of Accounts Tree and Balance Sheet.
     """
     prefix = f"{account_name}:"
-    query = db.query(models.ConsolidatedTransaction).filter(
-        (models.ConsolidatedTransaction.primary_account == account_name) |
-        (models.ConsolidatedTransaction.primary_account.startswith(prefix)) |
-        (models.ConsolidatedTransaction.splits.any(
-            (models.ConsolidatedSplit.account_name == account_name) |
-            (models.ConsolidatedSplit.account_name.startswith(prefix))
-        ))
-    ).order_by(models.ConsolidatedTransaction.date.desc(), models.ConsolidatedTransaction.id.desc())
 
-    txs = query.all()
+    # 1. Retrieve account metadata
+    acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.full_name == account_name).first()
+    acc_type = acc.root_type if acc else infer_root_type(account_name)
+    guj = acc.gujarati_name if acc else DEFAULT_GUJARATI_MAP.get(account_name.upper())
+
+    # 2. Query all matching splits
+    # If account_name is a parent (like ASSETS), ensure we only include sub-accounts belonging to the same root_type category
+    if acc_type in ('ASSET', 'CASH', 'BANK'):
+        allowed_types = ('ASSET', 'CASH', 'BANK')
+    else:
+        allowed_types = (acc_type,)
+
+    splits = db.query(models.ConsolidatedSplit).join(models.ConsolidatedTransaction).filter(
+        (models.ConsolidatedSplit.account_name == account_name) |
+        (models.ConsolidatedSplit.account_name.startswith(prefix))
+    ).filter(
+        models.ConsolidatedSplit.account_type.in_(allowed_types)
+    ).order_by(
+        models.ConsolidatedTransaction.date.desc(),
+        models.ConsolidatedTransaction.id.desc(),
+        models.ConsolidatedSplit.id.asc()
+    ).all()
+
+    # 3. Group by transaction to produce 1 line per transaction affecting this account
+    from collections import OrderedDict
+    tx_map: Dict[int, Dict[str, Any]] = OrderedDict()
+
+    for s in splits:
+        t = s.transaction
+        if t.id not in tx_map:
+            tx_map[t.id] = {
+                "transaction": t,
+                "net_split_amt": 0.0,
+                "splits": t.splits
+            }
+        tx_map[t.id]["net_split_amt"] += s.amount
 
     total_in = 0.0
     total_out = 0.0
     tx_list = []
 
-    for t in txs:
-        matched_split = next((s for s in t.splits if s.account_name == account_name or s.account_name.startswith(prefix)), None)
-        split_amt = matched_split.amount if matched_split else (t.inflow if t.inflow > 0 else -t.outflow)
+    for tx_id, data in tx_map.items():
+        t = data["transaction"]
+        amt = round(data["net_split_amt"], 2)
 
-        in_val = t.inflow
-        out_val = t.outflow
+        # Assign in_val and out_val based on account type
+        if acc_type in ('ASSET', 'CASH', 'BANK'):
+            # Debit (+) increases asset; Credit (-) decreases asset
+            if amt > 0:
+                in_val = amt
+                out_val = 0.0
+            else:
+                in_val = 0.0
+                out_val = abs(amt)
+        elif acc_type in ('LIABILITY', 'EQUITY', 'INCOME'):
+            # Credit (-) increases liability/equity/income; Debit (+) decreases / repays
+            if amt < 0:
+                in_val = abs(amt)
+                out_val = 0.0
+            else:
+                in_val = 0.0
+                out_val = amt
+        else: # EXPENSE
+            # Debit (+) is expense incurred; Credit (-) is reversal/refund
+            if amt > 0:
+                in_val = 0.0
+                out_val = amt
+            else:
+                in_val = abs(amt)
+                out_val = 0.0
+
         total_in += in_val
         total_out += out_val
+
+        # Determine transfer / contra account
+        contra_splits = [sp for sp in t.splits if sp.account_name != account_name and not sp.account_name.startswith(prefix)]
+        if len(contra_splits) == 1:
+            contra_acc = contra_splits[0].account_name
+            contra_label = get_dynamic_gujarati_label(contra_acc, contra_acc.split(':')[-1], db=db)
+        elif len(contra_splits) > 1:
+            unique_accs = list(dict.fromkeys(sp.account_name for sp in contra_splits))
+            contra_acc = ', '.join(unique_accs)
+            contra_label = f"બહુવિધ ખાતા ({len(unique_accs)})"
+        else:
+            contra_acc = t.primary_account or "-"
+            contra_label = contra_acc
 
         tx_list.append({
             "id": t.id,
@@ -735,29 +857,36 @@ def get_account_statement_data(db: Session, account_name: str) -> Dict[str, Any]
             "notes": t.notes,
             "primary_account": t.primary_account,
             "business_stream": t.business_stream,
-            "inflow": in_val,
-            "outflow": out_val,
-            "split_amount": split_amt,
+            "transfer_account": contra_acc,
+            "transfer_account_label": contra_label,
+            "inflow": round(in_val, 2),
+            "outflow": round(out_val, 2),
+            "split_amount": amt,
             "splits": [
                 {
-                    "account_name": s.account_name,
-                    "amount": s.amount,
-                    "memo": s.memo
+                    "account_name": sp.account_name,
+                    "amount": sp.amount,
+                    "memo": sp.memo
                 }
-                for s in t.splits
+                for sp in data["splits"]
             ]
         })
 
-    # Retrieve custom label from database
-    acc = db.query(models.ConsolidatedAccount).filter(models.ConsolidatedAccount.full_name == account_name).first()
-    guj = acc.gujarati_name if acc else DEFAULT_GUJARATI_MAP.get(account_name.upper())
+    total_in = round(total_in, 2)
+    total_out = round(total_out, 2)
+
+    if acc_type == 'EXPENSE':
+        net_bal = round(total_out - total_in, 2)
+    else:
+        net_bal = round(total_in - total_out, 2)
 
     return {
         "account_name": account_name,
+        "root_type": acc_type,
         "gujarati_name": guj,
-        "total_inflow": round(total_in, 2),
-        "total_outflow": round(total_out, 2),
-        "net_balance": round(total_in - total_out, 2),
+        "total_inflow": total_in,
+        "total_outflow": total_out,
+        "net_balance": net_bal,
         "transaction_count": len(tx_list),
         "transactions": tx_list
     }

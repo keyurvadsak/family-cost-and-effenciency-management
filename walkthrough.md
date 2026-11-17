@@ -121,3 +121,13 @@ The application has been completely redesigned to eliminate all casual graphs/ch
 ### 3. Print / Official Report Mode
 - Clicking **"પ્રિન્ટ પત્રક"** or pressing `Ctrl + P` renders an official, clean black & white stamped ledger format, automatically stripping out screen-only navigation, modals, and buttons.
 
+---
+
+## Supabase Database Keep-Alive & Activity Monitoring
+
+To prevent Supabase Free Tier inactivity pauses (which occur after ~7 days of inactivity), a zero-overhead keep-alive monitoring mechanism is implemented:
+- **Standalone Runner**: [scripts/supabase_health_check.py](file:///d:/python/HOME%20PROJECT%20Vadsak/scripts/supabase_health_check.py) connects via SQLAlchemy to Supabase PostgreSQL, runs `SELECT 1`, measures latency, and exits cleanly.
+- **GitHub Actions Automation**: [.github/workflows/supabase-keepalive.yml](file:///d:/python/HOME%20PROJECT%20Vadsak/.github/workflows/supabase-keepalive.yml) runs every 24 hours at 06:00 UTC and supports manual dispatch.
+- **FastAPI Health Endpoint**: `/health` and `/api/health` verify live database connectivity and return response latency in milliseconds.
+- **Documentation**: Comprehensive instructions in [docs/SUPABASE_KEEPALIVE.md](file:///d:/python/HOME%20PROJECT%20Vadsak/docs/SUPABASE_KEEPALIVE.md).
+

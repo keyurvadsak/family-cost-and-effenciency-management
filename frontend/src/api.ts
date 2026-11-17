@@ -256,6 +256,9 @@ export interface ConsolidatedSummary {
   period_outflow: number;
   net_change: number;
   total_count: number;
+  total_asset?: number;
+  total_liability?: number;
+  asset_liability_diff?: number;
   available_years: string[];
   available_months: string[];
   available_categories: string[];
@@ -378,6 +381,8 @@ export interface AccountStatementTx {
   notes?: string | null;
   primary_account: string;
   business_stream: string;
+  transfer_account?: string;
+  transfer_account_label?: string;
   inflow: number;
   outflow: number;
   split_amount: number;
@@ -390,6 +395,7 @@ export interface AccountStatementTx {
 
 export interface AccountStatementData {
   account_name: string;
+  root_type?: string;
   gujarati_name?: string;
   total_inflow: number;
   total_outflow: number;
@@ -415,9 +421,12 @@ export const consolidatedApi = {
     const response = await api.get('/consolidated/account-statement', { params: { account } });
     return response.data;
   },
-  upload: async (file: File): Promise<ConsolidatedUploadResponse> => {
+  upload: async (file: File, typeFile?: File | null): Promise<ConsolidatedUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (typeFile) {
+      formData.append('type_file', typeFile);
+    }
     const response = await api.post('/consolidated/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

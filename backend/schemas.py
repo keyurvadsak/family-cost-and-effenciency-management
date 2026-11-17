@@ -186,6 +186,9 @@ class ConsolidatedSummaryResponse(BaseModel):
     period_outflow: float
     net_change: float
     total_count: int
+    total_asset: float = 0.0
+    total_liability: float = 0.0
+    asset_liability_diff: float = 0.0
     available_years: List[str]
     available_months: List[str]
     available_categories: List[str]

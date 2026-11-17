@@ -68,9 +68,12 @@ def root():
     return {"message": "Welcome to the Joint Family Expense & Business Manager API!"}
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check(db: Session = Depends(get_db)):
+    t0 = datetime.datetime.utcnow()
     db.execute(text("SELECT 1"))
-    return {"status": "ok"}
+    latency_ms = round((datetime.datetime.utcnow() - t0).total_seconds() * 1000, 2)
+    return {"status": "ok", "database": "connected", "latency_ms": latency_ms, "timestamp": datetime.datetime.utcnow().isoformat()}
 
 # ----------------- AUTH ENDPOINTS -----------------
 @app.post("/api/auth/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
@@ -468,17 +471,21 @@ def delete_business_investment(
 @app.post("/api/consolidated/upload", response_model=schemas.ConsolidatedUploadResponse)
 async def upload_consolidated_csv(
     file: UploadFile = File(...),
+    type_file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
     """
-    Upload monthly GnuCash CSV / transaction ledger.
-    Duplicate prevention: checks existing tx_guid before insertion.
+    Dual CSV Upload:
+    1. type_file (optional): Account Names and Types (type.csv)
+    2. file (required): Transaction entries and splits (1711.csv)
     """
     content = await file.read()
+    type_content = await type_file.read() if type_file else None
     result = consolidated_service.process_consolidated_csv(
         file_bytes=content,
         db=db,
+        type_file_bytes=type_content,
         user_id=current_user.id,
         filename=file.filename
     )
@@ -642,12 +649,29 @@ def get_consolidated_summary(
             seen_m.add(m_str)
             month_set.append(m_str)
 
+    # Calculate all-time Total Assets and Total Liabilities from start to end
+    root_sums = dict(
+        db.query(
+            models.ConsolidatedAccount.root_type,
+            func.sum(models.ConsolidatedSplit.amount)
+        ).join(
+            models.ConsolidatedAccount,
+            models.ConsolidatedSplit.account_name == models.ConsolidatedAccount.full_name
+        ).group_by(models.ConsolidatedAccount.root_type).all()
+    )
+    tot_asset = float((root_sums.get('ASSET') or 0.0) + (root_sums.get('CASH') or 0.0) + (root_sums.get('BANK') or 0.0))
+    tot_liab = abs(float(root_sums.get('LIABILITY') or 0.0))
+    tot_diff = round(tot_asset - tot_liab, 2)
+
     return {
         "net_cash_balance": float(cb_sum),
         "period_inflow": float(p_inflow),
         "period_outflow": float(p_outflow),
         "net_change": float(p_net),
         "total_count": total_count,
+        "total_asset": float(tot_asset),
+        "total_liability": float(tot_liab),
+        "asset_liability_diff": float(tot_diff),
         "available_years": all_years,
         "available_months": month_set,
         "available_categories": all_cats,
